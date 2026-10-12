@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Package, Search, PackagePlus, CheckCircle2, AlertCircle } from "lucide-react";
+import { Package, Search, PackagePlus, CheckCircle2, AlertCircle, Calendar } from "lucide-react";
 import { formatUSD } from "@/lib/format";
 
 interface BatchesViewProps {
@@ -66,17 +66,17 @@ export function BatchesView({
             placeholder="Yo‘nalish, reys, ta‘minotchi qidirish..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50/70 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-full focus:bg-white dark:focus:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white transition-all"
+            className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50/70 dark:bg-slate-700/60 border border-slate-200 dark:border-slate-600 rounded-full focus:bg-white dark:focus:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white transition-all"
           />
         </div>
 
         {/* Status Filter Tabs */}
-        <div className="flex items-center gap-1 bg-slate-100/70 dark:bg-slate-700/50 p-1 rounded-full w-full sm:w-auto">
+        <div className="flex items-center gap-1 bg-slate-100/70 dark:bg-slate-700/60 p-1 rounded-full w-full sm:w-auto">
           <button
             onClick={() => setFilter("ALL")}
             className={`px-4 py-1.5 text-xs font-semibold rounded-full transition-all cursor-pointer ${
               filter === "ALL"
-                ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs"
+                ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs"
                 : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
             }`}
           >
@@ -86,7 +86,7 @@ export function BatchesView({
             onClick={() => setFilter("ACTIVE")}
             className={`px-4 py-1.5 text-xs font-semibold rounded-full transition-all cursor-pointer ${
               filter === "ACTIVE"
-                ? "bg-white dark:bg-slate-900 text-blue-700 dark:text-blue-400 shadow-xs"
+                ? "bg-white dark:bg-slate-800 text-blue-700 dark:text-blue-400 shadow-xs"
                 : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
             }`}
           >
@@ -96,7 +96,7 @@ export function BatchesView({
             onClick={() => setFilter("COMPLETED")}
             className={`px-4 py-1.5 text-xs font-semibold rounded-full transition-all cursor-pointer ${
               filter === "COMPLETED"
-                ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs"
+                ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs"
                 : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
             }`}
           >
@@ -105,12 +105,118 @@ export function BatchesView({
         </div>
       </div>
 
-      {/* Batches Table */}
-      <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200/70 dark:border-slate-700 overflow-hidden shadow-xs p-2">
+      {/* MOBILE LIST VIEW */}
+      <div className="space-y-3 block md:hidden">
+        {filteredBatches.map((batch) => {
+          const soldQty = batch.totalQty - batch.remainingQty;
+          const percentSold = Math.round((soldQty / batch.totalQty) * 100);
+
+          return (
+            <div
+              key={batch.id}
+              className="bg-white dark:bg-slate-800 p-4 rounded-3xl border border-slate-200/70 dark:border-slate-700 shadow-xs space-y-3"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="font-extrabold text-slate-900 dark:text-white text-base leading-snug">
+                    {batch.route}
+                  </h3>
+                  <span className="font-mono text-[11px] font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700/90 px-2.5 py-0.5 rounded-full mt-1.5 inline-block border border-slate-200/60 dark:border-slate-600">
+                    {batch.batchNumber}
+                  </span>
+                </div>
+                <button
+                  onClick={() => handleToggleStatus(batch.id)}
+                  className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-semibold transition-all cursor-pointer shrink-0 ${
+                    batch.status === "ACTIVE"
+                      ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/60 hover:bg-emerald-100"
+                      : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:bg-slate-200"
+                  }`}
+                >
+                  {batch.status === "ACTIVE" ? (
+                    <>
+                      <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" /> Faol
+                    </>
+                  ) : (
+                    <>
+                      <AlertCircle className="w-3 h-3 text-slate-400" /> Tugagan
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Flight & Supplier info */}
+              <div className="grid grid-cols-2 gap-2 text-xs pt-2.5 border-t border-slate-100 dark:border-slate-700">
+                <div>
+                  <span className="text-[11px] text-slate-400 block font-medium">Uchish & Reys:</span>
+                  <span className="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1 mt-0.5">
+                    <Calendar className="w-3.5 h-3.5 text-blue-500" />
+                    {batch.flightDate}
+                  </span>
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono block mt-0.5">
+                    {batch.flightNumber || "Reys ko‘rsatilmagan"}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[11px] text-slate-400 block font-medium">Ta‘minotchi:</span>
+                  <span className="font-semibold text-slate-800 dark:text-slate-200 block truncate mt-0.5">
+                    {batch.supplierName}
+                  </span>
+                </div>
+              </div>
+
+              {/* Progress bar */}
+              <div className="pt-2 border-t border-slate-100 dark:border-slate-700/80">
+                <div className="flex items-center justify-between text-xs font-bold mb-1.5">
+                  <span className={batch.remainingQty === 0 ? "text-slate-400" : "text-blue-600 dark:text-blue-400"}>
+                    {batch.remainingQty} ta qoldi
+                  </span>
+                  <span className="text-slate-400 font-normal">
+                    {batch.totalQty} tadan ({percentSold}% sotildi)
+                  </span>
+                </div>
+                <div className="w-full bg-slate-100 dark:bg-slate-700 h-2.5 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-300 ${
+                      batch.remainingQty === 0 ? "bg-slate-300 dark:bg-slate-600" : "bg-blue-600"
+                    }`}
+                    style={{ width: `${percentSold}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="flex items-center justify-between text-xs pt-2.5 border-t border-slate-100 dark:border-slate-700/80 bg-slate-50/70 dark:bg-slate-750 -mx-4 -mb-4 px-4 py-3 rounded-b-3xl">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-slate-500 dark:text-slate-400 text-xs">Tannarx (1 ta):</span>
+                  <span className="font-mono font-bold text-slate-900 dark:text-white text-sm">
+                    {formatUSD(batch.buyPrice)}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-slate-500 dark:text-slate-400 text-xs">Jami:</span>
+                  <span className="font-mono font-black text-slate-900 dark:text-white text-sm">
+                    {formatUSD(batch.totalCost)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+
+        {filteredBatches.length === 0 && (
+          <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200/70 dark:border-slate-700 p-8 text-center text-xs text-slate-400 dark:text-slate-500">
+            Mos keladigan partiyalar topilmadi
+          </div>
+        )}
+      </div>
+
+      {/* DESKTOP TABLE VIEW */}
+      <div className="hidden md:block bg-white dark:bg-slate-800 rounded-3xl border border-slate-200/70 dark:border-slate-700 overflow-hidden shadow-xs p-2">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-slate-100 dark:border-slate-700 text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+              <tr className="border-b border-slate-100 dark:border-slate-700 text-[11px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider">
                 <th className="py-3 px-4">Partiya & Yo‘nalish</th>
                 <th className="py-3 px-4">Sana & Reys</th>
                 <th className="py-3 px-4">Ta‘minotchi</th>
@@ -206,7 +312,7 @@ export function BatchesView({
 
               {filteredBatches.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-xs text-slate-400">
+                  <td colSpan={6} className="py-12 text-center text-xs text-slate-400 dark:text-slate-500">
                     Mos keladigan partiyalar topilmadi
                   </td>
                 </tr>

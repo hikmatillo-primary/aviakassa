@@ -199,7 +199,7 @@ export function RouteSelector({
           }}
           className={`flex flex-col text-left px-3.5 py-2.5 rounded-xl transition-all cursor-pointer ${
             activeDropdown === "ORIGIN"
-              ? "bg-white dark:bg-slate-900 ring-2 ring-blue-500 shadow-xs"
+              ? "bg-white dark:bg-slate-700 ring-2 ring-blue-500 shadow-xs"
               : "bg-white/70 dark:bg-slate-800/60 hover:bg-white dark:hover:bg-slate-800"
           }`}
         >
@@ -238,7 +238,7 @@ export function RouteSelector({
           }}
           className={`flex flex-col text-left px-3.5 py-2.5 rounded-xl transition-all cursor-pointer ${
             activeDropdown === "DESTINATION"
-              ? "bg-white dark:bg-slate-900 ring-2 ring-blue-500 shadow-xs"
+              ? "bg-white dark:bg-slate-700 ring-2 ring-blue-500 shadow-xs"
               : "bg-white/70 dark:bg-slate-800/60 hover:bg-white dark:hover:bg-slate-800"
           }`}
         >
@@ -269,7 +269,7 @@ export function RouteSelector({
 
       {/* Modern Flight Dropdown Popover */}
       {activeDropdown && (
-        <div className="absolute left-0 right-0 mt-1.5 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 p-3 z-50 animate-in fade-in zoom-in-95 duration-100 max-h-[380px] flex flex-col">
+        <div className="absolute left-0 right-0 mt-1.5 bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 p-3 z-50 animate-in fade-in zoom-in-95 duration-100 max-h-[380px] flex flex-col">
           {/* Header & Search Bar */}
           <div className="relative mb-2 shrink-0">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />

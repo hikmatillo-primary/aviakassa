@@ -381,12 +381,9 @@ export function DashboardView({
                 })}
               </svg>
 
-              <div className="absolute inset-x-0 bottom-0 flex flex-col items-center justify-end text-center">
+              <div className="absolute inset-x-0 bottom-1 flex flex-col items-center justify-end text-center">
                 <span className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight font-mono leading-none">
                   70.8%
-                </span>
-                <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 mt-1">
-                  Sotilish sur‘ati (Bandlik)
                 </span>
               </div>
             </div>
@@ -532,8 +529,54 @@ export function DashboardView({
           </div>
         </div>
 
-        {/* Table */}
-        <div className="overflow-x-auto">
+        {/* Mobile View */}
+        <div className="space-y-2.5 block md:hidden pt-2">
+          {filteredSales.map((sale) => (
+            <div
+              key={sale.id}
+              className="bg-slate-50/70 dark:bg-slate-700/40 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-700/60 space-y-2"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <h4 className="font-bold text-slate-900 dark:text-white text-sm">
+                    {sale.route}
+                  </h4>
+                  <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    {sale.passengerNames || `Reys: ${sale.flightNumber || "-"}`}
+                  </div>
+                </div>
+                <div className="text-right shrink-0">
+                  <span className="font-mono font-black text-slate-900 dark:text-white text-sm block">
+                    {formatUSD(sale.totalAmount)}
+                  </span>
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-800/50">
+                    To‘langan
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between text-xs pt-1.5 border-t border-slate-200/50 dark:border-slate-600/50 text-slate-500 dark:text-slate-400">
+                <span>{sale.clientName}</span>
+                <div className="flex items-center gap-2">
+                  <span className="font-mono font-bold text-blue-600 dark:text-blue-400">
+                    {sale.qty} ta
+                  </span>
+                  <span>•</span>
+                  <span>{sale.saleDate}</span>
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {filteredSales.length === 0 && (
+            <div className="py-8 text-center text-xs text-slate-400">
+              Sotuvlar topilmadi
+            </div>
+          )}
+        </div>
+
+        {/* Desktop Table */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-slate-100 dark:border-slate-700 text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
