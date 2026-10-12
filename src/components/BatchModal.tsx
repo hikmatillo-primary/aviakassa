@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { Modal } from "./Modal";
 import { PackagePlus, Calculator, Luggage, Wallet, Plus, Building2, Calendar, Hash } from "lucide-react";
 import { RouteSelector } from "./RouteSelector";
+import { formatUSD } from "@/lib/format";
 
 interface BatchModalProps {
   isOpen: boolean;
@@ -261,7 +262,7 @@ export function BatchModal({
           </div>
           <div className="text-right">
             <span className="text-xl font-black font-mono text-amber-950 dark:text-amber-100">
-              ${totalCost.toLocaleString()}
+              {formatUSD(totalCost)}
             </span>
           </div>
         </div>
@@ -288,7 +289,7 @@ export function BatchModal({
                 />
               </div>
               <span className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 block">
-                Ta&apos;minotchiga qolgan qarz: <strong>${remainingDebt.toLocaleString()}</strong>
+                Ta&apos;minotchiga qolgan qarz: <strong>{formatUSD(remainingDebt)}</strong>
               </span>
             </div>
 

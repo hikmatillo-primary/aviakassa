@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { Package, Search, PackagePlus, CheckCircle2, AlertCircle } from "lucide-react";
+import { formatUSD } from "@/lib/format";
 
 interface BatchesViewProps {
   batches: any[];
@@ -171,9 +172,9 @@ export function BatchesView({
 
                     {/* Cost */}
                     <td className="py-3.5 px-4 text-right">
-                      <div className="font-bold text-slate-900 dark:text-white font-mono">${batch.buyPrice}</div>
+                      <div className="font-bold text-slate-900 dark:text-white font-mono">{formatUSD(batch.buyPrice)}</div>
                       <div className="text-[11px] text-slate-400 font-mono">
-                        Jami: ${batch.totalCost.toLocaleString()}
+                        Jami: {formatUSD(batch.totalCost)}
                       </div>
                     </td>
 

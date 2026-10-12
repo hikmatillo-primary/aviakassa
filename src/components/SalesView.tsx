@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { Search, ShoppingBag, Users, Calendar, TrendingUp } from "lucide-react";
+import { formatUSD } from "@/lib/format";
 
 interface SalesViewProps {
   sales: any[];
@@ -132,17 +133,17 @@ export function SalesView({
 
                   {/* Sell Price */}
                   <td className="py-3.5 px-4 text-right font-mono font-bold text-slate-900 dark:text-white">
-                    ${sale.sellPrice}
+                    {formatUSD(sale.sellPrice)}
                   </td>
 
                   {/* Total Amount */}
                   <td className="py-3.5 px-4 text-right font-mono font-black text-slate-900 dark:text-white text-sm">
-                    ${sale.totalAmount.toLocaleString()}
+                    {formatUSD(sale.totalAmount)}
                   </td>
 
                   {/* Profit */}
                   <td className="py-3.5 px-4 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                    +${(sale.profit || 0).toLocaleString()}
+                    +{formatUSD(sale.profit || 0)}
                   </td>
                 </tr>
               ))}

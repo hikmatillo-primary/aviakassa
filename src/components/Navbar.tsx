@@ -44,8 +44,9 @@ export function Navbar({
   ];
 
   return (
-    <header className="pt-4 pb-2 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
-      <div className="flex items-center justify-between">
+    <header className="sticky top-0 z-40 w-full bg-[#f4f5f8]/95 dark:bg-[#0b0f19]/95 backdrop-blur-md border-b border-slate-200/70 dark:border-slate-800/80 shadow-xs transition-colors">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-3 pb-2.5">
+        <div className="flex items-center justify-between">
         {/* Left: Brand Logo & Title */}
         <div
           className="flex items-center gap-2.5 cursor-pointer select-none"
@@ -177,6 +178,7 @@ export function Navbar({
             </button>
           );
         })}
+      </div>
       </div>
     </header>
   );

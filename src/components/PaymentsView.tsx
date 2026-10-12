@@ -10,6 +10,7 @@ import {
   Receipt,
   Sparkles,
 } from "lucide-react";
+import { formatUSD } from "@/lib/format";
 
 interface PaymentsViewProps {
   payments: any[];
@@ -110,7 +111,7 @@ export function PaymentsView({
             </div>
           </div>
           <div className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 font-mono mt-1">
-            +${totalIncome.toLocaleString()}
+            +{formatUSD(totalIncome)}
           </div>
         </div>
 
@@ -123,7 +124,7 @@ export function PaymentsView({
             </div>
           </div>
           <div className="text-xl sm:text-2xl font-black text-rose-600 dark:text-rose-400 font-mono mt-1">
-            -${totalExpense.toLocaleString()}
+            -{formatUSD(totalExpense)}
           </div>
         </div>
 
@@ -143,8 +144,8 @@ export function PaymentsView({
             }`}
           >
             {netCashFlow >= 0
-              ? `+$${netCashFlow.toLocaleString()}`
-              : `-$${Math.abs(netCashFlow).toLocaleString()}`}
+              ? `+${formatUSD(netCashFlow)}`
+              : `-${formatUSD(Math.abs(netCashFlow))}`}
           </div>
         </div>
 
@@ -157,7 +158,7 @@ export function PaymentsView({
             </div>
           </div>
           <div className="text-xl sm:text-2xl font-black text-indigo-600 dark:text-indigo-400 font-mono mt-1">
-            ${totalOffsetsAmount.toLocaleString()}
+            {formatUSD(totalOffsetsAmount)}
           </div>
           <span className="text-[10px] text-slate-400 block mt-0.5">
             (Naqd pulsiz o‘zaro hisob)
@@ -298,8 +299,8 @@ export function PaymentsView({
                       }`}
                     >
                       {p.type === "INCOME"
-                        ? `+$${p.amount.toLocaleString()}`
-                        : `-$${p.amount.toLocaleString()}`}
+                        ? `+${formatUSD(p.amount)}`
+                        : `-${formatUSD(p.amount)}`}
                     </td>
                     <td className="py-3.5 px-4">
                       <span className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2.5 py-0.5 rounded-full text-[11px] font-medium">
@@ -368,7 +369,7 @@ export function PaymentsView({
                       </span>
                     </td>
                     <td className="py-3.5 px-4 text-right font-mono font-bold text-sm text-blue-600 dark:text-blue-400">
-                      ${o.amount.toLocaleString()}
+                      {formatUSD(o.amount)}
                     </td>
                     <td className="py-3.5 px-4 text-slate-500 dark:text-slate-400 max-w-sm truncate">
                       {o.notes || "O'zaro hisob-kitob"}

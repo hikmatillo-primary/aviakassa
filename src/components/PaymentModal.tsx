@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { Modal } from "./Modal";
 import { ArrowDownLeft, ArrowUpRight } from "lucide-react";
+import { formatUSD } from "@/lib/format";
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -145,7 +146,7 @@ export function PaymentModal({
             <option value="">-- Hamkorni tanlang --</option>
             {filteredPartners.map((p) => (
               <option key={p.id} value={p.id}>
-                {p.name} (Hozirgi qarz: ${Math.max(0, p.balance || 0).toLocaleString()})
+                {p.name} (Hozirgi qarz: {formatUSD(Math.max(0, p.balance || 0))})
               </option>
             ))}
           </select>
@@ -153,7 +154,7 @@ export function PaymentModal({
             <div className="mt-1.5 text-xs text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/60 p-2 rounded-lg border border-slate-200 dark:border-slate-700">
               Hozirgi hisob-kitob balansi:{" "}
               <strong className={selectedPartner.balance > 0 ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"}>
-                ${selectedPartner.balance?.toLocaleString()}
+                {formatUSD(selectedPartner.balance)}
               </strong>
             </div>
           )}

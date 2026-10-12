@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { Modal } from "./Modal";
 import { Calculator } from "lucide-react";
+import { formatUSD } from "@/lib/format";
 
 interface SaleModalProps {
   isOpen: boolean;
@@ -238,18 +239,18 @@ export function SaleModal({
         <div className="p-3 bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200/60 dark:border-blue-800/60 rounded-2xl space-y-1.5">
           <div className="flex items-center justify-between text-xs text-blue-900 dark:text-blue-200">
             <span>Jami sotuv summasi:</span>
-            <strong className="text-sm font-bold text-blue-950 dark:text-white">${totalAmount.toLocaleString()}</strong>
+            <strong className="text-sm font-bold text-blue-950 dark:text-white">{formatUSD(totalAmount)}</strong>
           </div>
           <div className="flex items-center justify-between text-xs text-blue-900 dark:text-blue-200">
             <span>Tannarx jami ({qty} ta x ${selectedBatch?.buyPrice || 0}):</span>
-            <span>${totalCost.toLocaleString()}</span>
+            <span>{formatUSD(totalCost)}</span>
           </div>
           <div className="pt-1.5 border-t border-blue-200 dark:border-blue-800 flex items-center justify-between text-xs">
             <span className="font-semibold text-emerald-800 dark:text-emerald-300 flex items-center gap-1">
               <Calculator className="w-3.5 h-3.5" /> Sof foyda:
             </span>
             <strong className={`text-sm font-bold ${estimatedProfit >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>
-              {estimatedProfit >= 0 ? `+$${estimatedProfit.toLocaleString()}` : `-$${Math.abs(estimatedProfit).toLocaleString()}`}
+              {estimatedProfit >= 0 ? `+${formatUSD(estimatedProfit)}` : `-${formatUSD(Math.abs(estimatedProfit))}`}
             </strong>
           </div>
         </div>
@@ -275,7 +276,7 @@ export function SaleModal({
                 />
               </div>
               <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                Qolgan qarz: <strong>${Math.max(0, totalAmount - paidNow).toLocaleString()}</strong>
+                Qolgan qarz: <strong>{formatUSD(Math.max(0, totalAmount - paidNow))}</strong>
               </span>
             </div>
             <div>

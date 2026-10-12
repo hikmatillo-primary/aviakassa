@@ -3,6 +3,7 @@
 import React from "react";
 import { Modal } from "./Modal";
 import { ArrowDownLeft, ArrowUpRight, ArrowRightLeft } from "lucide-react";
+import { formatUSD } from "@/lib/format";
 
 interface PartnerHistoryModalProps {
   isOpen: boolean;
@@ -89,13 +90,13 @@ export function PartnerHistoryModal({
             <span className="text-xs text-slate-400 dark:text-slate-400 block font-medium">
               {isSupplier ? "Jami partiyalar (Olingan)" : "Jami chiptalar (Sotilgan)"}:
             </span>
-            <strong className="text-base font-bold text-slate-900 dark:text-white">${totalDeals.toLocaleString()}</strong>
+            <strong className="text-base font-bold text-slate-900 dark:text-white">{formatUSD(totalDeals)}</strong>
           </div>
           <div className="bg-white dark:bg-slate-800/80 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-xs">
             <span className="text-xs text-slate-400 dark:text-slate-400 block font-medium">
               {isSupplier ? "Biz to'lagan summa:" : "Mijoz to'lagan summa:"}
             </span>
-            <strong className="text-base font-bold text-slate-900 dark:text-white">${totalPaid.toLocaleString()}</strong>
+            <strong className="text-base font-bold text-slate-900 dark:text-white">{formatUSD(totalPaid)}</strong>
             {partnerOffsets.length > 0 && (
               <span className="text-[10px] text-blue-600 dark:text-blue-400 block mt-0.5">
                 (O&apos;zaro surishlar hisobga olingan)
@@ -121,7 +122,7 @@ export function PartnerHistoryModal({
                 : "Ortiqcha to'langan (Depozit):"}
             </span>
             <strong className="text-lg font-bold font-mono">
-              ${Math.abs(balance).toLocaleString()}
+              {formatUSD(Math.abs(balance))}
             </strong>
           </div>
         </div>
@@ -175,14 +176,14 @@ export function PartnerHistoryModal({
                     <div className="flex items-center justify-between font-semibold text-slate-800 dark:text-slate-200">
                       <span>{item.route || item.batchNumber}</span>
                       <span className="text-slate-900 dark:text-white font-mono font-bold">
-                        ${(isSupplier ? item.totalCost : item.totalAmount).toLocaleString()}
+                        {formatUSD(isSupplier ? item.totalCost : item.totalAmount)}
                       </span>
                     </div>
                     <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mt-1">
                       <span>
                         {isSupplier
-                          ? `${item.totalQty} ta chipta ($${item.buyPrice} dan)`
-                          : `${item.qty} ta chipta ($${item.sellPrice} dan)`}
+                          ? `${item.totalQty} ta chipta (${formatUSD(item.buyPrice)} dan)`
+                          : `${item.qty} ta chipta (${formatUSD(item.sellPrice)} dan)`}
                       </span>
                       <span>{item.saleDate || item.flightDate}</span>
                     </div>
@@ -214,7 +215,7 @@ export function PartnerHistoryModal({
                           ) : (
                             <ArrowUpRight className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
                           )}
-                          ${p.amount.toLocaleString()}
+                          {formatUSD(p.amount)}
                         </span>
                         <span className="text-slate-400 dark:text-slate-500">{p.paymentDate}</span>
                       </div>
@@ -232,7 +233,7 @@ export function PartnerHistoryModal({
                         <div className="flex items-center justify-between font-semibold text-slate-800 dark:text-slate-200">
                           <span className="flex items-center gap-1.5 font-bold text-blue-600 dark:text-blue-400">
                             <ArrowRightLeft className="w-3.5 h-3.5" />
-                            ${o.amount.toLocaleString()}
+                            {formatUSD(o.amount)}
                             <span className="text-[10px] font-normal text-slate-500">
                               (O‘zaro surish)
                             </span>

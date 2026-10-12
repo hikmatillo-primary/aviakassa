@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { Modal } from "./Modal";
 import { ArrowRightLeft, Users, CheckCircle, AlertCircle, Sparkles } from "lucide-react";
 import { Partner } from "@/lib/storage";
+import { formatUSD } from "@/lib/format";
 
 interface DebtOffsetModalProps {
   isOpen: boolean;
@@ -152,7 +153,7 @@ export function DebtOffsetModal({
               <option value="">Hamkorni tanlang...</option>
               {partners.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.name} ({p.type === "CLIENT" ? "Mijoz" : "Ta'minotchi"}) — Balans: ${(p.balance || 0).toLocaleString()}
+                  {p.name} ({p.type === "CLIENT" ? "Mijoz" : "Ta'minotchi"}) — Balans: {formatUSD(p.balance)}
                 </option>
               ))}
             </select>
@@ -160,7 +161,7 @@ export function DebtOffsetModal({
               <div className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
                 Joriy qarz/haq:{" "}
                 <span className="font-bold font-mono text-slate-800 dark:text-slate-200">
-                  ${(fromPartner.balance || 0).toLocaleString()}
+                  {formatUSD(fromPartner.balance)}
                 </span>
               </div>
             )}
@@ -179,7 +180,7 @@ export function DebtOffsetModal({
               <option value="">Hamkorni tanlang...</option>
               {partners.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.name} ({p.type === "CLIENT" ? "Mijoz" : "Ta'minotchi"}) — Balans: ${(p.balance || 0).toLocaleString()}
+                  {p.name} ({p.type === "CLIENT" ? "Mijoz" : "Ta'minotchi"}) — Balans: {formatUSD(p.balance)}
                 </option>
               ))}
             </select>
@@ -187,7 +188,7 @@ export function DebtOffsetModal({
               <div className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
                 Joriy qarz/haq:{" "}
                 <span className="font-bold font-mono text-slate-800 dark:text-slate-200">
-                  ${(toPartner.balance || 0).toLocaleString()}
+                  {formatUSD(toPartner.balance)}
                 </span>
               </div>
             )}
@@ -278,18 +279,18 @@ export function DebtOffsetModal({
               <div className="flex justify-between items-center text-slate-700 dark:text-slate-300">
                 <span>{fromPartner.name}:</span>
                 <span className="font-mono">
-                  ${(fromPartner.balance || 0).toLocaleString()} ➔{" "}
+                  {formatUSD(fromPartner.balance)} ➔{" "}
                   <strong className="text-emerald-600 dark:text-emerald-400">
-                    ${Math.max(0, (fromPartner.balance || 0) - amount).toLocaleString()}
+                    {formatUSD(Math.max(0, (fromPartner.balance || 0) - amount))}
                   </strong>
                 </span>
               </div>
               <div className="flex justify-between items-center text-slate-700 dark:text-slate-300">
                 <span>{toPartner.name}:</span>
                 <span className="font-mono">
-                  ${(toPartner.balance || 0).toLocaleString()} ➔{" "}
+                  {formatUSD(toPartner.balance)} ➔{" "}
                   <strong className="text-emerald-600 dark:text-emerald-400">
-                    ${Math.max(0, (toPartner.balance || 0) - amount).toLocaleString()}
+                    {formatUSD(Math.max(0, (toPartner.balance || 0) - amount))}
                   </strong>
                 </span>
               </div>

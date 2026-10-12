@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { Search, PackagePlus, Users, Layers, Plane, Calendar } from "lucide-react";
+import { formatUSD } from "@/lib/format";
 
 interface PartnersViewProps {
   batches?: any[];
@@ -132,12 +133,12 @@ export function PartnersView({
 
                   {/* Buy Price */}
                   <td className="py-3.5 px-4 text-right font-mono font-bold text-slate-900 dark:text-white">
-                    ${batch.buyPrice}
+                    {formatUSD(batch.buyPrice)}
                   </td>
 
                   {/* Total Cost */}
                   <td className="py-3.5 px-4 text-right font-mono font-black text-slate-900 dark:text-white text-sm">
-                    ${(batch.totalCost || 0).toLocaleString()}
+                    {formatUSD(batch.totalCost)}
                   </td>
                 </tr>
               ))}

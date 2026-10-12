@@ -13,6 +13,7 @@ import {
   Plane,
   ArrowRightLeft,
 } from "lucide-react";
+import { formatMoney, formatUSD } from "@/lib/format";
 
 interface DashboardViewProps {
   stats: any;
@@ -128,8 +129,8 @@ export function DashboardView({
 
           <div className="my-2 relative z-10">
             <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-extrabold tracking-tight font-mono">
-                ${(stats?.totalProfit || 0).toLocaleString()}
+              <span className="text-3xl font-extrabold tracking-normal">
+                {formatUSD(stats?.totalProfit)}
               </span>
               <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-white/20 backdrop-blur-sm text-[11px] font-bold text-white">
                 ↑ +14.9%
@@ -156,8 +157,8 @@ export function DashboardView({
 
           <div className="my-2">
             <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight font-mono">
-                ${(stats?.clientDebtToUs || 0).toLocaleString()}
+              <span className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-normal">
+                {formatUSD(stats?.clientDebtToUs)}
               </span>
               <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 text-[11px] font-bold border border-emerald-200/50 dark:border-emerald-800/50">
                 ↑ +2.5%
@@ -184,8 +185,8 @@ export function DashboardView({
 
           <div className="my-2">
             <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight font-mono">
-                ${(stats?.ourDebtToSuppliers || 0).toLocaleString()}
+              <span className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-normal">
+                {formatUSD(stats?.ourDebtToSuppliers)}
               </span>
               <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 text-[11px] font-bold border border-rose-200/50 dark:border-rose-800/50">
                 ↓ 6.0%
@@ -212,8 +213,8 @@ export function DashboardView({
 
           <div className="my-2">
             <div className="flex items-baseline gap-1.5">
-              <span className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight font-mono">
-                {stats?.totalRemainingTickets || 0}
+              <span className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-normal">
+                {formatMoney(stats?.totalRemainingTickets)}
               </span>
               <span className="text-sm font-semibold text-slate-400">ta joy</span>
             </div>
@@ -586,7 +587,7 @@ export function DashboardView({
 
                     {/* Total Amount */}
                     <td className="py-3.5 px-3 text-right font-extrabold text-slate-900 dark:text-white font-mono">
-                      ${sale.totalAmount.toLocaleString()}
+                      {formatUSD(sale.totalAmount)}
                     </td>
                   </tr>
                 );
