@@ -41,11 +41,8 @@ export function BatchesView({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-            Ombor (Blok Chiptalar)
+            Ombor
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-            Xarid qilingan barcha bloklar, ularning qoldiqlari va joylar holati
-          </p>
         </div>
         {onOpenBatchModal && (
           <button

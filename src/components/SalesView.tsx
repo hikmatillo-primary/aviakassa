@@ -29,11 +29,6 @@ export function SalesView({
     );
   });
 
-  // Metrics for sales
-  const totalRevenue = filteredSales.reduce((acc, s) => acc + (s.totalAmount || 0), 0);
-  const totalProfit = filteredSales.reduce((acc, s) => acc + (s.profit || 0), 0);
-  const totalTicketsSold = filteredSales.reduce((acc, s) => acc + (s.qty || 0), 0);
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -42,9 +37,6 @@ export function SalesView({
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
             Sotuvlar Daftari
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-            Mijozlar va yo‘lovchilarga sotilgan barcha chiptalar, tushum va sof foyda hisobi
-          </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           {onOpenPartnerModal && (
@@ -64,36 +56,6 @@ export function SalesView({
             <ShoppingBag className="w-4 h-4" />
             Chipta sotish
           </button>
-        </div>
-      </div>
-
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200/70 dark:border-slate-800 shadow-xs">
-          <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">
-            Jami sotilgan chiptalar:
-          </span>
-          <div className="text-2xl font-black text-slate-900 dark:text-white font-mono mt-1">
-            {totalTicketsSold} <span className="text-xs font-normal text-slate-400 dark:text-slate-500">ta</span>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200/70 dark:border-slate-800 shadow-xs">
-          <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">
-            Jami sotuv tushumi:
-          </span>
-          <div className="text-2xl font-black text-slate-900 dark:text-white font-mono mt-1">
-            ${totalRevenue.toLocaleString()}
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200/70 dark:border-slate-800 shadow-xs">
-          <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">
-            Sof foyda:
-          </span>
-          <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400 font-mono mt-1">
-            +${totalProfit.toLocaleString()}
-          </div>
         </div>
       </div>
 

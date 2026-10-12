@@ -27,9 +27,6 @@ export function PartnersView({
     );
   });
 
-  const totalBatchesCount = batches.length;
-  const totalTicketsBought = batches.reduce((sum, b) => sum + (b.totalQty || 0), 0);
-  const totalCost = batches.reduce((sum, b) => sum + (b.totalCost || 0), 0);
 
   return (
     <div className="space-y-6">
@@ -37,11 +34,8 @@ export function PartnersView({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-            Xaridlar (Blok Chiptalar Qabuli)
+            Xaridlar
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-            Xarid qilingan barcha partiyalar, reyslar va blok chiptalar qabuli jurnali
-          </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           {onOpenPartnerModal && (
@@ -63,36 +57,6 @@ export function PartnersView({
               Yangi Xarid
             </button>
           )}
-        </div>
-      </div>
-
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200/70 dark:border-slate-800 shadow-xs">
-          <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">
-            Jami qabul qilingan partiyalar:
-          </span>
-          <div className="text-2xl font-black text-slate-900 dark:text-white font-mono mt-1">
-            {totalBatchesCount} <span className="text-xs font-normal text-slate-400 dark:text-slate-500">ta</span>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200/70 dark:border-slate-800 shadow-xs">
-          <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">
-            Jami xarid qilingan chiptalar:
-          </span>
-          <div className="text-2xl font-black text-blue-600 dark:text-blue-400 font-mono mt-1">
-            {totalTicketsBought} <span className="text-xs font-normal text-slate-400 dark:text-slate-500">dona</span>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200/70 dark:border-slate-800 shadow-xs">
-          <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">
-            Jami xarid summasi (Tannarx):
-          </span>
-          <div className="text-2xl font-black text-slate-900 dark:text-white font-mono mt-1">
-            ${totalCost.toLocaleString()}
-          </div>
         </div>
       </div>
 
