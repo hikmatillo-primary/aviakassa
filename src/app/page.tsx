@@ -7,6 +7,7 @@ import {
   getPartnersWithBalances,
 } from "@/lib/actions";
 
+export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const [stats, batches, sales, payments, partners] = await Promise.all([

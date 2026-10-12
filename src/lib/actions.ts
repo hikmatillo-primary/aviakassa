@@ -10,125 +10,139 @@ const { partners, batches, sales, payments } = schema;
 // 1. STATISTIKA VA DASHBOARD HISOB-KITOBLARI
 // ==========================================
 export async function getDashboardStats() {
-  const db = getDb();
+  try {
+    const db = getDb();
 
-  // Hamkorlar ro'yxati
-  const allPartners = await db.select().from(partners);
-  const allBatches = await db.select().from(batches);
-  const allSales = await db.select().from(sales);
-  const allPayments = await db.select().from(payments);
+    // Hamkorlar ro'yxati
+    const allPartners = await db.select().from(partners);
+    const allBatches = await db.select().from(batches);
+    const allSales = await db.select().from(sales);
+    const allPayments = await db.select().from(payments);
 
-  // 1. Jami sof foyda
-  const totalProfit = allSales.reduce((acc: number, item: any) => acc + (item.profit || 0), 0);
+    // 1. Jami sof foyda
+    const totalProfit = allSales.reduce((acc: number, item: any) => acc + (item.profit || 0), 0);
 
-  // 2. Partiyalardagi jami bo'sh joylar (qoldiq chiptalar)
-  const totalRemainingTickets = allBatches.reduce(
-    (acc: number, item: any) => (item.status === "ACTIVE" ? acc + (item.remainingQty || 0) : acc),
-    0
-  );
+    // 2. Partiyalardagi jami bo'sh joylar (qoldiq chiptalar)
+    const totalRemainingTickets = allBatches.reduce(
+      (acc: number, item: any) => (item.status === "ACTIVE" ? acc + (item.remainingQty || 0) : acc),
+      0
+    );
 
-  // 3. Jami faol partiyalar soni
-  const activeBatchesCount = allBatches.filter((b: any) => b.status === "ACTIVE").length;
+    // 3. Jami faol partiyalar soni
+    const activeBatchesCount = allBatches.filter((b: any) => b.status === "ACTIVE").length;
 
-  // 4. Kreditorlik (Bizning ta'minotchilarga qarzimiz):
-  // Ta'minotchi qarz = Jami ta'minotchi partiyalari qiymati (totalCost) - Biz to'lagan to'lovlar (EXPENSE)
-  let ourDebtToSuppliers = 0;
-  const suppliers = allPartners.filter((p: any) => p.type === "SUPPLIER");
-  for (const sup of suppliers) {
-    const supBatchesCost = allBatches
-      .filter((b: any) => b.supplierId === sup.id)
-      .reduce((sum: number, b: any) => sum + (b.totalCost || 0), 0);
-    const supPaid = allPayments
-      .filter((p: any) => p.partnerId === sup.id && p.type === "EXPENSE")
-      .reduce((sum: number, p: any) => sum + (p.amount || 0), 0);
-    const balance = supBatchesCost - supPaid;
-    if (balance > 0) {
-      ourDebtToSuppliers += balance;
+    // 4. Kreditorlik (Bizning ta'minotchilarga qarzimiz):
+    let ourDebtToSuppliers = 0;
+    const suppliers = allPartners.filter((p: any) => p.type === "SUPPLIER");
+    for (const sup of suppliers) {
+      const supBatchesCost = allBatches
+        .filter((b: any) => b.supplierId === sup.id)
+        .reduce((sum: number, b: any) => sum + (b.totalCost || 0), 0);
+      const supPaid = allPayments
+        .filter((p: any) => p.partnerId === sup.id && p.type === "EXPENSE")
+        .reduce((sum: number, p: any) => sum + (p.amount || 0), 0);
+      const balance = supBatchesCost - supPaid;
+      if (balance > 0) {
+        ourDebtToSuppliers += balance;
+      }
     }
-  }
 
-  // 5. Debitorlik (Mijozlar/Agentlarning bizdan qarzi - Bizning haqimiz):
-  // Mijoz qarz = Jami unga qilingan sotuvlar (totalAmount) - Mijoz to'lagan to'lovlar (INCOME)
-  let clientDebtToUs = 0;
-  const clients = allPartners.filter((p: any) => p.type === "CLIENT");
-  for (const client of clients) {
-    const clientSalesAmount = allSales
-      .filter((s: any) => s.clientId === client.id)
-      .reduce((sum: number, s: any) => sum + (s.totalAmount || 0), 0);
-    const clientPaid = allPayments
-      .filter((p: any) => p.partnerId === client.id && p.type === "INCOME")
-      .reduce((sum: number, p: any) => sum + (p.amount || 0), 0);
-    const balance = clientSalesAmount - clientPaid;
-    if (balance > 0) {
-      clientDebtToUs += balance;
+    // 5. Debitorlik (Mijozlar/Agentlarning bizdan qarzi - Bizning haqimiz):
+    let clientDebtToUs = 0;
+    const clients = allPartners.filter((p: any) => p.type === "CLIENT");
+    for (const client of clients) {
+      const clientSalesAmount = allSales
+        .filter((s: any) => s.clientId === client.id)
+        .reduce((sum: number, s: any) => sum + (s.totalAmount || 0), 0);
+      const clientPaid = allPayments
+        .filter((p: any) => p.partnerId === client.id && p.type === "INCOME")
+        .reduce((sum: number, p: any) => sum + (p.amount || 0), 0);
+      const balance = clientSalesAmount - clientPaid;
+      if (balance > 0) {
+        clientDebtToUs += balance;
+      }
     }
+
+    // 6. Kassa sof harakati (Tushgan pul - Chiqqan to'lov)
+    const totalIncome = allPayments
+      .filter((p: any) => p.type === "INCOME")
+      .reduce((sum: number, p: any) => sum + (p.amount || 0), 0);
+    const totalExpense = allPayments
+      .filter((p: any) => p.type === "EXPENSE")
+      .reduce((sum: number, p: any) => sum + (p.amount || 0), 0);
+    const cashBalance = totalIncome - totalExpense;
+
+    return {
+      totalProfit,
+      totalRemainingTickets,
+      activeBatchesCount,
+      ourDebtToSuppliers,
+      clientDebtToUs,
+      totalIncome,
+      totalExpense,
+      cashBalance,
+      totalSalesCount: allSales.length,
+    };
+  } catch (err) {
+    console.warn("getDashboardStats fallback:", err);
+    return {
+      totalProfit: 0,
+      totalRemainingTickets: 0,
+      activeBatchesCount: 0,
+      ourDebtToSuppliers: 0,
+      clientDebtToUs: 0,
+      totalIncome: 0,
+      totalExpense: 0,
+      cashBalance: 0,
+      totalSalesCount: 0,
+    };
   }
-
-  // 6. Kassa sof harakati (Tushgan pul - Chiqqan to'lov)
-  const totalIncome = allPayments
-    .filter((p: any) => p.type === "INCOME")
-    .reduce((sum: number, p: any) => sum + (p.amount || 0), 0);
-  const totalExpense = allPayments
-    .filter((p: any) => p.type === "EXPENSE")
-    .reduce((sum: number, p: any) => sum + (p.amount || 0), 0);
-  const cashBalance = totalIncome - totalExpense;
-
-  return {
-    totalProfit,
-    totalRemainingTickets,
-    activeBatchesCount,
-    ourDebtToSuppliers, // Bizning qarzimiz
-    clientDebtToUs,     // Bizning haqimiz
-    totalIncome,
-    totalExpense,
-    cashBalance,
-    totalSalesCount: allSales.length,
-  };
 }
 
 // ==========================================
 // 2. HAMKORLAR (PARTNERS)
 // ==========================================
 export async function getPartnersWithBalances() {
-  const db = getDb();
-  const allPartners = await db.select().from(partners).orderBy(desc(partners.id));
-  const allBatches = await db.select().from(batches);
-  const allSales = await db.select().from(sales);
-  const allPayments = await db.select().from(payments);
+  try {
+    const db = getDb();
+    const allPartners = await db.select().from(partners).orderBy(desc(partners.id));
+    const allBatches = await db.select().from(batches);
+    const allSales = await db.select().from(sales);
+    const allPayments = await db.select().from(payments);
 
-  return allPartners.map((partner: any) => {
-    let totalDeal = 0;
-    let totalPaid = 0;
+    return allPartners.map((partner: any) => {
+      let totalDeal = 0;
+      let totalPaid = 0;
 
-    if (partner.type === "SUPPLIER") {
-      // Ta'minotchi uchun: jami partiya qiymati va biz to'lagan summa
-      totalDeal = allBatches
-        .filter((b: any) => b.supplierId === partner.id)
-        .reduce((sum: number, b: any) => sum + (b.totalCost || 0), 0);
-      totalPaid = allPayments
-        .filter((p: any) => p.partnerId === partner.id && p.type === "EXPENSE")
-        .reduce((sum: number, p: any) => sum + (p.amount || 0), 0);
-    } else {
-      // Mijoz uchun: jami sotuv summasi va u to'lagan summa
-      totalDeal = allSales
-        .filter((s: any) => s.clientId === partner.id)
-        .reduce((sum: number, s: any) => sum + (s.totalAmount || 0), 0);
-      totalPaid = allPayments
-        .filter((p: any) => p.partnerId === partner.id && p.type === "INCOME")
-        .reduce((sum: number, p: any) => sum + (p.amount || 0), 0);
-    }
+      if (partner.type === "SUPPLIER") {
+        totalDeal = allBatches
+          .filter((b: any) => b.supplierId === partner.id)
+          .reduce((sum: number, b: any) => sum + (b.totalCost || 0), 0);
+        totalPaid = allPayments
+          .filter((p: any) => p.partnerId === partner.id && p.type === "EXPENSE")
+          .reduce((sum: number, p: any) => sum + (p.amount || 0), 0);
+      } else {
+        totalDeal = allSales
+          .filter((s: any) => s.clientId === partner.id)
+          .reduce((sum: number, s: any) => sum + (s.totalAmount || 0), 0);
+        totalPaid = allPayments
+          .filter((p: any) => p.partnerId === partner.id && p.type === "INCOME")
+          .reduce((sum: number, p: any) => sum + (p.amount || 0), 0);
+      }
 
-    const balance = totalDeal - totalPaid; 
-    // SUPPLIER: balance > 0 -> biz qarzdormiz
-    // CLIENT: balance > 0 -> mijoz qarzdor (bizning haqimiz)
+      const balance = totalDeal - totalPaid;
 
-    return {
-      ...partner,
-      totalDeal,
-      totalPaid,
-      balance,
-    };
-  });
+      return {
+        ...partner,
+        totalDeal,
+        totalPaid,
+        balance,
+      };
+    });
+  } catch (err) {
+    console.warn("getPartnersWithBalances fallback:", err);
+    return [];
+  }
 }
 
 export async function createPartner(formData: FormData) {
@@ -204,29 +218,34 @@ export async function getPartnerHistory(partnerId: number) {
 // 3. PARTIYALAR (BATCHES / BLOKLAR)
 // ==========================================
 export async function getBatchesWithDetails() {
-  const db = getDb();
-  const allBatches = await db
-    .select({
-      id: batches.id,
-      batchNumber: batches.batchNumber,
-      route: batches.route,
-      flightDate: batches.flightDate,
-      flightNumber: batches.flightNumber,
-      supplierId: batches.supplierId,
-      supplierName: partners.name,
-      totalQty: batches.totalQty,
-      remainingQty: batches.remainingQty,
-      buyPrice: batches.buyPrice,
-      totalCost: batches.totalCost,
-      status: batches.status,
-      notes: batches.notes,
-      createdAt: batches.createdAt,
-    })
-    .from(batches)
-    .leftJoin(partners, eq(batches.supplierId, partners.id))
-    .orderBy(desc(batches.id));
+  try {
+    const db = getDb();
+    const allBatches = await db
+      .select({
+        id: batches.id,
+        batchNumber: batches.batchNumber,
+        route: batches.route,
+        flightDate: batches.flightDate,
+        flightNumber: batches.flightNumber,
+        supplierId: batches.supplierId,
+        supplierName: partners.name,
+        totalQty: batches.totalQty,
+        remainingQty: batches.remainingQty,
+        buyPrice: batches.buyPrice,
+        totalCost: batches.totalCost,
+        status: batches.status,
+        notes: batches.notes,
+        createdAt: batches.createdAt,
+      })
+      .from(batches)
+      .leftJoin(partners, eq(batches.supplierId, partners.id))
+      .orderBy(desc(batches.id));
 
-  return allBatches;
+    return allBatches;
+  } catch (err) {
+    console.warn("getBatchesWithDetails fallback:", err);
+    return [];
+  }
 }
 
 export async function createBatch(formData: FormData) {
@@ -276,31 +295,36 @@ export async function toggleBatchStatus(batchId: number, currentStatus: string) 
 // 4. SOTUVLAR (SALES)
 // ==========================================
 export async function getSalesWithDetails() {
-  const db = getDb();
-  const allSales = await db
-    .select({
-      id: sales.id,
-      batchId: sales.batchId,
-      clientId: sales.clientId,
-      clientName: partners.name,
-      qty: sales.qty,
-      sellPrice: sales.sellPrice,
-      totalAmount: sales.totalAmount,
-      profit: sales.profit,
-      passengerNames: sales.passengerNames,
-      saleDate: sales.saleDate,
-      notes: sales.notes,
-      route: batches.route,
-      flightDate: batches.flightDate,
-      flightNumber: batches.flightNumber,
-      buyPrice: batches.buyPrice,
-    })
-    .from(sales)
-    .leftJoin(partners, eq(sales.clientId, partners.id))
-    .leftJoin(batches, eq(sales.batchId, batches.id))
-    .orderBy(desc(sales.id));
+  try {
+    const db = getDb();
+    const allSales = await db
+      .select({
+        id: sales.id,
+        batchId: sales.batchId,
+        clientId: sales.clientId,
+        clientName: partners.name,
+        qty: sales.qty,
+        sellPrice: sales.sellPrice,
+        totalAmount: sales.totalAmount,
+        profit: sales.profit,
+        passengerNames: sales.passengerNames,
+        saleDate: sales.saleDate,
+        notes: sales.notes,
+        route: batches.route,
+        flightDate: batches.flightDate,
+        flightNumber: batches.flightNumber,
+        buyPrice: batches.buyPrice,
+      })
+      .from(sales)
+      .leftJoin(partners, eq(sales.clientId, partners.id))
+      .leftJoin(batches, eq(sales.batchId, batches.id))
+      .orderBy(desc(sales.id));
 
-  return allSales;
+    return allSales;
+  } catch (err) {
+    console.warn("getSalesWithDetails fallback:", err);
+    return [];
+  }
 }
 
 export async function createSale(formData: FormData) {
@@ -374,25 +398,30 @@ export async function createSale(formData: FormData) {
 // 5. TO'LOVLAR (KASSA - PAYMENTS)
 // ==========================================
 export async function getPaymentsWithDetails() {
-  const db = getDb();
-  const allPayments = await db
-    .select({
-      id: payments.id,
-      partnerId: payments.partnerId,
-      partnerName: partners.name,
-      partnerType: partners.type,
-      type: payments.type,
-      amount: payments.amount,
-      paymentDate: payments.paymentDate,
-      paymentMethod: payments.paymentMethod,
-      notes: payments.notes,
-      createdAt: payments.createdAt,
-    })
-    .from(payments)
-    .leftJoin(partners, eq(payments.partnerId, partners.id))
-    .orderBy(desc(payments.id));
+  try {
+    const db = getDb();
+    const allPayments = await db
+      .select({
+        id: payments.id,
+        partnerId: payments.partnerId,
+        partnerName: partners.name,
+        partnerType: partners.type,
+        type: payments.type,
+        amount: payments.amount,
+        paymentDate: payments.paymentDate,
+        paymentMethod: payments.paymentMethod,
+        notes: payments.notes,
+        createdAt: payments.createdAt,
+      })
+      .from(payments)
+      .leftJoin(partners, eq(payments.partnerId, partners.id))
+      .orderBy(desc(payments.id));
 
-  return allPayments;
+    return allPayments;
+  } catch (err) {
+    console.warn("getPaymentsWithDetails fallback:", err);
+    return [];
+  }
 }
 
 export async function createPayment(formData: FormData) {
