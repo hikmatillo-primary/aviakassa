@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useTransition } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { Navbar } from "./Navbar";
 import { DashboardView } from "./DashboardView";
 import { BatchesView } from "./BatchesView";
@@ -12,27 +12,39 @@ import { BatchModal } from "./BatchModal";
 import { PaymentModal } from "./PaymentModal";
 import { PartnerModal } from "./PartnerModal";
 import { PartnerHistoryModal } from "./PartnerHistoryModal";
-import { useRouter } from "next/navigation";
+import {
+  AviakassaData,
+  INITIAL_DEMO_DATA,
+  loadData,
+  saveData,
+  calculateEnrichedData,
+  Sale,
+  Batch,
+  Payment,
+  Partner,
+} from "@/lib/storage";
 
-interface AppContainerProps {
-  initialStats: any;
-  initialBatches: any[];
-  initialSales: any[];
-  initialPayments: any[];
-  initialPartners: any[];
-}
-
-export function AppContainer({
-  initialStats,
-  initialBatches,
-  initialSales,
-  initialPayments,
-  initialPartners,
-}: AppContainerProps) {
-  const router = useRouter();
-  const [isPending, startTransition] = useTransition();
-
+export function AppContainer() {
+  const [data, setData] = useState<AviakassaData>(INITIAL_DEMO_DATA);
   const [activeTab, setActiveTab] = useState("dashboard");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Initialize from localStorage on mount
+  useEffect(() => {
+    const saved = loadData();
+    setData(saved);
+  }, []);
+
+  const updateData = (newData: AviakassaData) => {
+    setData(newData);
+    saveData(newData);
+  };
+
+  // Enriched metrics & data
+  const { stats, batches, sales, payments, partners } = useMemo(
+    () => calculateEnrichedData(data),
+    [data]
+  );
 
   // Modals state
   const [isSaleModalOpen, setIsSaleModalOpen] = useState(false);
@@ -49,12 +61,6 @@ export function AppContainer({
 
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [historyPartnerId, setHistoryPartnerId] = useState<number | null>(null);
-
-  const handleRefresh = () => {
-    startTransition(() => {
-      router.refresh();
-    });
-  };
 
   // Quick Open Handlers
   const handleOpenSaleModal = (batchId?: number) => {
@@ -78,49 +84,274 @@ export function AppContainer({
     setIsHistoryModalOpen(true);
   };
 
-  const clients = initialPartners.filter((p) => p.type === "CLIENT");
-  const suppliers = initialPartners.filter((p) => p.type === "SUPPLIER");
+  // CRUD Operations
+  const handleAddSale = (saleInput: {
+    batchId: number;
+    clientId: number;
+    qty: number;
+    sellPrice: number;
+    passengerNames: string;
+    saleDate: string;
+    paidNow: number;
+    paymentMethod: string;
+    notes: string;
+  }) => {
+    const targetBatch = data.batches.find((b) => b.id === saleInput.batchId);
+    if (!targetBatch) return;
+
+    const totalAmount = saleInput.qty * saleInput.sellPrice;
+    const profit = totalAmount - saleInput.qty * targetBatch.buyPrice;
+
+    const newSale: Sale = {
+      id: Date.now(),
+      batchId: saleInput.batchId,
+      clientId: saleInput.clientId,
+      qty: saleInput.qty,
+      sellPrice: saleInput.sellPrice,
+      totalAmount,
+      profit,
+      passengerNames: saleInput.passengerNames,
+      saleDate: saleInput.saleDate,
+      notes: saleInput.notes,
+      createdAt: new Date().toISOString(),
+    };
+
+    const updatedBatches = data.batches.map((b) => {
+      if (b.id === saleInput.batchId) {
+        const remainingQty = Math.max(0, b.remainingQty - saleInput.qty);
+        return {
+          ...b,
+          remainingQty,
+          status: remainingQty === 0 ? ("COMPLETED" as const) : b.status,
+        };
+      }
+      return b;
+    });
+
+    const newPayments = [...data.payments];
+    if (saleInput.paidNow > 0) {
+      newPayments.unshift({
+        id: Date.now() + 1,
+        partnerId: saleInput.clientId,
+        type: "INCOME",
+        amount: saleInput.paidNow,
+        paymentDate: saleInput.saleDate,
+        paymentMethod: saleInput.paymentMethod,
+        notes: `Chipta sotuvi uchun to'lov (${targetBatch.route})`,
+        createdAt: new Date().toISOString(),
+      });
+    }
+
+    updateData({
+      ...data,
+      batches: updatedBatches,
+      sales: [newSale, ...data.sales],
+      payments: newPayments,
+    });
+  };
+
+  const handleAddBatch = (batchInput: {
+    batchNumber: string;
+    route: string;
+    flightDate: string;
+    flightNumber: string;
+    supplierId: number;
+    totalQty: number;
+    buyPrice: number;
+    notes: string;
+  }) => {
+    const newBatch: Batch = {
+      id: Date.now(),
+      batchNumber: batchInput.batchNumber,
+      route: batchInput.route,
+      flightDate: batchInput.flightDate,
+      flightNumber: batchInput.flightNumber,
+      supplierId: batchInput.supplierId,
+      totalQty: batchInput.totalQty,
+      remainingQty: batchInput.totalQty,
+      buyPrice: batchInput.buyPrice,
+      totalCost: batchInput.totalQty * batchInput.buyPrice,
+      status: "ACTIVE",
+      notes: batchInput.notes,
+      createdAt: new Date().toISOString(),
+    };
+
+    updateData({
+      ...data,
+      batches: [newBatch, ...data.batches],
+    });
+  };
+
+  const handleAddPayment = (paymentInput: {
+    partnerId: number;
+    type: "INCOME" | "EXPENSE";
+    amount: number;
+    paymentDate: string;
+    paymentMethod: string;
+    notes: string;
+  }) => {
+    const newPayment: Payment = {
+      id: Date.now(),
+      partnerId: paymentInput.partnerId,
+      type: paymentInput.type,
+      amount: paymentInput.amount,
+      paymentDate: paymentInput.paymentDate,
+      paymentMethod: paymentInput.paymentMethod,
+      notes: paymentInput.notes,
+      createdAt: new Date().toISOString(),
+    };
+
+    updateData({
+      ...data,
+      payments: [newPayment, ...data.payments],
+    });
+  };
+
+  const handleAddPartner = (partnerInput: {
+    name: string;
+    type: "SUPPLIER" | "CLIENT";
+    phone: string;
+    notes: string;
+  }) => {
+    const newPartner: Partner = {
+      id: Date.now(),
+      name: partnerInput.name,
+      type: partnerInput.type,
+      phone: partnerInput.phone,
+      notes: partnerInput.notes,
+      createdAt: new Date().toISOString(),
+    };
+
+    updateData({
+      ...data,
+      partners: [...data.partners, newPartner],
+    });
+  };
+
+  const handleToggleBatchStatus = (id: number) => {
+    const updatedBatches = data.batches.map((b) => {
+      if (b.id === id) {
+        return {
+          ...b,
+          status: (b.status === "ACTIVE" ? "COMPLETED" : "ACTIVE") as "ACTIVE" | "COMPLETED",
+        };
+      }
+      return b;
+    });
+
+    updateData({
+      ...data,
+      batches: updatedBatches,
+    });
+  };
+
+  // Backup & Restore
+  const handleExportBackup = () => {
+    const jsonStr = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonStr], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const dateStr = new Date().toISOString().split("T")[0];
+    a.href = url;
+    a.download = `aviakassa_zaxira_${dateStr}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImportFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const parsed = JSON.parse(event.target?.result as string);
+        if (
+          parsed &&
+          Array.isArray(parsed.batches) &&
+          Array.isArray(parsed.partners) &&
+          Array.isArray(parsed.sales) &&
+          Array.isArray(parsed.payments)
+        ) {
+          if (
+            window.confirm(
+              "Fayldagi zaxira nusxa yuklansinmi? Hozirgi ma'lumotlar yangilanadi."
+            )
+          ) {
+            updateData(parsed);
+            alert("Ma'lumotlar muvaffaqiyatli tiklandi!");
+          }
+        } else {
+          alert("Fayl formati mos kelmadi! Aviakassa zaxira JSON faylini tanlang.");
+        }
+      } catch (err) {
+        alert("Faylni o'qishda xatolik yuz berdi!");
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  };
+
+  const handleResetDemo = () => {
+    if (window.confirm("Barcha namunaviy demo ma'lumotlar qayta yuklansinmi?")) {
+      updateData(INITIAL_DEMO_DATA);
+    }
+  };
+
+  const clients = partners.filter((p) => p.type === "CLIENT");
+  const suppliers = partners.filter((p) => p.type === "SUPPLIER");
 
   return (
     <div className="min-h-screen bg-slate-100/60 flex flex-col font-sans">
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleImportFileChange}
+        accept=".json"
+        className="hidden"
+      />
+
       {/* Navbar */}
       <Navbar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         onOpenSaleModal={() => handleOpenSaleModal()}
         onOpenBatchModal={() => setIsBatchModalOpen(true)}
+        onExportData={handleExportBackup}
+        onImportData={() => fileInputRef.current?.click()}
+        onResetDemo={handleResetDemo}
       />
 
       {/* Main Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         {activeTab === "dashboard" && (
           <DashboardView
-            stats={initialStats}
-            batches={initialBatches}
-            sales={initialSales}
-            payments={initialPayments}
-            partners={initialPartners}
+            stats={stats}
+            batches={batches}
+            sales={sales}
+            payments={payments}
+            partners={partners}
             onOpenSaleModal={handleOpenSaleModal}
             onOpenBatchModal={() => setIsBatchModalOpen(true)}
             onOpenPaymentModal={handleOpenPaymentModal}
             onViewAllBatches={() => setActiveTab("batches")}
             onViewAllPartners={() => setActiveTab("partners")}
-            onRefresh={handleRefresh}
+            onResetDemo={handleResetDemo}
           />
         )}
 
         {activeTab === "batches" && (
           <BatchesView
-            batches={initialBatches}
+            batches={batches}
             onOpenBatchModal={() => setIsBatchModalOpen(true)}
             onOpenSaleModal={handleOpenSaleModal}
-            onRefresh={handleRefresh}
+            onToggleStatus={handleToggleBatchStatus}
           />
         )}
 
         {activeTab === "partners" && (
           <PartnersView
-            partners={initialPartners}
+            partners={partners}
             onOpenPartnerModal={handleOpenPartnerModal}
             onOpenPaymentModal={handleOpenPaymentModal}
             onOpenHistoryModal={handleOpenHistoryModal}
@@ -129,14 +360,14 @@ export function AppContainer({
 
         {activeTab === "sales" && (
           <SalesView
-            sales={initialSales}
+            sales={sales}
             onOpenSaleModal={() => handleOpenSaleModal()}
           />
         )}
 
         {activeTab === "payments" && (
           <PaymentsView
-            payments={initialPayments}
+            payments={payments}
             onOpenPaymentModal={handleOpenPaymentModal}
           />
         )}
@@ -146,10 +377,10 @@ export function AppContainer({
       <SaleModal
         isOpen={isSaleModalOpen}
         onClose={() => setIsSaleModalOpen(false)}
-        batches={initialBatches}
+        batches={batches}
         clients={clients}
         selectedBatchId={selectedBatchId}
-        onSuccess={handleRefresh}
+        onSave={handleAddSale}
         onOpenClientModal={() => {
           setIsSaleModalOpen(false);
           handleOpenPartnerModal("CLIENT");
@@ -160,7 +391,7 @@ export function AppContainer({
         isOpen={isBatchModalOpen}
         onClose={() => setIsBatchModalOpen(false)}
         suppliers={suppliers}
-        onSuccess={handleRefresh}
+        onSave={handleAddBatch}
         onOpenSupplierModal={() => {
           setIsBatchModalOpen(false);
           handleOpenPartnerModal("SUPPLIER");
@@ -170,23 +401,27 @@ export function AppContainer({
       <PaymentModal
         isOpen={isPaymentModalOpen}
         onClose={() => setIsPaymentModalOpen(false)}
-        partners={initialPartners}
+        partners={partners}
         defaultType={paymentModalType}
         defaultPartnerId={paymentModalPartnerId}
-        onSuccess={handleRefresh}
+        onSave={handleAddPayment}
       />
 
       <PartnerModal
         isOpen={isPartnerModalOpen}
         onClose={() => setIsPartnerModalOpen(false)}
         defaultType={partnerModalType}
-        onSuccess={handleRefresh}
+        onSave={handleAddPartner}
       />
 
       <PartnerHistoryModal
         isOpen={isHistoryModalOpen}
         onClose={() => setIsHistoryModalOpen(false)}
         partnerId={historyPartnerId}
+        partners={partners}
+        batches={batches}
+        sales={sales}
+        payments={payments}
         onOpenPaymentModal={handleOpenPaymentModal}
       />
     </div>

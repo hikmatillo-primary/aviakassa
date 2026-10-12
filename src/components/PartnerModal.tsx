@@ -1,23 +1,26 @@
 "use client";
 
-import React, { useState, useTransition } from "react";
+import React, { useState } from "react";
 import { Modal } from "./Modal";
-import { createPartner } from "@/lib/actions";
 
 interface PartnerModalProps {
   isOpen: boolean;
   onClose: () => void;
   defaultType?: "SUPPLIER" | "CLIENT";
-  onSuccess?: () => void;
+  onSave: (partnerData: {
+    name: string;
+    type: "SUPPLIER" | "CLIENT";
+    phone: string;
+    notes: string;
+  }) => void;
 }
 
 export function PartnerModal({
   isOpen,
   onClose,
   defaultType = "CLIENT",
-  onSuccess,
+  onSave,
 }: PartnerModalProps) {
-  const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
   const [name, setName] = useState("");
@@ -38,24 +41,20 @@ export function PartnerModal({
       return;
     }
 
-    startTransition(async () => {
-      try {
-        const formData = new FormData();
-        formData.append("name", name.trim());
-        formData.append("type", type);
-        formData.append("phone", phone.trim());
-        formData.append("notes", notes.trim());
-
-        await createPartner(formData);
-        setName("");
-        setPhone("");
-        setNotes("");
-        onClose();
-        if (onSuccess) onSuccess();
-      } catch (err: any) {
-        setError(err.message || "Xatolik yuz berdi!");
-      }
-    });
+    try {
+      onSave({
+        name: name.trim(),
+        type,
+        phone: phone.trim(),
+        notes: notes.trim(),
+      });
+      setName("");
+      setPhone("");
+      setNotes("");
+      onClose();
+    } catch (err: any) {
+      setError(err.message || "Xatolik yuz berdi!");
+    }
   };
 
   return (
@@ -149,10 +148,9 @@ export function PartnerModal({
           </button>
           <button
             type="submit"
-            disabled={isPending}
-            className="px-5 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-lg shadow-sm transition-all"
+            className="px-5 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition-all"
           >
-            {isPending ? "Saqlanmoqda..." : "Saqlash"}
+            Saqlash
           </button>
         </div>
       </form>

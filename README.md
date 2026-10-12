@@ -1,6 +1,8 @@
 # Aviakassa Pro — Chiptalar va Moliyaviy Balans Tizimi
 
-Aviakassa va chipta dilerlari uchun mo‘ljallangan zamonaviy, tezkor va ixcham hisob-kitob dasturi. Tizim blok/partiyalar bo‘yicha chiptalarni birinchi qo‘ldan sotib olish, sub-agentlarga yoki donalab chakana mijozlarga sotish, ombordagi qoldiq joylarni bilib turish hamda qarzdorlik/haqdorlikni doimiy nazorat qilish imkonini beradi.
+Aviakassa va chipta dilerlari uchun mo‘ljallangan zamonaviy, tezkor, xavfsiz va server talab qilmaydigan (statik) hisob-kitob dasturi. Tizim blok/partiyalar bo‘yicha chiptalarni birinchi qo‘ldan sotib olish, sub-agentlarga yoki donalab chakana mijozlarga sotish, ombordagi qoldiq joylarni bilib turish hamda qarzdorlik/haqdorlikni doimiy nazorat qilish imkonini beradi.
+
+Ma'lumotlar to‘liq brauzer xotirasida (`localStorage`) xavfsiz saqlanadi hamda **JSON orqali zaxira nusxa olish (Export)** va **qayta tiklash (Import)** imkoniyati mavjud.
 
 ---
 
@@ -26,11 +28,25 @@ Aviakassa va chipta dilerlari uchun mo‘ljallangan zamonaviy, tezkor va ixcham 
    * Ta’minotchilarga to‘lov o‘tkazish (Chiqim — qarzimizni kamaytiradi).
    * To‘lov shakllari: Naqd pul, Karta / O‘tkazma, Bank hisobi.
 
-5. **Texnologik Stack:**
-   * **Next.js 16 (App Router, Server Actions, React 19)**
-   * **Tailwind CSS 4**
-   * **Drizzle ORM & SQLite / Cloudflare D1 / LibSQL**
-   * **Lucide Icons**
+5. **Zaxira Nusxa (Offline-First / Ma'lumotlar xavfsizligi):**
+   * Ma'lumotlarni istalgan payt 1 tugma bilan kompyuterga fayl sifatida yuklab olish (`.json`).
+   * Zaxira faylni boshqa brauzer yoki kompyuterda bir zumda tiklash (Import).
+
+---
+
+## ☁️ Cloudflare Pages ga Deploy Qilish
+
+Loyiha to‘liq statik HTML/JS/CSS ko‘rinishida eksport qilinadi (`output: "export"`). Hech qanday tashqi ma'lumotlar bazasi yoki murakkab server talab qilinmaydi.
+
+### Cloudflare Pages Dashboard orqali sozlash:
+1. GitHub omboringizni Cloudflare Pages-ga ulang.
+2. Build sozlamalarini quyidagicha kiriting:
+   * **Framework preset:** `Next.js (Static HTML Export)` yoki `None`
+   * **Build command:** `npm run build`
+   * **Build output directory:** `out`
+   * **Root directory:** `/` (bo‘sh qoldiring)
+3. **Save and Deploy** tugmasini bosing. 
+Deploy 1-2 daqiqada 100% muvaffaqiyatli yakunlanadi.
 
 ---
 
@@ -41,69 +57,14 @@ Aviakassa va chipta dilerlari uchun mo‘ljallangan zamonaviy, tezkor va ixcham 
    npm install
    ```
 
-2. **Namunaviy demo ma'lumotlarni yuklash (ixtiyoriy):**
-   ```bash
-   node scripts/seed.js
-   ```
-
-3. **Loyiha serverini ishga tushirish:**
+2. **Dasturni ishga tushirish:**
    ```bash
    npm run dev
    ```
    Brauzerda [http://localhost:3000](http://localhost:3000) manziliga kiring.
 
-4. **Build tekshiruvi:**
+3. **Statik eksportni yig‘ish (Build):**
    ```bash
    npm run build
    ```
-
----
-
-## ☁️ Cloudflare Pages / Workers ga Deploy Qilish
-
-Loyiha Cloudflare OpenNext va Cloudflare D1 (serverless SQLite) uchun to‘liq moslashtirilgan.
-
-### 1-usul: Cloudflare Dashboard (GitHub orqali avtomatik)
-1. Ushbu loyihani GitHub omboringizga (repository) push qiling.
-2. Cloudflare Dashboard-ga kiring: **Compute (Workers) -> Create application**.
-3. GitHub omboringizni tanlang.
-4. Build sozlamalari:
-   * **Build command:** `npm run cloudflare:build`
-   * **Output directory:** `.open-next/assets`
-   * **Compatibility flag:** `nodejs_compat`
-5. D1 ma'lumotlar bazasini ulash (Binding name: `DB`).
-
-### 2-usul: Wrangler CLI orqali to'g'ridan-to'g'ri deploy
-1. Cloudflare hisobingizga kiring:
-   ```bash
-   npx wrangler login
-   ```
-2. Yangi D1 ma'lumotlar bazasi yarating:
-   ```bash
-   npx wrangler d1 create aviakassa-db
-   ```
-   Natijada berilgan `database_id` ni `wrangler.jsonc` faylidagi `database_id` o‘rniga qo‘ying.
-3. Deploy qiling:
-   ```bash
-   npm run cloudflare:deploy
-   ```
-
----
-
-## 📁 Loyiha Tuzilmasi
-
-* `src/app/page.tsx` — Asosiy sahifa (ma'lumotlarni yuklash va AppContainer ga uzatish)
-* `src/components/AppContainer.tsx` — Asosiy interaktiv boshqaruv ekrani
-* `src/components/DashboardView.tsx` — 4 ta asosiy ko‘rsatkich, faol partiyalar vitrinasi va qoldiqlar
-* `src/components/BatchesView.tsx` — Partiyalar ombori, qidiruv va filtrlar
-* `src/components/PartnersView.tsx` — Mijozlar va ta'minotchilar qarzdorlik balansi
-* `src/components/SalesView.tsx` — Chiptalar sotuvlar daftari va sof foyda hisobi
-* `src/components/PaymentsView.tsx` — Kassa kirim/chiqim to‘lovlari
-* `src/components/SaleModal.tsx` — Partiyadan chipta sotish formasi
-* `src/components/BatchModal.tsx` — Yangi partiya sotib olish formasi
-* `src/components/PaymentModal.tsx` — To‘lov kiritish (kirim/chiqim)
-* `src/components/PartnerHistoryModal.tsx` — Sverka daftari
-* `src/lib/schema.ts` — Drizzle ORM jadval sxemalari (SQLite / Cloudflare D1)
-* `src/lib/actions.ts` — Server Actions (Hisob-kitoblar, qoldiqlar, sotuvlar, to‘lovlar)
-* `src/lib/db.ts` — Universal ma'lumotlar bazasi mijozi (Local SQLite va Cloudflare D1)
-* `wrangler.jsonc` — Cloudflare Pages/Workers konfiguratsiyasi
+   Barcha statik fayllar `out/` papkasida hosil bo‘ladi.

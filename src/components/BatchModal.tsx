@@ -1,15 +1,23 @@
 "use client";
 
-import React, { useState, useTransition } from "react";
+import React, { useState } from "react";
 import { Modal } from "./Modal";
-import { createBatch } from "@/lib/actions";
 import { PackagePlus, Calculator } from "lucide-react";
 
 interface BatchModalProps {
   isOpen: boolean;
   onClose: () => void;
   suppliers: any[];
-  onSuccess?: () => void;
+  onSave: (batchData: {
+    batchNumber: string;
+    route: string;
+    flightDate: string;
+    flightNumber: string;
+    supplierId: number;
+    totalQty: number;
+    buyPrice: number;
+    notes: string;
+  }) => void;
   onOpenSupplierModal?: () => void;
 }
 
@@ -17,10 +25,9 @@ export function BatchModal({
   isOpen,
   onClose,
   suppliers,
-  onSuccess,
+  onSave,
   onOpenSupplierModal,
 }: BatchModalProps) {
-  const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
   const [batchNumber, setBatchNumber] = useState("");
@@ -52,25 +59,21 @@ export function BatchModal({
       return;
     }
 
-    startTransition(async () => {
-      try {
-        const formData = new FormData();
-        formData.append("batchNumber", batchNumber);
-        formData.append("route", route);
-        formData.append("flightDate", flightDate);
-        formData.append("flightNumber", flightNumber);
-        formData.append("supplierId", supplierId);
-        formData.append("totalQty", String(totalQty));
-        formData.append("buyPrice", String(buyPrice));
-        formData.append("notes", notes);
-
-        await createBatch(formData);
-        onClose();
-        if (onSuccess) onSuccess();
-      } catch (err: any) {
-        setError(err.message || "Xatolik yuz berdi!");
-      }
-    });
+    try {
+      onSave({
+        batchNumber,
+        route,
+        flightDate,
+        flightNumber,
+        supplierId: Number(supplierId),
+        totalQty: Number(totalQty),
+        buyPrice: Number(buyPrice),
+        notes,
+      });
+      onClose();
+    } catch (err: any) {
+      setError(err.message || "Xatolik yuz berdi!");
+    }
   };
 
   return (
@@ -246,10 +249,9 @@ export function BatchModal({
           </button>
           <button
             type="submit"
-            disabled={isPending}
-            className="px-5 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-lg shadow-sm transition-all"
+            className="px-5 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition-all"
           >
-            {isPending ? "Saqlanmoqda..." : "Partiyani ochish"}
+            Partiyani ochish
           </button>
         </div>
       </form>

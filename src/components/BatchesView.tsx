@@ -1,25 +1,23 @@
 "use client";
 
-import React, { useState, useTransition } from "react";
+import React, { useState } from "react";
 import { Package, Search, Filter, Plus, Calendar, CheckCircle2, AlertCircle } from "lucide-react";
-import { toggleBatchStatus } from "@/lib/actions";
 
 interface BatchesViewProps {
   batches: any[];
   onOpenBatchModal: () => void;
   onOpenSaleModal: (batchId: number) => void;
-  onRefresh: () => void;
+  onToggleStatus: (id: number) => void;
 }
 
 export function BatchesView({
   batches,
   onOpenBatchModal,
   onOpenSaleModal,
-  onRefresh,
+  onToggleStatus,
 }: BatchesViewProps) {
   const [filter, setFilter] = useState<"ALL" | "ACTIVE" | "COMPLETED">("ALL");
   const [search, setSearch] = useState("");
-  const [isPending, startTransition] = useTransition();
 
   const filteredBatches = batches.filter((b) => {
     if (filter === "ACTIVE" && b.status !== "ACTIVE") return false;
@@ -35,11 +33,8 @@ export function BatchesView({
     return true;
   });
 
-  const handleToggleStatus = (id: number, currentStatus: string) => {
-    startTransition(async () => {
-      await toggleBatchStatus(id, currentStatus);
-      onRefresh();
-    });
+  const handleToggleStatus = (id: number) => {
+    onToggleStatus(id);
   };
 
   return (
@@ -182,8 +177,7 @@ export function BatchesView({
                     {/* Status */}
                     <td className="py-3 px-4 text-center">
                       <button
-                        onClick={() => handleToggleStatus(batch.id, batch.status)}
-                        disabled={isPending}
+                        onClick={() => handleToggleStatus(batch.id)}
                         title="Statusni almashtirish uchun bosing"
                         className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all ${
                           batch.status === "ACTIVE"

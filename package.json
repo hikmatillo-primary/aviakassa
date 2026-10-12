@@ -6,9 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
-    "cloudflare:build": "opennextjs-cloudflare build",
-    "cloudflare:deploy": "opennextjs-cloudflare build && wrangler deploy"
+    "lint": "eslint"
   },
   "dependencies": {
     "clsx": "^2.1.1",

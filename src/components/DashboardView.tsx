@@ -14,7 +14,6 @@ import {
   PlaneTakeoff,
   Users,
 } from "lucide-react";
-import { seedInitialDemoData } from "@/lib/actions";
 
 interface DashboardViewProps {
   stats: any;
@@ -27,7 +26,8 @@ interface DashboardViewProps {
   onOpenPaymentModal: (type?: "INCOME" | "EXPENSE") => void;
   onViewAllBatches: () => void;
   onViewAllPartners: () => void;
-  onRefresh: () => void;
+  onRefresh?: () => void;
+  onResetDemo?: () => void;
 }
 
 export function DashboardView({
@@ -42,17 +42,13 @@ export function DashboardView({
   onViewAllBatches,
   onViewAllPartners,
   onRefresh,
+  onResetDemo,
 }: DashboardViewProps) {
-  const [isSeeding, startSeeding] = useTransition();
-
   const activeBatches = batches.filter((b) => b.status === "ACTIVE");
   const isEmptyData = batches.length === 0 && partners.length === 0;
 
   const handleSeed = () => {
-    startSeeding(async () => {
-      await seedInitialDemoData();
-      onRefresh();
-    });
+    if (onResetDemo) onResetDemo();
   };
 
   return (
@@ -71,10 +67,9 @@ export function DashboardView({
           </div>
           <button
             onClick={handleSeed}
-            disabled={isSeeding}
-            className="px-4 py-2 bg-white text-blue-700 hover:bg-blue-50 font-bold text-xs rounded-xl shadow-md transition-all shrink-0 disabled:opacity-50"
+            className="px-4 py-2 bg-white text-blue-700 hover:bg-blue-50 font-bold text-xs rounded-xl shadow-md transition-all shrink-0 cursor-pointer"
           >
-            {isSeeding ? "Yuklanmoqda..." : "Demo ma'lumotlarni yuklash"}
+            Demo ma&apos;lumotlarni yuklash
           </button>
         </div>
       )}

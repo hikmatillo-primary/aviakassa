@@ -1,8 +1,7 @@
 "use client";
 
-import React, { useState, useTransition } from "react";
+import React, { useState } from "react";
 import { Modal } from "./Modal";
-import { createPayment } from "@/lib/actions";
 import { ArrowDownLeft, ArrowUpRight } from "lucide-react";
 
 interface PaymentModalProps {
@@ -11,7 +10,14 @@ interface PaymentModalProps {
   partners: any[];
   defaultType?: "INCOME" | "EXPENSE";
   defaultPartnerId?: number | null;
-  onSuccess?: () => void;
+  onSave: (paymentData: {
+    partnerId: number;
+    type: "INCOME" | "EXPENSE";
+    amount: number;
+    paymentDate: string;
+    paymentMethod: string;
+    notes: string;
+  }) => void;
 }
 
 export function PaymentModal({
@@ -20,9 +26,8 @@ export function PaymentModal({
   partners,
   defaultType = "INCOME",
   defaultPartnerId,
-  onSuccess,
+  onSave,
 }: PaymentModalProps) {
-  const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
   const [type, setType] = useState<"INCOME" | "EXPENSE">(defaultType);
@@ -58,23 +63,19 @@ export function PaymentModal({
       return;
     }
 
-    startTransition(async () => {
-      try {
-        const formData = new FormData();
-        formData.append("partnerId", partnerId);
-        formData.append("type", type);
-        formData.append("amount", String(amount));
-        formData.append("paymentDate", paymentDate);
-        formData.append("paymentMethod", paymentMethod);
-        formData.append("notes", notes);
-
-        await createPayment(formData);
-        onClose();
-        if (onSuccess) onSuccess();
-      } catch (err: any) {
-        setError(err.message || "Xatolik yuz berdi!");
-      }
-    });
+    try {
+      onSave({
+        partnerId: Number(partnerId),
+        type,
+        amount,
+        paymentDate: paymentDate || new Date().toISOString().split("T")[0],
+        paymentMethod,
+        notes,
+      });
+      onClose();
+    } catch (err: any) {
+      setError(err.message || "Xatolik yuz berdi!");
+    }
   };
 
   return (
@@ -233,14 +234,13 @@ export function PaymentModal({
           </button>
           <button
             type="submit"
-            disabled={isPending}
             className={`px-5 py-2 text-xs font-semibold text-white rounded-lg shadow-sm transition-all ${
               type === "INCOME"
                 ? "bg-emerald-600 hover:bg-emerald-700"
                 : "bg-rose-600 hover:bg-rose-700"
-            } disabled:opacity-50`}
+            }`}
           >
-            {isPending ? "Saqlanmoqda..." : "To'lovni saqlash"}
+            To&apos;lovni saqlash
           </button>
         </div>
       </form>

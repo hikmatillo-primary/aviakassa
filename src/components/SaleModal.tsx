@@ -1,9 +1,8 @@
 "use client";
 
-import React, { useState, useTransition } from "react";
+import React, { useState } from "react";
 import { Modal } from "./Modal";
-import { createSale } from "@/lib/actions";
-import { Ticket, ArrowRight, DollarSign, Calculator } from "lucide-react";
+import { Calculator } from "lucide-react";
 
 interface SaleModalProps {
   isOpen: boolean;
@@ -11,7 +10,17 @@ interface SaleModalProps {
   batches: any[];
   clients: any[];
   selectedBatchId?: number | null;
-  onSuccess?: () => void;
+  onSave: (saleData: {
+    batchId: number;
+    clientId: number;
+    qty: number;
+    sellPrice: number;
+    passengerNames: string;
+    saleDate: string;
+    paidNow: number;
+    paymentMethod: string;
+    notes: string;
+  }) => void;
   onOpenClientModal?: () => void;
 }
 
@@ -21,10 +30,9 @@ export function SaleModal({
   batches,
   clients,
   selectedBatchId,
-  onSuccess,
+  onSave,
   onOpenClientModal,
 }: SaleModalProps) {
-  const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
   // Active batches only
@@ -52,7 +60,6 @@ export function SaleModal({
       setBatchId(String(selectedBatchId));
       const b = batches.find((item) => item.id === selectedBatchId);
       if (b) {
-        // default sell price e.g. buyPrice + 30
         setSellPrice(Math.round(b.buyPrice + 30));
       }
     } else if (activeBatches.length > 0 && !batchId) {
@@ -63,7 +70,6 @@ export function SaleModal({
 
   const selectedBatch = batches.find((b) => String(b.id) === batchId);
 
-  // Recalculate sell price suggestion when batch changes
   const handleBatchChange = (newBatchId: string) => {
     setBatchId(newBatchId);
     const b = batches.find((item) => String(item.id) === newBatchId);
@@ -101,26 +107,22 @@ export function SaleModal({
       return;
     }
 
-    startTransition(async () => {
-      try {
-        const formData = new FormData();
-        formData.append("batchId", batchId);
-        formData.append("clientId", clientId);
-        formData.append("qty", String(qty));
-        formData.append("sellPrice", String(sellPrice));
-        formData.append("passengerNames", passengerNames);
-        formData.append("saleDate", saleDate);
-        formData.append("paidNow", String(paidNow));
-        formData.append("paymentMethod", paymentMethod);
-        formData.append("notes", notes);
-
-        await createSale(formData);
-        onClose();
-        if (onSuccess) onSuccess();
-      } catch (err: any) {
-        setError(err.message || "Xatolik yuz berdi!");
-      }
-    });
+    try {
+      onSave({
+        batchId: Number(batchId),
+        clientId: Number(clientId),
+        qty,
+        sellPrice,
+        passengerNames,
+        saleDate: saleDate || new Date().toISOString().split("T")[0],
+        paidNow,
+        paymentMethod,
+        notes,
+      });
+      onClose();
+    } catch (err: any) {
+      setError(err.message || "Xatolik yuz berdi!");
+    }
   };
 
   return (
@@ -336,16 +338,15 @@ export function SaleModal({
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+            className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
           >
             Bekor qilish
           </button>
           <button
             type="submit"
-            disabled={isPending}
-            className="px-5 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-lg shadow-sm transition-all"
+            className="px-5 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition-all cursor-pointer"
           >
-            {isPending ? "Saqlanmoqda..." : "Sotuvni tasdiqlash"}
+            Sotuvni tasdiqlash
           </button>
         </div>
       </form>
