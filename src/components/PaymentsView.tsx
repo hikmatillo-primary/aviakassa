@@ -296,7 +296,7 @@ export function PaymentsView({
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between text-xs pt-2.5 border-t border-slate-100 dark:border-slate-700/80 bg-slate-50/70 dark:bg-slate-750 -mx-4 -mb-4 px-4 py-2.5 rounded-b-3xl">
+                <div className="flex items-center justify-between text-xs pt-2.5 border-t border-slate-100 dark:border-slate-700/80 bg-slate-50/70 dark:bg-slate-900/50 -mx-4 -mb-4 px-4 py-2.5 rounded-b-3xl">
                   <span className="bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-2.5 py-0.5 rounded-full text-[11px] font-medium">
                     {p.paymentMethod === "CASH"
                       ? "Naqd pul"

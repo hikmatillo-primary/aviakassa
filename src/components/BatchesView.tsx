@@ -186,7 +186,7 @@ export function BatchesView({
               </div>
 
               {/* Footer */}
-              <div className="flex items-center justify-between text-xs pt-2.5 border-t border-slate-100 dark:border-slate-700/80 bg-slate-50/70 dark:bg-slate-750 -mx-4 -mb-4 px-4 py-3 rounded-b-3xl">
+              <div className="flex items-center justify-between text-xs pt-2.5 border-t border-slate-100 dark:border-slate-700/80 bg-slate-50/70 dark:bg-slate-900/50 -mx-4 -mb-4 px-4 py-3 rounded-b-3xl">
                 <div className="flex items-center gap-1.5">
                   <span className="text-slate-500 dark:text-slate-400 text-xs">Tannarx (1 ta):</span>
                   <span className="font-mono font-bold text-slate-900 dark:text-white text-sm">
