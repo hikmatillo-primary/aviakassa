@@ -62,21 +62,21 @@ export function PartnerHistoryModal({
     >
       <div className="space-y-5">
         {/* Top Balance Summary Card */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 bg-slate-50 border border-slate-200/80 rounded-2xl">
-          <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-xs">
-            <span className="text-xs text-slate-500 block font-medium">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 bg-slate-50/60 border border-slate-200/70 rounded-3xl">
+          <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-xs">
+            <span className="text-xs text-slate-400 block font-medium">
               {isSupplier ? "Jami partiyalar (Olingan)" : "Jami chiptalar (Sotilgan)"}:
             </span>
             <strong className="text-base font-bold text-slate-900">${totalDeals.toLocaleString()}</strong>
           </div>
-          <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-xs">
-            <span className="text-xs text-slate-500 block font-medium">
+          <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-xs">
+            <span className="text-xs text-slate-400 block font-medium">
               {isSupplier ? "Biz to'lagan summa:" : "Mijoz to'lagan summa:"}
             </span>
             <strong className="text-base font-bold text-slate-900">${totalPaid.toLocaleString()}</strong>
           </div>
           <div
-            className={`p-3 rounded-xl border shadow-xs ${
+            className={`p-4 rounded-2xl border shadow-xs ${
               balance > 0
                 ? isSupplier
                   ? "bg-rose-50 border-rose-200 text-rose-950"
@@ -107,7 +107,7 @@ export function PartnerHistoryModal({
                 onClose();
                 onOpenPaymentModal(isSupplier ? "EXPENSE" : "INCOME", partner.id);
               }}
-              className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg text-white shadow-xs cursor-pointer ${
+              className={`px-4 py-2 text-xs font-bold rounded-full text-white shadow-xs cursor-pointer ${
                 isSupplier ? "bg-rose-600 hover:bg-rose-700" : "bg-emerald-600 hover:bg-emerald-700"
               }`}
             >
@@ -119,8 +119,8 @@ export function PartnerHistoryModal({
         {/* Tabs or Two Columns: Deals vs Payments */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Column 1: Deals (Batches / Sales) */}
-          <div className="border border-slate-200 rounded-xl overflow-hidden bg-white">
-            <div className="bg-slate-100/70 px-4 py-2.5 border-b border-slate-200 text-xs font-bold text-slate-700 uppercase tracking-wider">
+          <div className="border border-slate-200/70 rounded-3xl overflow-hidden bg-white shadow-xs">
+            <div className="bg-slate-50/70 px-4 py-3 border-b border-slate-100 text-xs font-bold text-slate-700 uppercase tracking-wider">
               {isSupplier ? "Olingan partiyalar" : "Sotilgan chiptalar"}
             </div>
             <div className="divide-y divide-slate-100 max-h-64 overflow-y-auto">
@@ -128,10 +128,10 @@ export function PartnerHistoryModal({
                 <p className="p-4 text-xs text-slate-400 text-center">Bitimlar yo&apos;q</p>
               ) : (
                 deals.map((item: any) => (
-                  <div key={item.id} className="p-3 text-xs hover:bg-slate-50/50">
+                  <div key={item.id} className="p-3.5 text-xs hover:bg-slate-50/50">
                     <div className="flex items-center justify-between font-semibold text-slate-800">
                       <span>{item.route || item.batchNumber}</span>
-                      <span className="text-slate-900 font-mono">
+                      <span className="text-slate-900 font-mono font-bold">
                         ${(isSupplier ? item.totalCost : item.totalAmount).toLocaleString()}
                       </span>
                     </div>
@@ -153,8 +153,8 @@ export function PartnerHistoryModal({
           </div>
 
           {/* Column 2: Payments */}
-          <div className="border border-slate-200 rounded-xl overflow-hidden bg-white">
-            <div className="bg-slate-100/70 px-4 py-2.5 border-b border-slate-200 text-xs font-bold text-slate-700 uppercase tracking-wider">
+          <div className="border border-slate-200/70 rounded-3xl overflow-hidden bg-white shadow-xs">
+            <div className="bg-slate-50/70 px-4 py-3 border-b border-slate-100 text-xs font-bold text-slate-700 uppercase tracking-wider">
               To&apos;lovlar tarixi
             </div>
             <div className="divide-y divide-slate-100 max-h-64 overflow-y-auto">
@@ -162,9 +162,9 @@ export function PartnerHistoryModal({
                 <p className="p-4 text-xs text-slate-400 text-center">To&apos;lovlar yo&apos;q</p>
               ) : (
                 partnerPayments.map((p: any) => (
-                  <div key={p.id} className="p-3 text-xs hover:bg-slate-50/50">
+                  <div key={p.id} className="p-3.5 text-xs hover:bg-slate-50/50">
                     <div className="flex items-center justify-between font-semibold text-slate-800">
-                      <span className="flex items-center gap-1">
+                      <span className="flex items-center gap-1 font-bold">
                         {p.type === "INCOME" ? (
                           <ArrowDownLeft className="w-3.5 h-3.5 text-emerald-600" />
                         ) : (
@@ -172,7 +172,7 @@ export function PartnerHistoryModal({
                         )}
                         ${p.amount.toLocaleString()}
                       </span>
-                      <span className="text-slate-500">{p.paymentDate}</span>
+                      <span className="text-slate-400">{p.paymentDate}</span>
                     </div>
                     <div className="flex items-center justify-between text-slate-400 mt-1">
                       <span>Usuli: {p.paymentMethod || "CASH"}</span>

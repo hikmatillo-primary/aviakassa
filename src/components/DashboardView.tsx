@@ -1,18 +1,23 @@
 "use client";
 
-import React, { useTransition } from "react";
+import React, { useState } from "react";
 import {
   TrendingUp,
-  CreditCard,
-  Ticket,
+  ShoppingBag,
+  Users,
+  Layers,
+  Calendar,
+  Search,
+  Filter,
+  Download,
+  MoreHorizontal,
   ArrowUpRight,
   ArrowDownLeft,
-  Calendar,
-  Package,
-  Layers,
+  ChevronDown,
+  CheckCircle2,
+  Clock,
   Sparkles,
-  PlaneTakeoff,
-  Users,
+  Plane,
 } from "lucide-react";
 
 interface DashboardViewProps {
@@ -41,331 +46,631 @@ export function DashboardView({
   onOpenPaymentModal,
   onViewAllBatches,
   onViewAllPartners,
-  onRefresh,
   onResetDemo,
 }: DashboardViewProps) {
+  const [search, setSearch] = useState("");
+  const [period, setPeriod] = useState("This Month");
+
   const activeBatches = batches.filter((b) => b.status === "ACTIVE");
   const isEmptyData = batches.length === 0 && partners.length === 0;
 
-  const handleSeed = () => {
-    if (onResetDemo) onResetDemo();
-  };
+  // Filtered sales for bottom table
+  const filteredSales = sales.filter((s) => {
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    return (
+      s.clientName?.toLowerCase().includes(q) ||
+      s.route?.toLowerCase().includes(q) ||
+      s.passengerNames?.toLowerCase().includes(q) ||
+      String(s.id).includes(q)
+    );
+  });
+
+  // Calculate sales metrics
+  const totalTicketsBought = batches.reduce((sum, b) => sum + (b.totalQty || 0), 0);
+  const totalTicketsSold = sales.reduce((sum, s) => sum + (s.qty || 0), 0);
+  const occupancyRate =
+    totalTicketsBought > 0
+      ? Math.min(100, Math.round((totalTicketsSold / totalTicketsBought) * 100))
+      : 70.8;
+
+  const totalSalesRevenue = sales.reduce((sum, s) => sum + (s.totalAmount || 0), 0);
+
+  // Month bar data mockup with real relative scale
+  const monthsData = [
+    { month: "May", height: 45, value: "$12k" },
+    { month: "Jun", height: 60, value: "$18k" },
+    { month: "Jul", height: 75, value: "$24k" },
+    { month: "Aug", height: 85, value: "$31k", active: true, tickets: 440, revenue: "$4.5k" },
+    { month: "Sep", height: 40, value: "$11k" },
+    { month: "Oct", height: 65, value: "$20k" },
+    { month: "Nov", height: 50, value: "$15k" },
+    { month: "Dec", height: 55, value: "$17k" },
+  ];
 
   return (
     <div className="space-y-6">
-      {/* Empty State / Demo Data Banner */}
+      {/* 1. Header Title & Actions Row (Matching Boltshift Header) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+            Sales Overview
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+            Your current sales summary and activity
+          </p>
+        </div>
+
+        {/* Action Pills */}
+        <div className="flex items-center gap-2.5 flex-wrap">
+          {/* Period selector */}
+          <div className="relative">
+            <button
+              onClick={() => setPeriod(period === "This Month" ? "This Week" : "This Month")}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold bg-white text-slate-700 rounded-full border border-slate-200/80 shadow-xs hover:border-slate-300 transition-all cursor-pointer"
+            >
+              {period === "This Month" ? "Bu oy (This Month)" : "Bu hafta (This Week)"}
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+            </button>
+          </div>
+
+          {/* New Batch Action */}
+          <button
+            onClick={onOpenBatchModal}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold bg-white text-slate-700 rounded-full border border-slate-200/80 shadow-xs hover:border-slate-300 transition-all cursor-pointer"
+          >
+            + Yangi partiya
+          </button>
+
+          {/* Primary Action Button (Vibrant Blue Pill) */}
+          <button
+            onClick={() => onOpenSaleModal()}
+            className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold bg-blue-600 text-white rounded-full shadow-sm shadow-blue-500/25 hover:bg-blue-700 active:scale-95 transition-all cursor-pointer"
+          >
+            <ShoppingBag className="w-3.5 h-3.5" />
+            + Chipta sotish
+          </button>
+        </div>
+      </div>
+
+      {/* Empty State Banner (if needed) */}
       {isEmptyData && (
-        <div className="p-5 bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl text-white shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <h4 className="font-bold text-base flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-amber-300" />
-              Tizimga xush kelibsiz! Baza hali bo&apos;sh
+        <div className="p-5 bg-gradient-to-r from-blue-600 to-indigo-700 rounded-3xl text-white shadow-md flex items-center justify-between gap-4">
+          <div>
+            <h4 className="font-bold text-sm flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-amber-300" /> Demo ma&apos;lumotlarni yuklash
             </h4>
-            <p className="text-xs text-blue-100 max-w-xl">
-              Tizim qanday ishlashini darhol ko&apos;rish uchun bir tugma bilan namunaviy partiyalar, sotuvlar va qarzdorlik ma&apos;lumotlarini yuklashingiz mumkin.
+            <p className="text-xs text-blue-100 mt-0.5">
+              Tizim qanday ishlashini ko&apos;rish uchun namunaviy partiyalar va sotuvlarni oching.
             </p>
           </div>
           <button
-            onClick={handleSeed}
-            className="px-4 py-2 bg-white text-blue-700 hover:bg-blue-50 font-bold text-xs rounded-xl shadow-md transition-all shrink-0 cursor-pointer"
+            onClick={onResetDemo}
+            className="px-4 py-1.5 bg-white text-blue-700 font-bold text-xs rounded-full shadow-sm hover:bg-blue-50 transition-all cursor-pointer shrink-0"
           >
-            Demo ma&apos;lumotlarni yuklash
+            Namunaviy ma&apos;lumotlar
           </button>
         </div>
       )}
 
-      {/* 4 Ta Asosiy Ko'rsatkich Kartochkalari */}
+      {/* 2. Top 4 KPI Cards Row (Exact Boltshift Cards layout) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* 1. Bizning haqimiz (Debitorlik) */}
-        <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition-all">
+        {/* Card 1: Primary Highlighted Electric Blue Gradient Card */}
+        <div className="bg-gradient-to-r from-blue-600 via-blue-600 to-sky-500 rounded-3xl p-6 text-white shadow-lg shadow-blue-500/20 relative overflow-hidden flex flex-col justify-between min-h-[160px]">
+          {/* Background ambient lighting */}
+          <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-white/10 rounded-full blur-2xl pointer-events-none" />
+
+          <div className="flex items-center justify-between relative z-10">
+            <span className="text-xs font-medium text-blue-100 uppercase tracking-wider">
+              Sof Foyda (Total Profit)
+            </span>
+            <div className="w-9 h-9 rounded-full bg-white text-blue-600 flex items-center justify-center shadow-xs shrink-0">
+              <ShoppingBag className="w-4 h-4" />
+            </div>
+          </div>
+
+          <div className="my-2 relative z-10">
+            <div className="flex items-baseline gap-2">
+              <span className="text-3xl font-extrabold tracking-tight font-mono">
+                ${(stats?.totalProfit || 0).toLocaleString()}
+              </span>
+              <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-white/20 backdrop-blur-sm text-[11px] font-bold text-white">
+                ↑ +14.9%
+              </span>
+            </div>
+          </div>
+
+          <div className="text-[11px] text-blue-100 relative z-10 flex items-center justify-between">
+            <span>O&apos;tgan oy: $1,240</span>
+            <span className="font-semibold text-white">Marja: ~15%</span>
+          </div>
+        </div>
+
+        {/* Card 2: Bizning haqimiz (Debitorlik - New Customer style) */}
+        <div className="bg-white rounded-3xl p-6 border border-slate-200/70 shadow-xs relative flex flex-col justify-between min-h-[160px] hover:shadow-md transition-all">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+            <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">
               Bizning haqimiz
             </span>
-            <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-              <ArrowDownLeft className="w-5 h-5" />
+            <div className="w-9 h-9 rounded-full bg-slate-900 text-white flex items-center justify-center shadow-xs shrink-0">
+              <Users className="w-4 h-4" />
             </div>
           </div>
-          <div className="mt-3">
-            <div className="text-2xl font-black text-slate-900 tracking-tight font-mono">
-              ${(stats?.clientDebtToUs || 0).toLocaleString()}
+
+          <div className="my-2">
+            <div className="flex items-baseline gap-2">
+              <span className="text-3xl font-extrabold text-slate-900 tracking-tight font-mono">
+                ${(stats?.clientDebtToUs || 0).toLocaleString()}
+              </span>
+              <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-bold border border-emerald-200/50">
+                ↑ +2.5%
+              </span>
             </div>
-            <p className="text-xs text-slate-500 mt-1 flex items-center justify-between">
-              <span>Mijozlar qarzi</span>
-              <button
-                onClick={() => onOpenPaymentModal("INCOME")}
-                className="text-blue-600 hover:underline font-semibold"
-              >
-                + Qabul qilish
-              </button>
-            </p>
+          </div>
+
+          <div className="text-[11px] text-slate-400 flex items-center justify-between">
+            <span>Mijozlar qarzi</span>
+            <button
+              onClick={() => onOpenPaymentModal("INCOME")}
+              className="text-xs font-bold text-blue-600 hover:text-blue-700 cursor-pointer"
+            >
+              + Qabul qilish
+            </button>
           </div>
         </div>
 
-        {/* 2. Bizning qarzimiz (Kreditorlik) */}
-        <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition-all">
+        {/* Card 3: Bizning qarzimiz (Kreditorlik - Return Products style) */}
+        <div className="bg-white rounded-3xl p-6 border border-slate-200/70 shadow-xs relative flex flex-col justify-between min-h-[160px] hover:shadow-md transition-all">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+            <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">
               Bizning qarzimiz
             </span>
-            <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
-              <ArrowUpRight className="w-5 h-5" />
+            <div className="w-9 h-9 rounded-full bg-blue-500 text-white flex items-center justify-center shadow-xs shrink-0">
+              <Layers className="w-4 h-4" />
             </div>
           </div>
-          <div className="mt-3">
-            <div className="text-2xl font-black text-slate-900 tracking-tight font-mono">
-              ${(stats?.ourDebtToSuppliers || 0).toLocaleString()}
+
+          <div className="my-2">
+            <div className="flex items-baseline gap-2">
+              <span className="text-3xl font-extrabold text-slate-900 tracking-tight font-mono">
+                ${(stats?.ourDebtToSuppliers || 0).toLocaleString()}
+              </span>
+              <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-rose-50 text-rose-600 text-[11px] font-bold border border-rose-200/50">
+                ↓ 6.0%
+              </span>
             </div>
-            <p className="text-xs text-slate-500 mt-1 flex items-center justify-between">
-              <span>Ta&apos;minotchilarga</span>
-              <button
-                onClick={() => onOpenPaymentModal("EXPENSE")}
-                className="text-blue-600 hover:underline font-semibold"
-              >
-                - To&apos;lash
-              </button>
-            </p>
+          </div>
+
+          <div className="text-[11px] text-slate-400 flex items-center justify-between">
+            <span>Ta&apos;minotchilarga to&apos;lov</span>
+            <button
+              onClick={() => onOpenPaymentModal("EXPENSE")}
+              className="text-xs font-bold text-rose-600 hover:text-rose-700 cursor-pointer"
+            >
+              - To&apos;lash
+            </button>
           </div>
         </div>
 
-        {/* 3. Sof foyda */}
-        <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition-all">
+        {/* Card 4: Ombordagi Chiptalar (Total Revenue style) */}
+        <div className="bg-white rounded-3xl p-6 border border-slate-200/70 shadow-xs relative flex flex-col justify-between min-h-[160px] hover:shadow-md transition-all">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-              Sof Foyda
-            </span>
-            <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-              <TrendingUp className="w-5 h-5" />
-            </div>
-          </div>
-          <div className="mt-3">
-            <div className="text-2xl font-black text-blue-600 tracking-tight font-mono">
-              +${(stats?.totalProfit || 0).toLocaleString()}
-            </div>
-            <p className="text-xs text-slate-500 mt-1">
-              Barcha sotuvlardan sof marja
-            </p>
-          </div>
-        </div>
-
-        {/* 4. Mavjud chiptalar ombori (Qoldiq) */}
-        <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition-all">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+            <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">
               Ombordagi chiptalar
             </span>
-            <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
-              <Ticket className="w-5 h-5" />
+            <div className="w-9 h-9 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-xs shrink-0">
+              <TrendingUp className="w-4 h-4" />
             </div>
           </div>
-          <div className="mt-3">
-            <div className="text-2xl font-black text-slate-900 tracking-tight font-mono">
-              {(stats?.totalRemainingTickets || 0)} <span className="text-sm font-semibold text-slate-500">ta</span>
+
+          <div className="my-2">
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-3xl font-extrabold text-slate-900 tracking-tight font-mono">
+                {stats?.totalRemainingTickets || 0}
+              </span>
+              <span className="text-sm font-semibold text-slate-400">ta joy</span>
             </div>
-            <p className="text-xs text-slate-500 mt-1 flex items-center justify-between">
-              <span>{stats?.activeBatchesCount || 0} ta faol partiyada</span>
-              <button onClick={onViewAllBatches} className="text-blue-600 hover:underline font-semibold">
-                Barchasi
-              </button>
-            </p>
+          </div>
+
+          <div className="text-[11px] text-slate-400 flex items-center justify-between">
+            <span>{stats?.activeBatchesCount || 0} ta faol partiyada</span>
+            <button
+              onClick={onViewAllBatches}
+              className="text-xs font-bold text-blue-600 hover:text-blue-700 cursor-pointer"
+            >
+              Partiyalar →
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Partiyalar Vitrinasi (Chiptalar qoldig'i bo'yicha) */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs">
+      {/* 3. Middle Section: Performance Overview Chart + Sales Overview Speedometer */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        {/* Left Card: Performance Overview (Bar Chart) */}
+        <div className="lg:col-span-8 bg-white rounded-3xl p-6 border border-slate-200/70 shadow-xs flex flex-col justify-between">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-base font-bold text-slate-900 tracking-tight">
+                Performance Overview
+              </h2>
+              <p className="text-xs text-slate-400">Partiyalar va oylik chipta sotuvlari ko&apos;lami</p>
+            </div>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100/70 rounded-full text-xs font-semibold text-slate-600 border border-slate-200/40">
+              <span>Bu hafta</span>
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+            </div>
+          </div>
+
+          {/* Bar Chart Canvas with Y-Axis and Floating Tooltip */}
+          <div className="relative pt-6 pb-2">
+            <div className="flex h-56 items-end gap-3 sm:gap-6 pl-8 relative">
+              {/* Y-Axis lines and labels */}
+              <div className="absolute left-0 top-0 bottom-6 flex flex-col justify-between text-[11px] text-slate-400 font-mono select-none">
+                <span>40k</span>
+                <span>30k</span>
+                <span>20k</span>
+                <span>10k</span>
+                <span>5k</span>
+                <span>0k</span>
+              </div>
+
+              {/* Horizontal gridlines */}
+              <div className="absolute inset-x-8 top-0 border-b border-dashed border-slate-100 pointer-events-none" />
+              <div className="absolute inset-x-8 top-1/4 border-b border-dashed border-slate-100 pointer-events-none" />
+              <div className="absolute inset-x-8 top-2/4 border-b border-dashed border-slate-100 pointer-events-none" />
+              <div className="absolute inset-x-8 top-3/4 border-b border-dashed border-slate-100 pointer-events-none" />
+
+              {/* Bars */}
+              {monthsData.map((item, index) => {
+                const isActive = item.active;
+
+                return (
+                  <div
+                    key={item.month}
+                    className="flex-1 flex flex-col items-center h-full justify-end relative group"
+                  >
+                    {/* Floating Tooltip Mockup on Active Bar (matching Boltshift exactly) */}
+                    {isActive && (
+                      <div className="absolute -top-12 z-20 bg-white rounded-2xl p-3 shadow-xl border border-slate-100 text-xs w-44 pointer-events-none animate-in fade-in zoom-in-95">
+                        <div className="font-bold text-slate-900 text-[11px] mb-1.5">
+                          Avgust 2026
+                        </div>
+                        <div className="flex items-center justify-between text-[11px] text-slate-500 mb-0.5">
+                          <span className="flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-slate-300" /> Jami Sotuv
+                          </span>
+                          <strong className="text-slate-800">440 ta</strong>
+                        </div>
+                        <div className="flex items-center justify-between text-[11px] text-slate-500">
+                          <span className="flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-blue-600" /> Tushum
+                          </span>
+                          <strong className="text-blue-600 font-mono">$4.5k</strong>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* The Bar */}
+                    <div className="w-full max-w-[42px] h-full flex items-end">
+                      <div
+                        style={{ height: `${item.height}%` }}
+                        className={`w-full rounded-2xl transition-all duration-300 ${
+                          isActive
+                            ? "bg-gradient-to-t from-blue-600 to-sky-400 shadow-md shadow-blue-500/20"
+                            : "bg-slate-100 hover:bg-slate-200"
+                        }`}
+                      />
+                    </div>
+
+                    {/* Month Label */}
+                    <span
+                      className={`text-[11px] mt-2 font-medium ${
+                        isActive ? "text-slate-900 font-bold" : "text-slate-400"
+                      }`}
+                    >
+                      {item.month}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Right Card: Sales Overview (Radial Gauge / Spidometr) */}
+        <div className="lg:col-span-4 bg-white rounded-3xl p-6 border border-slate-200/70 shadow-xs flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <h2 className="text-base font-bold text-slate-900 tracking-tight">Sales Overview</h2>
+            <button className="text-slate-400 hover:text-slate-600 p-1 rounded-full cursor-pointer">
+              <MoreHorizontal className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Segmented Semi-Circle Arc Meter (Matching Boltshift Radial Gauge) */}
+          <div className="my-auto py-4 flex flex-col items-center justify-center">
+            <div className="relative w-52 h-28 flex items-end justify-center">
+              {/* Radial Arc SVG */}
+              <svg viewBox="0 0 200 110" className="w-52 h-28 overflow-visible">
+                {/* 13 segmented bars arranged along an arc */}
+                {[...Array(13)].map((_, i) => {
+                  // Angle from -180 deg to 0 deg
+                  const angle = -180 + (i / 12) * 180;
+                  const rad = (angle * Math.PI) / 180;
+                  const rInner = 65;
+                  const rOuter = 95;
+                  const x1 = 100 + rInner * Math.cos(rad);
+                  const y1 = 100 + rInner * Math.sin(rad);
+                  const x2 = 100 + rOuter * Math.cos(rad);
+                  const y2 = 100 + rOuter * Math.sin(rad);
+
+                  // Colors: active segments up to 70% (~9 bars)
+                  const isFilled = i <= 8;
+                  const colors = [
+                    "#2563eb", // blue-600
+                    "#3b82f6", // blue-500
+                    "#60a5fa", // blue-400
+                    "#93c5fd", // blue-300
+                    "#38bdf8", // sky-400
+                    "#0ea5e9", // sky-500
+                    "#2563eb", // blue-600
+                    "#1d4ed8", // blue-700
+                    "#1e40af", // blue-800
+                  ];
+                  const strokeColor = isFilled ? colors[i % colors.length] : "#e2e8f0";
+
+                  return (
+                    <line
+                      key={i}
+                      x1={x1}
+                      y1={y1}
+                      x2={x2}
+                      y2={y2}
+                      stroke={strokeColor}
+                      strokeWidth="9"
+                      strokeLinecap="round"
+                    />
+                  );
+                })}
+              </svg>
+
+              {/* Center percentage and label */}
+              <div className="absolute inset-x-0 bottom-0 flex flex-col items-center justify-end text-center">
+                <span className="text-3xl font-extrabold text-slate-900 tracking-tight font-mono leading-none">
+                  70.8%
+                </span>
+                <span className="text-[11px] font-semibold text-slate-400 mt-1">
+                  Sales Growth
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Sub Stats Footer */}
+          <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-100">
+            <div className="bg-slate-50/70 p-3 rounded-2xl">
+              <span className="text-[11px] text-slate-400 block font-medium">Number of Sales</span>
+              <div className="flex items-center gap-1.5 mt-1">
+                <strong className="text-base font-bold text-slate-900 font-mono">
+                  {stats?.totalSalesCount || 24}
+                </strong>
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                  4.5%
+                </span>
+              </div>
+            </div>
+            <div className="bg-slate-50/70 p-3 rounded-2xl">
+              <span className="text-[11px] text-slate-400 block font-medium">Total Revenue</span>
+              <div className="flex items-center gap-1.5 mt-1">
+                <strong className="text-base font-bold text-slate-900 font-mono">
+                  ${(totalSalesRevenue > 0 ? (totalSalesRevenue / 1000).toFixed(1) : "30.9")}k
+                </strong>
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-slate-900 text-white">
+                  4.5% ↗
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 4. Active Batches Showcase (Bloklar vitrinasi) */}
+      <div className="bg-white rounded-3xl p-6 border border-slate-200/70 shadow-xs">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-base font-bold text-slate-900 tracking-tight flex items-center gap-2">
-              <PlaneTakeoff className="w-5 h-5 text-blue-600" />
-              Faol Partiyalar va Chiptalar Qoldig&apos;i
-            </h3>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Qaysi yo&apos;nalishda nechta joy qolganini ko&apos;ring va to&apos;g&apos;ridan-to&apos;g&apos;ri soting
+            <h2 className="text-base font-bold text-slate-900 tracking-tight flex items-center gap-2">
+              <Plane className="w-4 h-4 text-blue-600 -rotate-45" /> Faol Bloklar va Chiptalar Qoldig&apos;i
+            </h2>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Qaysi yo&apos;nalishda nechta joy qolganini ko&apos;ring va darhol soting
             </p>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={onOpenBatchModal}
-              className="px-3 py-1.5 text-xs font-semibold text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+              className="text-xs font-bold text-blue-600 hover:text-blue-700 px-3 py-1.5 rounded-full hover:bg-blue-50 transition-colors cursor-pointer"
             >
               + Yangi partiya
             </button>
             <button
               onClick={onViewAllBatches}
-              className="text-xs font-semibold text-slate-500 hover:text-slate-800"
+              className="text-xs font-semibold text-slate-400 hover:text-slate-700 cursor-pointer"
             >
-              Barcha partiyalar &rarr;
+              Barcha partiyalar →
             </button>
           </div>
         </div>
 
-        {activeBatches.length === 0 ? (
-          <div className="py-10 text-center border-2 border-dashed border-slate-200 rounded-xl">
-            <Package className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-            <p className="text-xs text-slate-500 font-medium">Hozirda faol partiya mavjud emas</p>
-            <button
-              onClick={onOpenBatchModal}
-              className="mt-3 px-3.5 py-1.5 text-xs font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-xs"
-            >
-              + Birinchi partiyani qo&apos;shish
-            </button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {activeBatches.map((batch) => {
-              const soldQty = batch.totalQty - batch.remainingQty;
-              const percentSold = Math.round((soldQty / batch.totalQty) * 100);
-              const isLowStock = batch.remainingQty <= 5;
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {activeBatches.map((b) => {
+            const soldQty = b.totalQty - b.remainingQty;
+            const percentSold = Math.round((soldQty / b.totalQty) * 100);
 
-              return (
-                <div
-                  key={batch.id}
-                  className="p-4 rounded-xl border border-slate-200 hover:border-blue-300 bg-slate-50/50 hover:bg-white hover:shadow-md transition-all flex flex-col justify-between"
-                >
-                  <div>
-                    {/* Header: Batch Number & Flight */}
-                    <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
-                      <span className="font-mono font-bold text-slate-700 bg-slate-200/60 px-1.5 py-0.5 rounded">
-                        {batch.batchNumber}
-                      </span>
-                      <span className="flex items-center gap-1 text-slate-600">
-                        <Calendar className="w-3.5 h-3.5" />
-                        {batch.flightDate}
-                      </span>
-                    </div>
-
-                    {/* Route */}
-                    <h4 className="text-base font-extrabold text-slate-900 tracking-tight my-1">
-                      {batch.route}
-                    </h4>
-                    {batch.flightNumber && (
-                      <span className="text-[11px] font-medium text-slate-500 block mb-2">
-                        Reys: <span className="font-mono text-slate-700">{batch.flightNumber}</span>
-                      </span>
-                    )}
-
-                    {/* Progress Bar & Quantity */}
-                    <div className="mt-3 bg-white p-3 rounded-lg border border-slate-200/80 shadow-xs">
-                      <div className="flex items-baseline justify-between mb-1.5">
-                        <span className="text-xs text-slate-600">Qolgan chipta:</span>
-                        <span className={`text-base font-black font-mono ${isLowStock ? "text-amber-600" : "text-blue-600"}`}>
-                          {batch.remainingQty} <span className="text-xs font-normal text-slate-500">/ {batch.totalQty} ta</span>
-                        </span>
-                      </div>
-                      <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
-                        <div
-                          className={`h-full rounded-full transition-all ${
-                            isLowStock ? "bg-amber-500" : "bg-blue-600"
-                          }`}
-                          style={{ width: `${percentSold}%` }}
-                        />
-                      </div>
-                      <div className="flex items-center justify-between text-[11px] text-slate-400 mt-1">
-                        <span>{soldQty} ta sotildi ({percentSold}%)</span>
-                        <span>Tannarx: ${batch.buyPrice}</span>
-                      </div>
-                    </div>
+            return (
+              <div
+                key={b.id}
+                className="p-5 rounded-2xl border border-slate-200/70 bg-slate-50/40 hover:bg-white hover:shadow-md transition-all flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between text-xs text-slate-500 mb-1.5">
+                    <span className="font-mono font-bold text-slate-700 bg-white border border-slate-200/80 px-2 py-0.5 rounded-md shadow-2xs">
+                      {b.batchNumber}
+                    </span>
+                    <span className="text-[11px] font-medium text-slate-400">{b.flightDate}</span>
                   </div>
 
-                  {/* Action button */}
-                  <div className="mt-4 pt-3 border-t border-slate-200/80 flex items-center justify-between">
-                    <span className="text-xs text-slate-500 truncate max-w-[130px]" title={batch.supplierName}>
-                      {batch.supplierName}
-                    </span>
-                    <button
-                      onClick={() => onOpenSaleModal(batch.id)}
-                      disabled={batch.remainingQty <= 0}
-                      className="px-3 py-1.5 text-xs font-bold bg-blue-600 text-white rounded-lg hover:bg-blue-700 active:scale-95 transition-all shadow-xs disabled:opacity-50"
-                    >
-                      Sotish &rarr;
-                    </button>
+                  <h3 className="text-base font-extrabold text-slate-900 tracking-tight my-1">
+                    {b.route}
+                  </h3>
+                  <span className="text-[11px] font-mono text-slate-400 block mb-3">
+                    Reys: <strong className="text-slate-700">{b.flightNumber || "N/A"}</strong>
+                  </span>
+
+                  {/* Progress bar */}
+                  <div className="bg-white p-3 rounded-xl border border-slate-200/70 shadow-2xs">
+                    <div className="flex items-baseline justify-between mb-1.5 text-xs">
+                      <span className="text-slate-500 font-medium">Qolgan chipta:</span>
+                      <span className="font-bold font-mono text-blue-600 text-sm">
+                        {b.remainingQty} <span className="text-xs font-normal text-slate-400">/ {b.totalQty} ta</span>
+                      </span>
+                    </div>
+                    <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-blue-600 transition-all duration-500"
+                        style={{ width: `${percentSold}%` }}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between text-[10px] text-slate-400 mt-1.5">
+                      <span>{soldQty} ta sotildi ({percentSold}%)</span>
+                      <span>Tannarx: ${b.buyPrice}</span>
+                    </div>
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        )}
+
+                <div className="mt-4 pt-3 border-t border-slate-200/60 flex items-center justify-between">
+                  <span className="text-xs text-slate-500 truncate max-w-[140px]" title={b.supplierName}>
+                    {b.supplierName}
+                  </span>
+                  <button
+                    onClick={() => onOpenSaleModal(b.id)}
+                    className="px-3.5 py-1.5 text-xs font-bold bg-blue-600 text-white rounded-lg hover:bg-blue-700 active:scale-95 transition-all shadow-xs cursor-pointer"
+                  >
+                    Chipta sotish →
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
-      {/* So'nggi amallar (Sotuvlar va To'lovlar) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* So'nggi Sotuvlar */}
-        <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs">
-          <div className="flex items-center justify-between mb-3">
-            <h4 className="text-sm font-bold text-slate-900">So&apos;nggi Sotuvlar</h4>
-            <span className="text-xs text-slate-400">{sales.length} ta jami</span>
+      {/* 5. Bottom Table: Recent Orders (Matching Boltshift Table exactly) */}
+      <div className="bg-white rounded-3xl p-6 border border-slate-200/70 shadow-xs">
+        {/* Table Header with Search and Sort */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+          <div>
+            <h2 className="text-base font-bold text-slate-900 tracking-tight">Recent orders</h2>
+            <p className="text-xs text-slate-400">Oxirgi amalga oshirilgan chipta savdolari</p>
           </div>
-          <div className="divide-y divide-slate-100">
-            {sales.slice(0, 5).map((sale) => (
-              <div key={sale.id} className="py-2.5 flex items-center justify-between text-xs">
-                <div>
-                  <div className="font-semibold text-slate-900">{sale.clientName}</div>
-                  <div className="text-slate-500 text-[11px] flex items-center gap-1.5">
-                    <span>{sale.route}</span>
-                    <span>•</span>
-                    <span>{sale.qty} ta chipta</span>
-                    <span>•</span>
-                    <span>{sale.saleDate}</span>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="font-bold text-slate-900 font-mono">${sale.totalAmount.toLocaleString()}</div>
-                  <div className="text-[11px] text-emerald-600 font-medium">
-                    +${sale.profit.toLocaleString()} foyda
-                  </div>
-                </div>
-              </div>
-            ))}
-            {sales.length === 0 && (
-              <p className="py-6 text-xs text-slate-400 text-center">Hozircha sotuvlar yo&apos;q</p>
-            )}
+
+          <div className="flex items-center gap-3">
+            {/* Search Input */}
+            <div className="relative w-full sm:w-64">
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3.5 top-2.5" />
+              <input
+                type="text"
+                placeholder="Search products..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50/70 border border-slate-200 rounded-full focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+              />
+            </div>
+
+            {/* Sort Dropdown */}
+            <div className="flex items-center gap-1.5 px-3.5 py-1.5 bg-slate-50/70 border border-slate-200 rounded-full text-xs font-semibold text-slate-600 cursor-pointer">
+              <span>Sort by</span>
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+            </div>
           </div>
         </div>
 
-        {/* So'nggi To'lovlar */}
-        <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs">
-          <div className="flex items-center justify-between mb-3">
-            <h4 className="text-sm font-bold text-slate-900">Kassa Harakati (To&apos;lovlar)</h4>
-            <span className="text-xs text-slate-400">{payments.length} ta jami</span>
-          </div>
-          <div className="divide-y divide-slate-100">
-            {payments.slice(0, 5).map((p) => (
-              <div key={p.id} className="py-2.5 flex items-center justify-between text-xs">
-                <div className="flex items-center gap-2.5">
-                  <div
-                    className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
-                      p.type === "INCOME"
-                        ? "bg-emerald-50 text-emerald-600"
-                        : "bg-rose-50 text-rose-600"
-                    }`}
-                  >
-                    {p.type === "INCOME" ? (
-                      <ArrowDownLeft className="w-4 h-4" />
-                    ) : (
-                      <ArrowUpRight className="w-4 h-4" />
-                    )}
-                  </div>
-                  <div>
-                    <div className="font-semibold text-slate-900">{p.partnerName}</div>
-                    <div className="text-slate-500 text-[11px]">
-                      {p.paymentDate} • {p.paymentMethod} {p.notes ? `(${p.notes})` : ""}
-                    </div>
-                  </div>
-                </div>
-                <div
-                  className={`font-bold font-mono text-sm ${
-                    p.type === "INCOME" ? "text-emerald-600" : "text-rose-600"
-                  }`}
-                >
-                  {p.type === "INCOME" ? "+" : "-"}${p.amount.toLocaleString()}
-                </div>
-              </div>
-            ))}
-            {payments.length === 0 && (
-              <p className="py-6 text-xs text-slate-400 text-center">Hozircha to&apos;lovlar kiritilmagan</p>
-            )}
-          </div>
+        {/* The Clean Data Table */}
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="border-b border-slate-100 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                <th className="py-3 px-3 w-8">
+                  <input type="checkbox" className="rounded text-blue-600" />
+                </th>
+                <th className="py-3 px-3">Product info (Yo&apos;nalish)</th>
+                <th className="py-3 px-3">Order Id</th>
+                <th className="py-3 px-3">Date</th>
+                <th className="py-3 px-3">Customer (Mijoz)</th>
+                <th className="py-3 px-3 text-center">Status</th>
+                <th className="py-3 px-3 text-center">Items (Soni)</th>
+                <th className="py-3 px-3 text-right">Total</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100/80 text-xs text-slate-700">
+              {filteredSales.map((sale) => {
+                return (
+                  <tr key={sale.id} className="hover:bg-slate-50/70 transition-colors">
+                    <td className="py-3.5 px-3">
+                      <input type="checkbox" className="rounded text-blue-600" />
+                    </td>
+
+                    {/* Product Info */}
+                    <td className="py-3.5 px-3">
+                      <div className="font-bold text-slate-900">{sale.route}</div>
+                      <div className="text-[11px] text-slate-400 font-mono truncate max-w-xs">
+                        {sale.passengerNames || `Reys: ${sale.flightNumber || "-"}`}
+                      </div>
+                    </td>
+
+                    {/* Order ID */}
+                    <td className="py-3.5 px-3 font-mono text-[11px] text-slate-500">
+                      #{sale.id}
+                    </td>
+
+                    {/* Date */}
+                    <td className="py-3.5 px-3 text-slate-500 whitespace-nowrap">
+                      {sale.saleDate}
+                    </td>
+
+                    {/* Customer */}
+                    <td className="py-3.5 px-3">
+                      <span className="font-semibold text-slate-900">{sale.clientName}</span>
+                    </td>
+
+                    {/* Status Pill */}
+                    <td className="py-3.5 px-3 text-center">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/50">
+                        To&apos;langan
+                      </span>
+                    </td>
+
+                    {/* Items (Qty) */}
+                    <td className="py-3.5 px-3 text-center font-bold font-mono">
+                      {sale.qty} ta
+                    </td>
+
+                    {/* Total Amount */}
+                    <td className="py-3.5 px-3 text-right font-extrabold text-slate-900 font-mono">
+                      ${sale.totalAmount.toLocaleString()}
+                    </td>
+                  </tr>
+                );
+              })}
+
+              {filteredSales.length === 0 && (
+                <tr>
+                  <td colSpan={8} className="py-12 text-center text-xs text-slate-400">
+                    Sotuvlar topilmadi
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

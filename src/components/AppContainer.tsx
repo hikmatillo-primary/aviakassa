@@ -302,7 +302,7 @@ export function AppContainer() {
   const suppliers = partners.filter((p) => p.type === "SUPPLIER");
 
   return (
-    <div className="min-h-screen bg-slate-100/60 flex flex-col font-sans">
+    <div className="min-h-screen bg-[#f4f5f8] flex flex-col font-sans">
       <input
         type="file"
         ref={fileInputRef}

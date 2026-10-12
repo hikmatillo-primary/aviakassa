@@ -2,16 +2,14 @@
 
 import React, { useState } from "react";
 import {
-  Plane,
-  LayoutDashboard,
-  Package,
-  Users,
-  ShoppingBag,
-  Wallet,
+  Zap,
+  Bell,
+  Settings,
   Download,
   Upload,
   RotateCcw,
-  MoreVertical,
+  Plane,
+  Plus,
 } from "lucide-react";
 
 interface NavbarProps {
@@ -33,149 +31,141 @@ export function Navbar({
   onImportData,
   onResetDemo,
 }: NavbarProps) {
-  const [showMenu, setShowMenu] = useState(false);
+  const [showSettingsMenu, setShowSettingsMenu] = useState(false);
 
   const navItems = [
-    { id: "dashboard", label: "Umumiy holat", icon: LayoutDashboard },
-    { id: "batches", label: "Partiyalar (Bloklar)", icon: Package },
-    { id: "partners", label: "Hamkorlar & Qarzlar", icon: Users },
-    { id: "sales", label: "Sotuvlar", icon: ShoppingBag },
-    { id: "payments", label: "Kassa & To'lovlar", icon: Wallet },
+    { id: "dashboard", label: "Dashboard" },
+    { id: "batches", label: "Partiyalar (Bloklar)" },
+    { id: "sales", label: "Sotuvlar" },
+    { id: "partners", label: "Hamkorlar & Qarz" },
+    { id: "payments", label: "Kassa & To'lovlar" },
   ];
 
   return (
-    <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-xs">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <div
-            className="flex items-center gap-3 cursor-pointer select-none"
-            onClick={() => setActiveTab("dashboard")}
-          >
-            <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
-              <Plane className="w-5 h-5 -rotate-45" />
-            </div>
-            <div>
-              <span className="font-bold text-lg text-slate-900 tracking-tight flex items-center gap-1.5">
-                Aviakassa{" "}
-                <span className="text-[10px] uppercase px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 font-semibold tracking-normal">
-                  Pro
-                </span>
-              </span>
-              <p className="text-xs text-slate-500 hidden sm:block">Chiptalar va hisob-kitob tizimi</p>
-            </div>
+    <header className="pt-4 pb-2 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
+      <div className="flex items-center justify-between">
+        {/* Left: Brand Logo & Title */}
+        <div
+          className="flex items-center gap-2.5 cursor-pointer select-none"
+          onClick={() => setActiveTab("dashboard")}
+        >
+          <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
+            <Zap className="w-5 h-5 fill-white text-white" />
           </div>
-
-          {/* Nav Links */}
-          <nav className="hidden md:flex items-center gap-1">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = activeTab === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => setActiveTab(item.id)}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
-                    isActive
-                      ? "bg-blue-50 text-blue-700"
-                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/70"
-                  }`}
-                >
-                  <Icon className={`w-4 h-4 ${isActive ? "text-blue-600" : "text-slate-500"}`} />
-                  {item.label}
-                </button>
-              );
-            })}
-          </nav>
-
-          {/* Actions & Backup */}
-          <div className="flex items-center gap-2">
-            {/* Backup actions dropdown / buttons */}
-            <div className="relative">
-              <button
-                onClick={() => setShowMenu(!showMenu)}
-                title="Zaxira nusxa va sozlamalar"
-                className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg border border-slate-200 transition-colors cursor-pointer"
-              >
-                <MoreVertical className="w-4 h-4" />
-              </button>
-
-              {showMenu && (
-                <div
-                  className="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-lg border border-slate-200 py-1.5 z-50 text-xs font-medium"
-                  onClick={() => setShowMenu(false)}
-                >
-                  <div className="px-3 py-1 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                    Ma&apos;lumotlar zaxirasi
-                  </div>
-                  {onExportData && (
-                    <button
-                      onClick={onExportData}
-                      className="w-full px-3 py-2 text-left hover:bg-slate-50 flex items-center gap-2 text-slate-700 hover:text-blue-600 cursor-pointer"
-                    >
-                      <Download className="w-4 h-4 text-slate-500" />
-                      Zaxirani yuklab olish (JSON)
-                    </button>
-                  )}
-                  {onImportData && (
-                    <button
-                      onClick={onImportData}
-                      className="w-full px-3 py-2 text-left hover:bg-slate-50 flex items-center gap-2 text-slate-700 hover:text-emerald-600 cursor-pointer"
-                    >
-                      <Upload className="w-4 h-4 text-slate-500" />
-                      Zaxirani tiklash (JSON)
-                    </button>
-                  )}
-                  <div className="my-1 border-t border-slate-100" />
-                  {onResetDemo && (
-                    <button
-                      onClick={onResetDemo}
-                      className="w-full px-3 py-2 text-left hover:bg-slate-50 flex items-center gap-2 text-slate-600 hover:text-rose-600 cursor-pointer"
-                    >
-                      <RotateCcw className="w-4 h-4 text-slate-400" />
-                      Demo holatga qaytarish
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-
-            <button
-              onClick={onOpenBatchModal}
-              className="hidden sm:inline-flex items-center justify-center px-3 py-2 text-xs font-semibold rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 active:scale-95 transition-all shadow-xs cursor-pointer"
-            >
-              + Yangi partiya
-            </button>
-            <button
-              onClick={onOpenSaleModal}
-              className="inline-flex items-center justify-center px-3.5 py-2 text-xs font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-700 active:scale-95 transition-all shadow-sm shadow-blue-600/30 cursor-pointer"
-            >
-              + Chipta sotish
-            </button>
+          <div>
+            <span className="font-extrabold text-lg text-slate-900 tracking-tight flex items-center gap-1">
+              Aviakassa<span className="text-blue-600">.</span>
+            </span>
           </div>
         </div>
 
-        {/* Mobile Navigation bar */}
-        <div className="flex md:hidden overflow-x-auto py-2 gap-1 border-t border-slate-100 scrollbar-none">
+        {/* Center: Floating Segmented Pill Nav */}
+        <nav className="hidden md:flex items-center bg-white/80 backdrop-blur border border-slate-200/70 p-1 rounded-full shadow-xs">
           {navItems.map((item) => {
-            const Icon = item.icon;
             const isActive = activeTab === item.id;
             return (
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
-                className={`flex shrink-0 items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium ${
+                className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                   isActive
-                    ? "bg-blue-600 text-white"
-                    : "text-slate-600 bg-slate-100 hover:bg-slate-200"
+                    ? "bg-slate-900 text-white shadow-xs"
+                    : "text-slate-500 hover:text-slate-900 hover:bg-slate-100/60"
                 }`}
               >
-                <Icon className="w-3.5 h-3.5" />
                 {item.label}
               </button>
             );
           })}
+        </nav>
+
+        {/* Right: Actions, Notification, Settings, User Profile */}
+        <div className="flex items-center gap-3">
+          {/* Settings / Backup Dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setShowSettingsMenu(!showSettingsMenu)}
+              title="Sozlamalar va Zaxira nusxa"
+              className="w-9 h-9 rounded-full bg-white border border-slate-200/80 flex items-center justify-center text-slate-600 hover:text-slate-900 hover:border-slate-300 shadow-xs transition-colors cursor-pointer"
+            >
+              <Settings className="w-4 h-4" />
+            </button>
+
+            {showSettingsMenu && (
+              <div
+                className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-200/80 py-2 z-50 text-xs font-medium animate-in fade-in zoom-in-95 duration-100"
+                onClick={() => setShowSettingsMenu(false)}
+              >
+                <div className="px-3 py-1 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                  Zaxira & Sozlamalar
+                </div>
+                {onExportData && (
+                  <button
+                    onClick={onExportData}
+                    className="w-full px-3 py-2 text-left hover:bg-slate-50 flex items-center gap-2.5 text-slate-700 hover:text-blue-600 cursor-pointer"
+                  >
+                    <Download className="w-4 h-4 text-slate-400" />
+                    Zaxirani yuklab olish (JSON)
+                  </button>
+                )}
+                {onImportData && (
+                  <button
+                    onClick={onImportData}
+                    className="w-full px-3 py-2 text-left hover:bg-slate-50 flex items-center gap-2.5 text-slate-700 hover:text-emerald-600 cursor-pointer"
+                  >
+                    <Upload className="w-4 h-4 text-slate-400" />
+                    Zaxirani tiklash (JSON)
+                  </button>
+                )}
+                <div className="my-1.5 border-t border-slate-100" />
+                {onResetDemo && (
+                  <button
+                    onClick={onResetDemo}
+                    className="w-full px-3 py-2 text-left hover:bg-slate-50 flex items-center gap-2.5 text-slate-600 hover:text-rose-600 cursor-pointer"
+                  >
+                    <RotateCcw className="w-4 h-4 text-slate-400" />
+                    Demo ma&apos;lumotlarni tiklash
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* User Profile Pill matching Boltshift */}
+          <div className="flex items-center gap-2.5 bg-white pl-1.5 pr-3 py-1 rounded-full border border-slate-200/80 shadow-xs">
+            <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-500 text-white flex items-center justify-center font-bold text-xs shadow-xs">
+              A
+            </div>
+            <div className="text-left hidden sm:block">
+              <span className="block text-xs font-bold text-slate-900 leading-none">
+                Aviakassa Admin
+              </span>
+              <span className="text-[10px] text-slate-400 leading-none mt-0.5 block">
+                admin@aviakassa.uz
+              </span>
+            </div>
+          </div>
         </div>
+      </div>
+
+      {/* Mobile Segmented Pill Bar */}
+      <div className="flex md:hidden overflow-x-auto py-2 gap-1.5 scrollbar-none mt-2">
+        {navItems.map((item) => {
+          const isActive = activeTab === item.id;
+          return (
+            <button
+              key={item.id}
+              onClick={() => setActiveTab(item.id)}
+              className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
+                isActive
+                  ? "bg-slate-900 text-white shadow-xs"
+                  : "bg-white text-slate-600 border border-slate-200"
+              }`}
+            >
+              {item.label}
+            </button>
+          );
+        })}
       </div>
     </header>
   );

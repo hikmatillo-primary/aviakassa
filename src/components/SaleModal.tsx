@@ -337,17 +337,17 @@ export function SaleModal({
         </div>
 
         {/* Action Buttons */}
-        <div className="pt-3 border-t border-slate-200 flex items-center justify-end gap-2">
+        <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+            className="px-4 py-2 text-xs font-semibold text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-full transition-colors cursor-pointer"
           >
             Bekor qilish
           </button>
           <button
             type="submit"
-            className="px-5 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition-all cursor-pointer"
+            className="px-5 py-2.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-full shadow-sm shadow-blue-500/25 transition-all cursor-pointer"
           >
             Sotuvni tasdiqlash
           </button>

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Package, Search, Filter, Plus, Calendar, CheckCircle2, AlertCircle } from "lucide-react";
+import { Package, Search, Plus, CheckCircle2, AlertCircle } from "lucide-react";
 
 interface BatchesViewProps {
   batches: any[];
@@ -38,61 +38,61 @@ export function BatchesView({
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       {/* Top Header & Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-slate-900 tracking-tight">
-            Partiyalar (Blok chiptalar ombori)
-          </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+            Partiyalar (Bloklar)
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
             Xarid qilingan barcha bloklar, ularning qoldiqlari va tannarxi
           </p>
         </div>
         <button
           onClick={onOpenBatchModal}
-          className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-sm transition-all"
+          className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-full shadow-sm shadow-blue-500/25 transition-all cursor-pointer self-start sm:self-auto"
         >
-          <Plus className="w-4 h-4" /> Yangi partiya sotib olish
+          <Plus className="w-3.5 h-3.5" /> + Yangi partiya sotib olish
         </button>
       </div>
 
-      {/* Filters & Search */}
-      <div className="flex flex-col sm:flex-row gap-3 items-center justify-between bg-white p-3 rounded-2xl border border-slate-200 shadow-xs">
+      {/* Filters & Search Bar */}
+      <div className="flex flex-col sm:flex-row gap-3 items-center justify-between bg-white p-3 rounded-3xl border border-slate-200/70 shadow-xs">
         {/* Search */}
         <div className="relative w-full sm:w-80">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3.5 top-2.5" />
           <input
             type="text"
             placeholder="Yo'nalish, reys, ta'minotchi qidirish..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50/70 border border-slate-200 rounded-full focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
           />
         </div>
 
         {/* Status Filter Tabs */}
-        <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl w-full sm:w-auto">
+        <div className="flex items-center gap-1 bg-slate-100/70 p-1 rounded-full w-full sm:w-auto">
           <button
             onClick={() => setFilter("ALL")}
-            className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all ${
-              filter === "ALL" ? "bg-white text-slate-900 shadow-xs" : "text-slate-600 hover:text-slate-900"
+            className={`px-4 py-1.5 text-xs font-semibold rounded-full transition-all cursor-pointer ${
+              filter === "ALL" ? "bg-white text-slate-900 shadow-xs" : "text-slate-500 hover:text-slate-900"
             }`}
           >
             Barchasi ({batches.length})
           </button>
           <button
             onClick={() => setFilter("ACTIVE")}
-            className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all ${
-              filter === "ACTIVE" ? "bg-white text-blue-700 shadow-xs" : "text-slate-600 hover:text-slate-900"
+            className={`px-4 py-1.5 text-xs font-semibold rounded-full transition-all cursor-pointer ${
+              filter === "ACTIVE" ? "bg-white text-blue-700 shadow-xs" : "text-slate-500 hover:text-slate-900"
             }`}
           >
             Faol ({batches.filter((b) => b.status === "ACTIVE").length})
           </button>
           <button
             onClick={() => setFilter("COMPLETED")}
-            className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all ${
-              filter === "COMPLETED" ? "bg-white text-slate-900 shadow-xs" : "text-slate-600 hover:text-slate-900"
+            className={`px-4 py-1.5 text-xs font-semibold rounded-full transition-all cursor-pointer ${
+              filter === "COMPLETED" ? "bg-white text-slate-900 shadow-xs" : "text-slate-500 hover:text-slate-900"
             }`}
           >
             Tugagan ({batches.filter((b) => b.status === "COMPLETED").length})
@@ -100,12 +100,12 @@ export function BatchesView({
         </div>
       </div>
 
-      {/* Batches Table / Grid */}
-      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
+      {/* Batches Table */}
+      <div className="bg-white rounded-3xl border border-slate-200/70 overflow-hidden shadow-xs p-2">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50/75 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+              <tr className="border-b border-slate-100 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                 <th className="py-3 px-4">Partiya & Yo&apos;nalish</th>
                 <th className="py-3 px-4">Sana & Reys</th>
                 <th className="py-3 px-4">Ta&apos;minotchi</th>
@@ -121,30 +121,30 @@ export function BatchesView({
                 const percentSold = Math.round((soldQty / batch.totalQty) * 100);
 
                 return (
-                  <tr key={batch.id} className="hover:bg-slate-50/60 transition-colors">
+                  <tr key={batch.id} className="hover:bg-slate-50/70 transition-colors">
                     {/* Partiya & Yo'nalish */}
-                    <td className="py-3 px-4">
+                    <td className="py-3.5 px-4">
                       <div className="font-bold text-slate-900 text-sm">{batch.route}</div>
-                      <span className="font-mono text-[11px] text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
+                      <span className="font-mono text-[11px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md mt-0.5 inline-block">
                         {batch.batchNumber}
                       </span>
                     </td>
 
                     {/* Sana & Reys */}
-                    <td className="py-3 px-4">
-                      <div className="font-medium text-slate-800">{batch.flightDate}</div>
+                    <td className="py-3.5 px-4">
+                      <div className="font-semibold text-slate-800">{batch.flightDate}</div>
                       <div className="text-[11px] text-slate-400 font-mono">
                         {batch.flightNumber || "Reys ko'rsatilmagan"}
                       </div>
                     </td>
 
                     {/* Ta'minotchi */}
-                    <td className="py-3 px-4">
-                      <span className="font-medium text-slate-800">{batch.supplierName}</span>
+                    <td className="py-3.5 px-4">
+                      <span className="font-semibold text-slate-800">{batch.supplierName}</span>
                     </td>
 
                     {/* Qoldiq Progress */}
-                    <td className="py-3 px-4 text-center">
+                    <td className="py-3.5 px-4 text-center">
                       <div className="inline-block min-w-[130px]">
                         <div className="flex items-center justify-between text-[11px] font-bold mb-1">
                           <span className={batch.remainingQty === 0 ? "text-slate-400" : "text-blue-600"}>
@@ -152,10 +152,10 @@ export function BatchesView({
                           </span>
                           <span className="text-slate-400">{batch.totalQty} tadan</span>
                         </div>
-                        <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
+                        <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
                           <div
-                            className={`h-full rounded-full ${
-                              batch.remainingQty === 0 ? "bg-slate-400" : "bg-blue-600"
+                            className={`h-full rounded-full transition-all duration-300 ${
+                              batch.remainingQty === 0 ? "bg-slate-300" : "bg-blue-600"
                             }`}
                             style={{ width: `${percentSold}%` }}
                           />
@@ -167,7 +167,7 @@ export function BatchesView({
                     </td>
 
                     {/* Tannarx */}
-                    <td className="py-3 px-4 text-right">
+                    <td className="py-3.5 px-4 text-right">
                       <div className="font-bold text-slate-900 font-mono">${batch.buyPrice}</div>
                       <div className="text-[11px] text-slate-400 font-mono">
                         Jami: ${batch.totalCost.toLocaleString()}
@@ -175,13 +175,13 @@ export function BatchesView({
                     </td>
 
                     {/* Status */}
-                    <td className="py-3 px-4 text-center">
+                    <td className="py-3.5 px-4 text-center">
                       <button
                         onClick={() => handleToggleStatus(batch.id)}
                         title="Statusni almashtirish uchun bosing"
-                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all ${
+                        className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-semibold transition-all cursor-pointer ${
                           batch.status === "ACTIVE"
-                            ? "bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100"
+                            ? "bg-emerald-50 text-emerald-700 border border-emerald-200/60 hover:bg-emerald-100"
                             : "bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200"
                         }`}
                       >
@@ -198,11 +198,11 @@ export function BatchesView({
                     </td>
 
                     {/* Actions */}
-                    <td className="py-3 px-4 text-right">
+                    <td className="py-3.5 px-4 text-right">
                       <button
                         onClick={() => onOpenSaleModal(batch.id)}
                         disabled={batch.remainingQty <= 0}
-                        className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg shadow-xs transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                        className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-full shadow-xs transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
                       >
                         Chipta sotish
                       </button>
