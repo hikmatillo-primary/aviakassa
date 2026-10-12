@@ -12,6 +12,7 @@ import { BatchModal } from "./BatchModal";
 import { PaymentModal } from "./PaymentModal";
 import { PartnerModal } from "./PartnerModal";
 import { PartnerHistoryModal } from "./PartnerHistoryModal";
+import { DebtOffsetModal } from "./DebtOffsetModal";
 import {
   AviakassaData,
   INITIAL_DEMO_DATA,
@@ -22,6 +23,7 @@ import {
   Batch,
   Payment,
   Partner,
+  DebtOffset,
 } from "@/lib/storage";
 
 export function AppContainer() {
@@ -69,7 +71,7 @@ export function AppContainer() {
   };
 
   // Enriched metrics & data
-  const { stats, batches, sales, payments, partners } = useMemo(
+  const { stats, batches, sales, payments, partners, debtOffsets } = useMemo(
     () => calculateEnrichedData(data),
     [data]
   );
@@ -89,6 +91,10 @@ export function AppContainer() {
 
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [historyPartnerId, setHistoryPartnerId] = useState<number | null>(null);
+
+  const [isDebtOffsetModalOpen, setIsDebtOffsetModalOpen] = useState(false);
+  const [debtOffsetModalFromId, setDebtOffsetModalFromId] = useState<number | null>(null);
+  const [debtOffsetModalToId, setDebtOffsetModalToId] = useState<number | null>(null);
 
   // Quick Open Handlers
   const handleOpenSaleModal = (batchId?: number) => {
@@ -110,6 +116,35 @@ export function AppContainer() {
   const handleOpenHistoryModal = (partnerId: number) => {
     setHistoryPartnerId(partnerId);
     setIsHistoryModalOpen(true);
+  };
+
+  const handleOpenDebtOffsetModal = (fromPartnerId?: number, toPartnerId?: number) => {
+    setDebtOffsetModalFromId(fromPartnerId || null);
+    setDebtOffsetModalToId(toPartnerId || null);
+    setIsDebtOffsetModalOpen(true);
+  };
+
+  const handleAddDebtOffset = (offsetInput: {
+    fromPartnerId: number;
+    toPartnerId: number;
+    amount: number;
+    date: string;
+    notes: string;
+  }) => {
+    const newOffset: DebtOffset = {
+      id: Date.now(),
+      fromPartnerId: offsetInput.fromPartnerId,
+      toPartnerId: offsetInput.toPartnerId,
+      amount: offsetInput.amount,
+      date: offsetInput.date,
+      notes: offsetInput.notes,
+      createdAt: new Date().toISOString(),
+    };
+
+    updateData({
+      ...data,
+      debtOffsets: [newOffset, ...(data.debtOffsets || [])],
+    });
   };
 
   // CRUD Operations
@@ -382,6 +417,7 @@ export function AppContainer() {
             onOpenSaleModal={handleOpenSaleModal}
             onOpenBatchModal={() => setIsBatchModalOpen(true)}
             onOpenPaymentModal={handleOpenPaymentModal}
+            onOpenDebtOffsetModal={handleOpenDebtOffsetModal}
             onViewAllBatches={() => setActiveTab("inventory")}
             onViewAllPartners={() => setActiveTab("purchases")}
             onResetDemo={handleResetDemo}
@@ -392,11 +428,12 @@ export function AppContainer() {
         {activeTab === "purchases" && (
           <PartnersView
             partners={partners}
-            defaultTab="SUPPLIER"
+            batches={batches}
             onOpenPartnerModal={handleOpenPartnerModal}
             onOpenPaymentModal={handleOpenPaymentModal}
             onOpenHistoryModal={handleOpenHistoryModal}
             onOpenBatchModal={() => setIsBatchModalOpen(true)}
+            onOpenDebtOffsetModal={handleOpenDebtOffsetModal}
           />
         )}
 
@@ -417,6 +454,9 @@ export function AppContainer() {
             partners={partners}
             onOpenSaleModal={() => handleOpenSaleModal()}
             onOpenHistoryModal={handleOpenHistoryModal}
+            onOpenPaymentModal={handleOpenPaymentModal}
+            onOpenDebtOffsetModal={handleOpenDebtOffsetModal}
+            onOpenPartnerModal={handleOpenPartnerModal}
           />
         )}
 
@@ -424,7 +464,9 @@ export function AppContainer() {
         {activeTab === "cash" && (
           <PaymentsView
             payments={payments}
+            debtOffsets={debtOffsets}
             onOpenPaymentModal={handleOpenPaymentModal}
+            onOpenDebtOffsetModal={handleOpenDebtOffsetModal}
           />
         )}
       </main>
@@ -478,7 +520,18 @@ export function AppContainer() {
         batches={batches}
         sales={sales}
         payments={payments}
+        debtOffsets={debtOffsets}
         onOpenPaymentModal={handleOpenPaymentModal}
+        onOpenDebtOffsetModal={handleOpenDebtOffsetModal}
+      />
+
+      <DebtOffsetModal
+        isOpen={isDebtOffsetModalOpen}
+        onClose={() => setIsDebtOffsetModalOpen(false)}
+        partners={partners}
+        defaultFromPartnerId={debtOffsetModalFromId}
+        defaultToPartnerId={debtOffsetModalToId}
+        onSave={handleAddDebtOffset}
       />
     </div>
   );

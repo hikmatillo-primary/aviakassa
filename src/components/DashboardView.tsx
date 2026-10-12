@@ -11,6 +11,7 @@ import {
   ChevronDown,
   Sparkles,
   Plane,
+  ArrowRightLeft,
 } from "lucide-react";
 
 interface DashboardViewProps {
@@ -22,6 +23,7 @@ interface DashboardViewProps {
   onOpenSaleModal: (batchId?: number) => void;
   onOpenBatchModal: () => void;
   onOpenPaymentModal: (type?: "INCOME" | "EXPENSE") => void;
+  onOpenDebtOffsetModal?: (fromPartnerId?: number, toPartnerId?: number) => void;
   onViewAllBatches: () => void;
   onViewAllPartners: () => void;
   onRefresh?: () => void;
@@ -36,6 +38,7 @@ export function DashboardView({
   onOpenSaleModal,
   onOpenBatchModal,
   onOpenPaymentModal,
+  onOpenDebtOffsetModal,
   onViewAllBatches,
   onResetDemo,
 }: DashboardViewProps) {
@@ -96,6 +99,17 @@ export function DashboardView({
               <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
             </button>
           </div>
+
+          {/* Debt Offset Action */}
+          {onOpenDebtOffsetModal && (
+            <button
+              onClick={() => onOpenDebtOffsetModal()}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-full border border-slate-200/80 dark:border-slate-700 shadow-xs hover:border-slate-300 dark:hover:border-slate-600 transition-all cursor-pointer"
+            >
+              <ArrowRightLeft className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+              ⇄ Qarzni surish
+            </button>
+          )}
 
           {/* New Batch Action */}
           <button

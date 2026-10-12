@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Modal } from "./Modal";
-import { ArrowDownLeft, ArrowUpRight } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, ArrowRightLeft } from "lucide-react";
 
 interface PartnerHistoryModalProps {
   isOpen: boolean;
@@ -12,7 +12,9 @@ interface PartnerHistoryModalProps {
   batches: any[];
   sales: any[];
   payments: any[];
+  debtOffsets?: any[];
   onOpenPaymentModal?: (type: "INCOME" | "EXPENSE", partnerId: number) => void;
+  onOpenDebtOffsetModal?: (fromPartnerId?: number, toPartnerId?: number) => void;
 }
 
 export function PartnerHistoryModal({
@@ -23,7 +25,9 @@ export function PartnerHistoryModal({
   batches,
   sales,
   payments,
+  debtOffsets = [],
   onOpenPaymentModal,
+  onOpenDebtOffsetModal,
 }: PartnerHistoryModalProps) {
   if (!isOpen || !partnerId) return null;
 
@@ -40,12 +44,30 @@ export function PartnerHistoryModal({
   // Payments for this partner
   const partnerPayments = payments.filter((p) => p.partnerId === partnerId);
 
+  // Debt offsets for this partner
+  const partnerOffsets = debtOffsets.filter(
+    (o: any) => o.fromPartnerId === partnerId || o.toPartnerId === partnerId
+  );
+
   // Totals
   const totalDeals = deals.reduce(
     (sum: number, item: any) => sum + (isSupplier ? item.totalCost || 0 : item.totalAmount || 0),
     0
   );
-  const totalPaid = partnerPayments.reduce((sum: number, item: any) => sum + (item.amount || 0), 0);
+  const totalPaidDirect = partnerPayments.reduce((sum: number, item: any) => sum + (item.amount || 0), 0);
+
+  // Offsets impact
+  const offsetToAmount = partnerOffsets
+    .filter((o: any) => o.toPartnerId === partnerId)
+    .reduce((sum: number, o: any) => sum + (o.amount || 0), 0);
+  const offsetFromAmount = partnerOffsets
+    .filter((o: any) => o.fromPartnerId === partnerId)
+    .reduce((sum: number, o: any) => sum + (o.amount || 0), 0);
+
+  const totalPaid = isSupplier
+    ? totalPaidDirect + offsetToAmount - offsetFromAmount
+    : totalPaidDirect + offsetFromAmount - offsetToAmount;
+
   const balance = totalDeals - totalPaid;
 
   return (
@@ -55,10 +77,10 @@ export function PartnerHistoryModal({
       title={`${partner.name} — Hisob-kitob daftari (Sverka)`}
       description={
         isSupplier
-          ? "Ta'minotchi bilan barcha partiyalar va to'lovlar"
-          : "Mijoz bilan barcha chipta xaridlari va to'lovlar"
+          ? "Ta'minotchi bilan barcha partiyalar, to'lovlar va o'zaro hisob-kitoblar"
+          : "Mijoz bilan barcha chipta xaridlari, to'lovlar va o'zaro hisob-kitoblar"
       }
-      maxWidth="max-w-3xl"
+      maxWidth="max-w-4xl"
     >
       <div className="space-y-5">
         {/* Top Balance Summary Card */}
@@ -74,6 +96,11 @@ export function PartnerHistoryModal({
               {isSupplier ? "Biz to'lagan summa:" : "Mijoz to'lagan summa:"}
             </span>
             <strong className="text-base font-bold text-slate-900 dark:text-white">${totalPaid.toLocaleString()}</strong>
+            {partnerOffsets.length > 0 && (
+              <span className="text-[10px] text-blue-600 dark:text-blue-400 block mt-0.5">
+                (O&apos;zaro surishlar hisobga olingan)
+              </span>
+            )}
           </div>
           <div
             className={`p-4 rounded-2xl border shadow-xs ${
@@ -99,9 +126,25 @@ export function PartnerHistoryModal({
           </div>
         </div>
 
-        {/* Quick Action in Modal */}
-        {onOpenPaymentModal && (
-          <div className="flex justify-end">
+        {/* Quick Actions in Modal */}
+        <div className="flex items-center justify-end gap-2.5 flex-wrap">
+          {onOpenDebtOffsetModal && (
+            <button
+              onClick={() => {
+                onClose();
+                if (isSupplier) {
+                  onOpenDebtOffsetModal(undefined, partner.id);
+                } else {
+                  onOpenDebtOffsetModal(partner.id, undefined);
+                }
+              }}
+              className="px-4 py-2 text-xs font-bold rounded-full text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 border border-blue-200 dark:border-blue-800 transition-all cursor-pointer flex items-center gap-1.5"
+            >
+              <ArrowRightLeft className="w-3.5 h-3.5" /> ⇄ Qarzni surish
+            </button>
+          )}
+
+          {onOpenPaymentModal && (
             <button
               onClick={() => {
                 onClose();
@@ -113,10 +156,10 @@ export function PartnerHistoryModal({
             >
               {isSupplier ? "- To'lov qilish" : "+ To'lov qabul qilish"}
             </button>
-          </div>
-        )}
+          )}
+        </div>
 
-        {/* Tabs or Two Columns: Deals vs Payments */}
+        {/* Lists: Deals, Payments, and Offsets */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Column 1: Deals (Batches / Sales) */}
           <div className="border border-slate-200/70 dark:border-slate-800 rounded-3xl overflow-hidden bg-white dark:bg-slate-900 shadow-xs">
@@ -152,34 +195,62 @@ export function PartnerHistoryModal({
             </div>
           </div>
 
-          {/* Column 2: Payments */}
+          {/* Column 2: Payments & Offsets */}
           <div className="border border-slate-200/70 dark:border-slate-800 rounded-3xl overflow-hidden bg-white dark:bg-slate-900 shadow-xs">
             <div className="bg-slate-50/70 dark:bg-slate-800/60 px-4 py-3 border-b border-slate-100 dark:border-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-              To&apos;lovlar tarixi
+              To&apos;lovlar & O‘zaro hisoblar
             </div>
             <div className="divide-y divide-slate-100 dark:divide-slate-800 max-h-64 overflow-y-auto">
-              {partnerPayments.length === 0 ? (
-                <p className="p-4 text-xs text-slate-400 dark:text-slate-500 text-center">To&apos;lovlar yo&apos;q</p>
+              {partnerPayments.length === 0 && partnerOffsets.length === 0 ? (
+                <p className="p-4 text-xs text-slate-400 dark:text-slate-500 text-center">To&apos;lovlar va o&apos;zaro hisoblar yo&apos;q</p>
               ) : (
-                partnerPayments.map((p: any) => (
-                  <div key={p.id} className="p-3.5 text-xs hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
-                    <div className="flex items-center justify-between font-semibold text-slate-800 dark:text-slate-200">
-                      <span className="flex items-center gap-1 font-bold">
-                        {p.type === "INCOME" ? (
-                          <ArrowDownLeft className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                        ) : (
-                          <ArrowUpRight className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
-                        )}
-                        ${p.amount.toLocaleString()}
-                      </span>
-                      <span className="text-slate-400 dark:text-slate-500">{p.paymentDate}</span>
+                <>
+                  {partnerPayments.map((p: any) => (
+                    <div key={`p-${p.id}`} className="p-3.5 text-xs hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
+                      <div className="flex items-center justify-between font-semibold text-slate-800 dark:text-slate-200">
+                        <span className="flex items-center gap-1 font-bold">
+                          {p.type === "INCOME" ? (
+                            <ArrowDownLeft className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                          ) : (
+                            <ArrowUpRight className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
+                          )}
+                          ${p.amount.toLocaleString()}
+                        </span>
+                        <span className="text-slate-400 dark:text-slate-500">{p.paymentDate}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-slate-400 dark:text-slate-500 mt-1">
+                        <span>Usuli: {p.paymentMethod || "CASH"}</span>
+                        <span>{p.notes || "-"}</span>
+                      </div>
                     </div>
-                    <div className="flex items-center justify-between text-slate-400 dark:text-slate-500 mt-1">
-                      <span>Usuli: {p.paymentMethod || "CASH"}</span>
-                      <span>{p.notes || "-"}</span>
-                    </div>
-                  </div>
-                ))
+                  ))}
+
+                  {partnerOffsets.map((o: any) => {
+                    const isFrom = o.fromPartnerId === partnerId;
+                    return (
+                      <div key={`o-${o.id}`} className="p-3.5 text-xs bg-blue-50/30 dark:bg-blue-950/20 hover:bg-blue-50/50">
+                        <div className="flex items-center justify-between font-semibold text-slate-800 dark:text-slate-200">
+                          <span className="flex items-center gap-1.5 font-bold text-blue-600 dark:text-blue-400">
+                            <ArrowRightLeft className="w-3.5 h-3.5" />
+                            ${o.amount.toLocaleString()}
+                            <span className="text-[10px] font-normal text-slate-500">
+                              (O‘zaro surish)
+                            </span>
+                          </span>
+                          <span className="text-slate-400 dark:text-slate-500">{o.date}</span>
+                        </div>
+                        <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                          {isFrom ? (
+                            <span>➔ {o.toPartnerName || "Hamkor"} qarziga o‘tkazildi</span>
+                          ) : (
+                            <span>➔ {o.fromPartnerName || "Hamkor"} hisobidan yopildi</span>
+                          )}
+                          {o.notes && <span className="block italic text-slate-400 mt-0.5">{o.notes}</span>}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </>
               )}
             </div>
           </div>

@@ -61,11 +61,24 @@ export interface Payment {
   createdAt: string;
 }
 
+export interface DebtOffset {
+  id: number;
+  fromPartnerId: number;
+  fromPartnerName?: string;
+  toPartnerId: number;
+  toPartnerName?: string;
+  amount: number;
+  date: string;
+  notes?: string;
+  createdAt: string;
+}
+
 export interface AviakassaData {
   partners: Partner[];
   batches: Batch[];
   sales: Sale[];
   payments: Payment[];
+  debtOffsets?: DebtOffset[];
 }
 
 const STORAGE_KEY = "aviakassa_pro_data_v1";
@@ -200,6 +213,17 @@ export const INITIAL_DEMO_DATA: AviakassaData = {
       createdAt: "2026-10-10",
     },
   ],
+  debtOffsets: [
+    {
+      id: 1,
+      fromPartnerId: 3,
+      toPartnerId: 1,
+      amount: 500,
+      date: "2026-10-12",
+      notes: "Samarqand Turizm haqi FlyDubai bosh diler qarziga o'zaro hisoblandi",
+      createdAt: "2026-10-12",
+    },
+  ],
 };
 
 export function loadData(): AviakassaData {
@@ -230,6 +254,7 @@ export function saveData(data: AviakassaData) {
 
 export function calculateEnrichedData(data: AviakassaData) {
   const { partners, batches, sales, payments } = data;
+  const debtOffsets = data.debtOffsets || [];
 
   // Enrich batches with supplier names
   const enrichedBatches = batches.map((b) => {
@@ -264,7 +289,18 @@ export function calculateEnrichedData(data: AviakassaData) {
     };
   });
 
-  // Enrich partners with balances
+  // Enrich debt offsets with partner names
+  const enrichedOffsets = debtOffsets.map((o) => {
+    const fromP = partners.find((p) => p.id === o.fromPartnerId);
+    const toP = partners.find((p) => p.id === o.toPartnerId);
+    return {
+      ...o,
+      fromPartnerName: fromP?.name || "Noma'lum",
+      toPartnerName: toP?.name || "Noma'lum",
+    };
+  });
+
+  // Enrich partners with balances (including debt offsets)
   const enrichedPartners = partners.map((partner) => {
     let totalDeal = 0;
     let totalPaid = 0;
@@ -273,16 +309,36 @@ export function calculateEnrichedData(data: AviakassaData) {
       totalDeal = batches
         .filter((b) => b.supplierId === partner.id)
         .reduce((sum, b) => sum + (b.totalCost || 0), 0);
-      totalPaid = payments
+      const paidDirect = payments
         .filter((p) => p.partnerId === partner.id && p.type === "EXPENSE")
         .reduce((sum, p) => sum + (p.amount || 0), 0);
+      // If someone offset their debt to cover this supplier's debt:
+      const offsetTo = debtOffsets
+        .filter((o) => o.toPartnerId === partner.id)
+        .reduce((sum, o) => sum + (o.amount || 0), 0);
+      // If this supplier offset to someone else:
+      const offsetFrom = debtOffsets
+        .filter((o) => o.fromPartnerId === partner.id)
+        .reduce((sum, o) => sum + (o.amount || 0), 0);
+
+      totalPaid = paidDirect + offsetTo - offsetFrom;
     } else {
       totalDeal = sales
         .filter((s) => s.clientId === partner.id)
         .reduce((sum, s) => sum + (s.totalAmount || 0), 0);
-      totalPaid = payments
+      const paidDirect = payments
         .filter((p) => p.partnerId === partner.id && p.type === "INCOME")
         .reduce((sum, p) => sum + (p.amount || 0), 0);
+      // If this client paid/transferred debt away (from their account):
+      const offsetFrom = debtOffsets
+        .filter((o) => o.fromPartnerId === partner.id)
+        .reduce((sum, o) => sum + (o.amount || 0), 0);
+      // If debt was transferred to this client:
+      const offsetTo = debtOffsets
+        .filter((o) => o.toPartnerId === partner.id)
+        .reduce((sum, o) => sum + (o.amount || 0), 0);
+
+      totalPaid = paidDirect + offsetFrom - offsetTo;
     }
 
     const balance = totalDeal - totalPaid;
@@ -321,6 +377,8 @@ export function calculateEnrichedData(data: AviakassaData) {
     .reduce((sum, p) => sum + (p.amount || 0), 0);
   const cashBalance = totalIncome - totalExpense;
 
+  const totalDebtOffsets = debtOffsets.reduce((sum, o) => sum + (o.amount || 0), 0);
+
   const stats = {
     totalProfit,
     totalRemainingTickets,
@@ -330,6 +388,7 @@ export function calculateEnrichedData(data: AviakassaData) {
     totalIncome,
     totalExpense,
     cashBalance,
+    totalDebtOffsets,
     totalSalesCount: sales.length,
   };
 
@@ -339,5 +398,6 @@ export function calculateEnrichedData(data: AviakassaData) {
     sales: enrichedSales,
     payments: enrichedPayments,
     partners: enrichedPartners,
+    debtOffsets: enrichedOffsets,
   };
 }
