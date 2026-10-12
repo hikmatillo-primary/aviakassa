@@ -1,27 +1,66 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Modal } from "./Modal";
-import { RouteSelector } from "./RouteSelector";
+import { Plus, Trash2, Sparkles } from "lucide-react";
 import { formatUSD } from "@/lib/format";
+
+export interface BatchItemInput {
+  id: string;
+  route: string;
+  flightDate: string;
+  flightNumber: string;
+  totalQty: number;
+  buyPrice: number;
+  baggage: string;
+}
 
 interface BatchModalProps {
   isOpen: boolean;
   onClose: () => void;
   suppliers: any[];
   onSave: (batchData: {
-    batchNumber: string;
-    route: string;
-    flightDate: string;
-    flightNumber: string;
     supplierId: number;
-    totalQty: number;
-    buyPrice: number;
-    notes: string;
+    purchaseDate?: string;
     paidNow?: number;
     paymentMethod?: string;
+    notes?: string;
+    items: Array<{
+      route: string;
+      flightDate: string;
+      flightNumber?: string;
+      totalQty: number;
+      buyPrice: number;
+      baggage?: string;
+      notes?: string;
+      batchNumber?: string;
+    }>;
   }) => void;
   onOpenSupplierModal?: () => void;
+}
+
+const POPULAR_ROUTES = [
+  "Toshkent — Dubay",
+  "Toshkent — Jidda",
+  "Toshkent — Madina",
+  "Toshkent — Istanbul",
+  "Toshkent — Antaliya",
+  "Toshkent — Sharm-el-Sheyx",
+  "Toshkent — Moskva",
+  "Toshkent — Sankt-Peterburg",
+  "Samarqand — Dubay",
+  "Samarqand — Jidda",
+  "Samarqand — Istanbul",
+  "Farg'ona — Dubay",
+  "Namangan — Dubay",
+];
+
+// Helper to auto-generate a smart batch code preview
+function getAutoBatchCode(route: string, index: number): string {
+  if (!route) return `P-BLOK-${101 + index}`;
+  const dest = route.includes("—") ? route.split("—")[1].trim() : route.trim();
+  const code = dest.slice(0, 3).toUpperCase();
+  return `P-${code}-${101 + index}`;
 }
 
 export function BatchModal({
@@ -32,60 +71,122 @@ export function BatchModal({
   onOpenSupplierModal,
 }: BatchModalProps) {
   const [error, setError] = useState<string | null>(null);
-
-  const [batchNumber, setBatchNumber] = useState("");
-  const [route, setRoute] = useState("Toshkent — Dubay");
-  const [flightDate, setFlightDate] = useState("");
-  const [flightNumber, setFlightNumber] = useState("");
-  const [supplierId, setSupplierId] = useState("");
-  const [totalQty, setTotalQty] = useState(50);
-  const [buyPrice, setBuyPrice] = useState(300);
+  const [supplierId, setSupplierId] = useState<string>("");
+  const [purchaseDate, setPurchaseDate] = useState<string>("");
   const [paidNow, setPaidNow] = useState<number>(0);
   const [paymentMethod, setPaymentMethod] = useState<string>("CASH");
-  const [baggage, setBaggage] = useState<string>("20 kg");
-  const [notes, setNotes] = useState("");
+  const [notes, setNotes] = useState<string>("");
 
-  React.useEffect(() => {
-    if (!batchNumber) {
-      setBatchNumber(`P-${Math.floor(100 + Math.random() * 900)}`);
-    }
-    if (!flightDate) {
-      setFlightDate(new Date().toISOString().split("T")[0]);
-    }
-  }, [batchNumber, flightDate]);
+  const [items, setItems] = useState<BatchItemInput[]>([]);
 
-  // Total cost calculation
-  const totalCost = (totalQty || 0) * (buyPrice || 0);
+  useEffect(() => {
+    if (isOpen) {
+      const today = new Date().toISOString().split("T")[0];
+      setItems([
+        {
+          id: Math.random().toString(),
+          route: "Toshkent — Dubay",
+          flightDate: today,
+          flightNumber: "",
+          totalQty: 50,
+          buyPrice: 300,
+          baggage: "20 kg",
+        },
+      ]);
+      setPurchaseDate(today);
+      setPaidNow(0);
+      setNotes("");
+      setError(null);
+    }
+  }, [isOpen]);
+
+  const handleAddItem = () => {
+    const today = new Date().toISOString().split("T")[0];
+    setItems((prev) => [
+      ...prev,
+      {
+        id: Math.random().toString(),
+        route: "Toshkent — Jidda",
+        flightDate: today,
+        flightNumber: "",
+        totalQty: 30,
+        buyPrice: 400,
+        baggage: "20 kg",
+      },
+    ]);
+  };
+
+  const handleRemoveItem = (index: number) => {
+    if (items.length <= 1) return;
+    setItems((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleUpdateItem = (index: number, field: keyof BatchItemInput, value: any) => {
+    setItems((prev) => {
+      const next = [...prev];
+      next[index] = { ...next[index], [field]: value };
+      return next;
+    });
+  };
+
+  // Calculations
+  const totalCost = items.reduce(
+    (sum, it) => sum + (it.totalQty || 0) * (it.buyPrice || 0),
+    0
+  );
+  const totalTickets = items.reduce((sum, it) => sum + (it.totalQty || 0), 0);
   const remainingDebt = Math.max(0, totalCost - (paidNow || 0));
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    if (!route || !flightDate || !supplierId || !totalQty || !buyPrice) {
-      setError("Iltimos, barcha majburiy maydonlarni to'ldiring!");
+    if (!supplierId) {
+      setError("Iltimos, ta'minotchini tanlang!");
       return;
     }
 
-    const fullNotes = [
-      baggage ? `Bagaj: ${baggage}` : null,
-      notes.trim() ? notes.trim() : null,
-    ]
-      .filter(Boolean)
-      .join(" • ");
+    if (items.length === 0) {
+      setError("Kamida bitta reys/partiya qo'shilishi kerak!");
+      return;
+    }
+
+    for (let i = 0; i < items.length; i++) {
+      const it = items[i];
+      if (!it.route.trim()) {
+        setError(`${i + 1}-qatorda yo'nalish kiritilmagan!`);
+        return;
+      }
+      if (!it.flightDate) {
+        setError(`${i + 1}-qatorda uchish sanasi tanlanmagan!`);
+        return;
+      }
+      if (it.totalQty <= 0) {
+        setError(`${i + 1}-qatorda chiptalar soni kamida 1 ta bo'lishi kerak!`);
+        return;
+      }
+      if (it.buyPrice <= 0) {
+        setError(`${i + 1}-qatorda tannarx 0 dan katta bo'lishi kerak!`);
+        return;
+      }
+    }
 
     try {
       onSave({
-        batchNumber,
-        route,
-        flightDate,
-        flightNumber: flightNumber.trim().toUpperCase(),
         supplierId: Number(supplierId),
-        totalQty: Number(totalQty),
-        buyPrice: Number(buyPrice),
-        notes: fullNotes,
+        purchaseDate: purchaseDate || new Date().toISOString().split("T")[0],
         paidNow: Number(paidNow) || 0,
         paymentMethod,
+        notes,
+        items: items.map((it, idx) => ({
+          route: it.route.trim(),
+          flightDate: it.flightDate,
+          flightNumber: it.flightNumber.trim().toUpperCase(),
+          totalQty: Number(it.totalQty),
+          buyPrice: Number(it.buyPrice),
+          baggage: it.baggage,
+          batchNumber: getAutoBatchCode(it.route, idx),
+        })),
       });
       onClose();
     } catch (err: any) {
@@ -98,23 +199,23 @@ export function BatchModal({
       isOpen={isOpen}
       onClose={onClose}
       title="Yangi xarid"
-      maxWidth="max-w-lg"
+      maxWidth="max-w-2xl"
     >
-      <form onSubmit={handleSubmit} className="space-y-3.5">
+      <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
-          <div className="p-2.5 text-xs bg-red-50 dark:bg-red-950/50 text-red-600 dark:text-red-400 rounded-xl border border-red-200 dark:border-red-800">
+          <div className="p-2.5 text-xs bg-red-50 dark:bg-red-950/50 text-red-600 dark:text-red-400 rounded-xl border border-red-200 dark:border-red-800 font-medium">
             {error}
           </div>
         )}
 
-        {/* 1. Yo'nalish tanlash */}
-        <RouteSelector
-          initialOrigin="Toshkent"
-          initialDestination="Dubay"
-          onChange={(newRoute) => setRoute(newRoute)}
-        />
+        {/* Global Datalist for fast route auto-complete */}
+        <datalist id="popular-routes-list">
+          {POPULAR_ROUTES.map((r) => (
+            <option key={r} value={r} />
+          ))}
+        </datalist>
 
-        {/* 2. Ta'minotchi va Sana */}
+        {/* 1. Ta'minotchi va Sana */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <div className="flex items-center justify-between mb-1">
@@ -148,90 +249,212 @@ export function BatchModal({
 
           <div>
             <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-              Uchish sanasi *
+              Xarid sanasi *
             </label>
             <input
               type="date"
-              value={flightDate}
-              onChange={(e) => setFlightDate(e.target.value)}
+              value={purchaseDate}
+              onChange={(e) => setPurchaseDate(e.target.value)}
               className="w-full px-3 py-2 text-xs sm:text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
               required
             />
           </div>
         </div>
 
-        {/* 3. Reys raqami va Partiya kodi */}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-              Reys raqami (ixtiyoriy)
-            </label>
-            <input
-              type="text"
-              placeholder="Masalan: FZ-780 / HY-333"
-              value={flightNumber}
-              onChange={(e) => setFlightNumber(e.target.value)}
-              className="w-full px-3 py-2 text-xs sm:text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase font-mono font-bold"
-            />
+        {/* 2. Xarid qilinayotgan reyslar / bloklar ro'yxati (Multi-item) */}
+        <div className="space-y-2.5">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+              Xarid qilinayotgan reyslar ({items.length} ta)
+            </span>
+            <button
+              type="button"
+              onClick={handleAddItem}
+              className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" /> Reys qo‘shish
+            </button>
           </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-              Partiya kodi *
-            </label>
-            <input
-              type="text"
-              value={batchNumber}
-              onChange={(e) => setBatchNumber(e.target.value)}
-              className="w-full px-3 py-2 text-xs sm:text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono font-bold"
-              required
-            />
+
+          <div className="space-y-2.5 max-h-[300px] overflow-y-auto pr-0.5">
+            {items.map((item, index) => {
+              const itemTotal = (item.totalQty || 0) * (item.buyPrice || 0);
+              const autoBatchNumber = getAutoBatchCode(item.route, index);
+
+              return (
+                <div
+                  key={item.id}
+                  className="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-2xl border border-slate-200/80 dark:border-slate-700 space-y-2.5 transition-all"
+                >
+                  {/* Qator tepasi: Yo'nalish va O'chirish tugmasi */}
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1">
+                      <label className="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">
+                        Yo‘nalish (Qayerdan ➔ Qayerga) *
+                      </label>
+                      <input
+                        list="popular-routes-list"
+                        type="text"
+                        placeholder="Masalan: Toshkent — Dubay"
+                        value={item.route}
+                        onChange={(e) =>
+                          handleUpdateItem(index, "route", e.target.value)
+                        }
+                        className="w-full px-2.5 py-1.5 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold"
+                        required
+                      />
+                    </div>
+
+                    {items.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveItem(index)}
+                        title="Ushbu reysni o'chirish"
+                        className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-colors cursor-pointer shrink-0 mt-3.5"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Qator o'rtasi: Sana, Reys, Soni, Tannarx, Bagaj */}
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                    <div>
+                      <label className="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">
+                        Uchish sanasi *
+                      </label>
+                      <input
+                        type="date"
+                        value={item.flightDate}
+                        onChange={(e) =>
+                          handleUpdateItem(index, "flightDate", e.target.value)
+                        }
+                        className="w-full px-2 py-1.5 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">
+                        Reys raqami
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="FZ-780"
+                        value={item.flightNumber}
+                        onChange={(e) =>
+                          handleUpdateItem(index, "flightNumber", e.target.value)
+                        }
+                        className="w-full px-2 py-1.5 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase font-mono font-bold"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">
+                        Soni (ta) *
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={item.totalQty}
+                        onChange={(e) =>
+                          handleUpdateItem(
+                            index,
+                            "totalQty",
+                            Math.max(1, parseInt(e.target.value) || 0)
+                          )
+                        }
+                        className="w-full px-2 py-1.5 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">
+                        Tannarx ($) *
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-2 top-1.5 text-slate-400 text-xs">$</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="any"
+                          value={item.buyPrice}
+                          onChange={(e) =>
+                            handleUpdateItem(
+                              index,
+                              "buyPrice",
+                              parseFloat(e.target.value) || 0
+                            )
+                          }
+                          className="w-full pl-5 pr-2 py-1.5 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div className="col-span-2 sm:col-span-1">
+                      <label className="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">
+                        Bagaj
+                      </label>
+                      <select
+                        value={item.baggage}
+                        onChange={(e) =>
+                          handleUpdateItem(index, "baggage", e.target.value)
+                        }
+                        className="w-full px-2 py-1.5 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+                      >
+                        <option value="20 kg">20 kg</option>
+                        <option value="25 kg">25 kg</option>
+                        <option value="30 kg">30 kg</option>
+                        <option value="Qo'l yuki (7 kg)">7 kg</option>
+                        <option value="Bagajsiz">Bagajsiz</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Qator pastki qismi: Avtomatik partiya kodi va Jami qiymat */}
+                  <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 pt-0.5 px-0.5 border-t border-slate-200/50 dark:border-slate-700/50">
+                    <span className="flex items-center gap-1">
+                      <Sparkles className="w-3 h-3 text-amber-500" />
+                      Partiya kodi (avto):{" "}
+                      <strong className="text-blue-600 dark:text-blue-400 font-mono font-bold">
+                        {autoBatchNumber}
+                      </strong>
+                    </span>
+                    <span>
+                      Jami:{" "}
+                      <strong className="text-amber-600 dark:text-amber-400 font-mono font-bold text-xs">
+                        {formatUSD(itemTotal)}
+                      </strong>
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
+
+          <button
+            type="button"
+            onClick={handleAddItem}
+            className="w-full py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold rounded-xl border border-dashed border-slate-300 dark:border-slate-600 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+          >
+            <Plus className="w-4 h-4" /> Yana reys (mahsulot) qo‘shish
+          </button>
         </div>
 
-        {/* 4. Chiptalar soni va Tannarx */}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-              Chiptalar soni *
-            </label>
-            <input
-              type="number"
-              min="1"
-              value={totalQty}
-              onChange={(e) => setTotalQty(Math.max(1, parseInt(e.target.value) || 0))}
-              className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-              1 ta chipta tannarxi ($) *
-            </label>
-            <div className="relative">
-              <span className="absolute left-3 top-2 text-slate-400 dark:text-slate-500 text-sm">$</span>
-              <input
-                type="number"
-                min="0"
-                step="any"
-                value={buyPrice}
-                onChange={(e) => setBuyPrice(parseFloat(e.target.value) || 0)}
-                className="w-full pl-7 pr-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold"
-                required
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* 5. Real-time Calculation Summary Bar */}
-        <div className="flex items-center justify-between px-3 py-2 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200/70 dark:border-slate-700 text-xs">
-          <span className="text-slate-500 dark:text-slate-400 font-medium">Jami partiya qiymati:</span>
-          <span className="font-bold font-mono text-slate-900 dark:text-white text-sm">
-            {totalQty} ta × ${buyPrice} = <strong className="text-amber-600 dark:text-amber-400">{formatUSD(totalCost)}</strong>
+        {/* 3. Real-time Calculation Summary Bar */}
+        <div className="flex items-center justify-between px-3.5 py-2 bg-slate-100 dark:bg-slate-800/90 rounded-2xl border border-slate-200/80 dark:border-slate-700 text-xs">
+          <span className="text-slate-500 dark:text-slate-400 font-medium">
+            Jami xarid ({totalTickets} ta chipta):
+          </span>
+          <span className="font-black font-mono text-sm text-amber-600 dark:text-amber-400">
+            {formatUSD(totalCost)}
           </span>
         </div>
 
-        {/* 6. To'lov berilganligi */}
-        <div className="grid grid-cols-2 gap-3">
+        {/* 4. To'lov */}
+        <div className="grid grid-cols-2 gap-3 pt-1 border-t border-slate-100 dark:border-slate-800">
           <div>
             <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
               Hozir to&apos;landi ($)
@@ -246,7 +469,7 @@ export function BatchModal({
                 value={paidNow || ""}
                 onChange={(e) => setPaidNow(parseFloat(e.target.value) || 0)}
                 placeholder="0"
-                className="w-full pl-7 pr-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full pl-7 pr-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
               />
             </div>
             <div className="text-[11px] text-slate-400 mt-0.5 px-0.5">
@@ -279,41 +502,22 @@ export function BatchModal({
           </div>
         </div>
 
-        {/* 7. Bagaj va Izoh */}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-              Bagaj miqdori
-            </label>
-            <select
-              value={baggage}
-              onChange={(e) => setBaggage(e.target.value)}
-              className="w-full px-3 py-2 text-xs sm:text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
-            >
-              <option value="20 kg">20 kg</option>
-              <option value="25 kg">25 kg</option>
-              <option value="30 kg">30 kg</option>
-              <option value="Qo'l yuki (7 kg)">Qo&apos;l yuki (7 kg)</option>
-              <option value="Bagajsiz">Bagajsiz</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-              Izoh (ixtiyoriy)
-            </label>
-            <input
-              type="text"
-              placeholder="Charter, eslatma..."
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              className="w-full px-3 py-2 text-xs sm:text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
+        {/* 5. Izoh */}
+        <div>
+          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+            Izoh (ixtiyoriy)
+          </label>
+          <input
+            type="text"
+            placeholder="Charter shartnomasi, eslatma..."
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            className="w-full px-3 py-1.5 text-xs sm:text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
         </div>
 
         {/* Action Buttons */}
-        <div className="pt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-2">
+        <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-2">
           <button
             type="button"
             onClick={onClose}

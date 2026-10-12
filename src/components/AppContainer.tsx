@@ -149,58 +149,68 @@ export function AppContainer() {
 
   // CRUD Operations
   const handleAddSale = (saleInput: {
-    batchId: number;
     clientId: number;
-    qty: number;
-    sellPrice: number;
-    passengerNames: string;
     saleDate: string;
     paidNow: number;
     paymentMethod: string;
     notes: string;
+    items: Array<{
+      batchId: number;
+      qty: number;
+      sellPrice: number;
+      passengerNames?: string;
+    }>;
   }) => {
-    const targetBatch = data.batches.find((b) => b.id === saleInput.batchId);
-    if (!targetBatch) return;
+    const newSales: Sale[] = [];
+    let updatedBatches = [...data.batches];
+    const routeNames: string[] = [];
 
-    const totalAmount = saleInput.qty * saleInput.sellPrice;
-    const profit = totalAmount - saleInput.qty * targetBatch.buyPrice;
+    saleInput.items.forEach((item, index) => {
+      const targetBatch = updatedBatches.find((b) => b.id === item.batchId);
+      if (!targetBatch || item.qty <= 0) return;
 
-    const newSale: Sale = {
-      id: Date.now(),
-      batchId: saleInput.batchId,
-      clientId: saleInput.clientId,
-      qty: saleInput.qty,
-      sellPrice: saleInput.sellPrice,
-      totalAmount,
-      profit,
-      passengerNames: saleInput.passengerNames,
-      saleDate: saleInput.saleDate,
-      notes: saleInput.notes,
-      createdAt: new Date().toISOString(),
-    };
+      const totalAmount = item.qty * item.sellPrice;
+      const profit = totalAmount - item.qty * targetBatch.buyPrice;
+      routeNames.push(targetBatch.route);
 
-    const updatedBatches = data.batches.map((b) => {
-      if (b.id === saleInput.batchId) {
-        const remainingQty = Math.max(0, b.remainingQty - saleInput.qty);
-        return {
-          ...b,
-          remainingQty,
-          status: remainingQty === 0 ? ("COMPLETED" as const) : b.status,
-        };
-      }
-      return b;
+      const newSale: Sale = {
+        id: Date.now() + index,
+        batchId: item.batchId,
+        clientId: saleInput.clientId,
+        qty: item.qty,
+        sellPrice: item.sellPrice,
+        totalAmount,
+        profit,
+        passengerNames: item.passengerNames || "",
+        saleDate: saleInput.saleDate,
+        notes: saleInput.notes,
+        createdAt: new Date().toISOString(),
+      };
+      newSales.push(newSale);
+
+      updatedBatches = updatedBatches.map((b) => {
+        if (b.id === item.batchId) {
+          const remainingQty = Math.max(0, b.remainingQty - item.qty);
+          return {
+            ...b,
+            remainingQty,
+            status: remainingQty === 0 ? ("COMPLETED" as const) : b.status,
+          };
+        }
+        return b;
+      });
     });
 
     const newPayments = [...data.payments];
     if (saleInput.paidNow > 0) {
       newPayments.unshift({
-        id: Date.now() + 1,
+        id: Date.now() + 100,
         partnerId: saleInput.clientId,
         type: "INCOME",
         amount: saleInput.paidNow,
         paymentDate: saleInput.saleDate,
         paymentMethod: saleInput.paymentMethod,
-        notes: `Chipta sotuvi uchun to'lov (${targetBatch.route})`,
+        notes: `Chiptalar sotuvi uchun to'lov (${routeNames.join(", ")})`,
         createdAt: new Date().toISOString(),
       });
     }
@@ -208,56 +218,88 @@ export function AppContainer() {
     updateData({
       ...data,
       batches: updatedBatches,
-      sales: [newSale, ...data.sales],
+      sales: [...newSales, ...data.sales],
       payments: newPayments,
     });
   };
 
   const handleAddBatch = (batchInput: {
-    batchNumber: string;
-    route: string;
-    flightDate: string;
-    flightNumber: string;
     supplierId: number;
-    totalQty: number;
-    buyPrice: number;
-    notes: string;
+    purchaseDate?: string;
     paidNow?: number;
     paymentMethod?: string;
+    notes?: string;
+    items: Array<{
+      route: string;
+      flightDate: string;
+      flightNumber?: string;
+      totalQty: number;
+      buyPrice: number;
+      baggage?: string;
+      notes?: string;
+      batchNumber?: string;
+    }>;
   }) => {
-    const newBatch: Batch = {
-      id: Date.now(),
-      batchNumber: batchInput.batchNumber,
-      route: batchInput.route,
-      flightDate: batchInput.flightDate,
-      flightNumber: batchInput.flightNumber,
-      supplierId: batchInput.supplierId,
-      totalQty: batchInput.totalQty,
-      remainingQty: batchInput.totalQty,
-      buyPrice: batchInput.buyPrice,
-      totalCost: batchInput.totalQty * batchInput.buyPrice,
-      status: "ACTIVE",
-      notes: batchInput.notes,
-      createdAt: new Date().toISOString(),
-    };
+    const newBatches: Batch[] = [];
+    const routeNames: string[] = [];
+    const baseId = Date.now();
+
+    batchInput.items.forEach((item, index) => {
+      // Auto-generate batch number if empty
+      let batchNum = item.batchNumber;
+      if (!batchNum || !batchNum.trim()) {
+        const dest = item.route.includes("—") ? item.route.split("—")[1].trim() : item.route;
+        const code = dest.slice(0, 3).toUpperCase();
+        const rand = Math.floor(100 + Math.random() * 900);
+        batchNum = `P-${code}-${rand}`;
+      }
+
+      const fullNotes = [
+        item.baggage ? `Bagaj: ${item.baggage}` : null,
+        item.notes ? item.notes.trim() : null,
+      ]
+        .filter(Boolean)
+        .join(" • ");
+
+      const newBatch: Batch = {
+        id: baseId + index,
+        batchNumber: batchNum,
+        route: item.route,
+        flightDate: item.flightDate,
+        flightNumber: item.flightNumber ? item.flightNumber.trim().toUpperCase() : "",
+        supplierId: batchInput.supplierId,
+        totalQty: item.totalQty,
+        remainingQty: item.totalQty,
+        buyPrice: item.buyPrice,
+        totalCost: item.totalQty * item.buyPrice,
+        status: "ACTIVE",
+        notes: fullNotes,
+        createdAt: new Date().toISOString(),
+      };
+      newBatches.push(newBatch);
+      routeNames.push(item.route);
+    });
 
     const newPayments = [...data.payments];
     if (batchInput.paidNow && batchInput.paidNow > 0) {
       newPayments.unshift({
-        id: Date.now() + 1,
+        id: baseId + 500,
         partnerId: batchInput.supplierId,
         type: "EXPENSE",
         amount: batchInput.paidNow,
-        paymentDate: batchInput.flightDate || new Date().toISOString().split("T")[0],
+        paymentDate:
+          batchInput.purchaseDate ||
+          newBatches[0]?.flightDate ||
+          new Date().toISOString().split("T")[0],
         paymentMethod: batchInput.paymentMethod || "CASH",
-        notes: `Partiya xaridi uchun to'lov (${batchInput.batchNumber}: ${batchInput.route})`,
+        notes: `Partiyalar xaridi uchun to'lov (${routeNames.join(", ")})`,
         createdAt: new Date().toISOString(),
       });
     }
 
     updateData({
       ...data,
-      batches: [newBatch, ...data.batches],
+      batches: [...newBatches, ...data.batches],
       payments: newPayments,
     });
   };
