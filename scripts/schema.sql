@@ -1,0 +1,49 @@
+CREATE TABLE IF NOT EXISTS partners (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  type TEXT NOT NULL,
+  phone TEXT,
+  notes TEXT,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS batches (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  batch_number TEXT NOT NULL,
+  route TEXT NOT NULL,
+  flight_date TEXT NOT NULL,
+  flight_number TEXT,
+  supplier_id INTEGER NOT NULL REFERENCES partners(id) ON DELETE CASCADE,
+  total_qty INTEGER NOT NULL,
+  remaining_qty INTEGER NOT NULL,
+  buy_price REAL NOT NULL,
+  total_cost REAL NOT NULL,
+  status TEXT NOT NULL DEFAULT 'ACTIVE',
+  notes TEXT,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS sales (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  batch_id INTEGER NOT NULL REFERENCES batches(id) ON DELETE CASCADE,
+  client_id INTEGER NOT NULL REFERENCES partners(id) ON DELETE CASCADE,
+  qty INTEGER NOT NULL,
+  sell_price REAL NOT NULL,
+  total_amount REAL NOT NULL,
+  profit REAL NOT NULL,
+  passenger_names TEXT,
+  sale_date TEXT NOT NULL,
+  notes TEXT,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS payments (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  partner_id INTEGER NOT NULL REFERENCES partners(id) ON DELETE CASCADE,
+  type TEXT NOT NULL,
+  amount REAL NOT NULL,
+  payment_date TEXT NOT NULL,
+  payment_method TEXT DEFAULT 'CASH',
+  notes TEXT,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
