@@ -76,9 +76,7 @@ async function ensureTables(client: any) {
 let initialized = false;
 
 export function getDb() {
-  if (_db) return _db;
-
-  // 1. Agar Cloudflare D1 mavjud bo'lsa (OpenNext orqali)
+  // 1. Agar Cloudflare D1 mavjud bo'lsa (OpenNext orqali har bir so'rovda olinadi)
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { getCloudflareContext } = require("@opennextjs/cloudflare");
@@ -86,12 +84,13 @@ export function getDb() {
     if (ctx && ctx.env && ctx.env.DB) {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { drizzle: drizzleD1 } = require("drizzle-orm/d1");
-      _db = drizzleD1(ctx.env.DB, { schema });
-      return _db;
+      return drizzleD1(ctx.env.DB, { schema });
     }
   } catch {
     // Cloudflare konteksti yo'q bo'lsa (masalan local dev)
   }
+
+  if (_db) return _db;
 
   // 2. Mahalliy yoki Turso bazasi (LibSQL / SQLite)
   const url = process.env.DATABASE_URL || "file:local.db";
@@ -111,5 +110,4 @@ export function getDb() {
   return _db;
 }
 
-export const db = getDb();
 export { schema };
