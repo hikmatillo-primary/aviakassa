@@ -11,7 +11,6 @@
     "cloudflare:deploy": "opennextjs-cloudflare build && wrangler deploy"
   },
   "dependencies": {
-    "@libsql/client": "^0.18.0",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.45.4",
     "lucide-react": "^1.55.0",
