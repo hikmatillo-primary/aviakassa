@@ -20,12 +20,8 @@ interface DashboardViewProps {
   sales: any[];
   payments: any[];
   partners: any[];
-  onOpenSaleModal: (batchId?: number) => void;
-  onOpenBatchModal: () => void;
-  onOpenPaymentModal: (type?: "INCOME" | "EXPENSE") => void;
-  onOpenDebtOffsetModal?: (fromPartnerId?: number, toPartnerId?: number) => void;
-  onViewAllBatches: () => void;
-  onViewAllPartners: () => void;
+  onViewAllBatches?: () => void;
+  onViewAllPartners?: () => void;
   onRefresh?: () => void;
   onResetDemo?: () => void;
 }
@@ -35,11 +31,8 @@ export function DashboardView({
   batches,
   sales,
   partners,
-  onOpenSaleModal,
-  onOpenBatchModal,
-  onOpenPaymentModal,
-  onOpenDebtOffsetModal,
   onViewAllBatches,
+  onViewAllPartners,
   onResetDemo,
 }: DashboardViewProps) {
   const [search, setSearch] = useState("");
@@ -76,20 +69,19 @@ export function DashboardView({
 
   return (
     <div className="space-y-6">
-      {/* 1. Header Title & Actions Row (100% O'zbekcha) */}
+      {/* 1. Header Title & Filter (Faqat tahliliy ma'lumotlar) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
             Umumiy Ko‘rsatkichlar
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-            Joriy savdo holati, bloklar qoldig‘i va kassa hisob-kitoblari
+            Joriy savdo holati, bloklar qoldig‘i va kassa ko‘rsatkichlari tahlili
           </p>
         </div>
 
-        {/* Action Pills */}
-        <div className="flex items-center gap-2.5 flex-wrap">
-          {/* Period selector */}
+        {/* Period filter pill */}
+        <div className="flex items-center gap-2.5">
           <div className="relative">
             <button
               onClick={() => setPeriod(period === "Bu oy" ? "Bu hafta" : "Bu oy")}
@@ -99,34 +91,6 @@ export function DashboardView({
               <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
             </button>
           </div>
-
-          {/* Debt Offset Action */}
-          {onOpenDebtOffsetModal && (
-            <button
-              onClick={() => onOpenDebtOffsetModal()}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-full border border-slate-200/80 dark:border-slate-700 shadow-xs hover:border-slate-300 dark:hover:border-slate-600 transition-all cursor-pointer"
-            >
-              <ArrowRightLeft className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-              ⇄ Qarzni surish
-            </button>
-          )}
-
-          {/* New Batch Action */}
-          <button
-            onClick={onOpenBatchModal}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-full border border-slate-200/80 dark:border-slate-700 shadow-xs hover:border-slate-300 dark:hover:border-slate-600 transition-all cursor-pointer"
-          >
-            + Yangi partiya
-          </button>
-
-          {/* Primary Action Button */}
-          <button
-            onClick={() => onOpenSaleModal()}
-            className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-sm shadow-blue-500/25 active:scale-95 transition-all cursor-pointer"
-          >
-            <ShoppingBag className="w-3.5 h-3.5" />
-            + Chipta sotish
-          </button>
         </div>
       </div>
 
@@ -152,7 +116,7 @@ export function DashboardView({
 
       {/* 2. Top 4 KPI Cards Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: Moviy Gradientli Asosiy Kartochka */}
+        {/* Card 1: Sof Foyda */}
         <div className="bg-gradient-to-r from-blue-600 via-blue-600 to-sky-500 rounded-3xl p-6 text-white shadow-lg shadow-blue-500/20 relative overflow-hidden flex flex-col justify-between min-h-[160px]">
           <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-white/10 rounded-full blur-2xl pointer-events-none" />
 
@@ -205,13 +169,8 @@ export function DashboardView({
           </div>
 
           <div className="text-[11px] text-slate-400 dark:text-slate-500 flex items-center justify-between">
-            <span>Mijozlar qarzi</span>
-            <button
-              onClick={() => onOpenPaymentModal("INCOME")}
-              className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 cursor-pointer"
-            >
-              + Qabul qilish
-            </button>
+            <span>Mijozlar umumiy qarzi</span>
+            <span className="font-mono font-medium text-slate-500 dark:text-slate-400">Jami faol</span>
           </div>
         </div>
 
@@ -239,12 +198,7 @@ export function DashboardView({
 
           <div className="text-[11px] text-slate-400 dark:text-slate-500 flex items-center justify-between">
             <span>Ta‘minotchilarga to‘lov</span>
-            <button
-              onClick={() => onOpenPaymentModal("EXPENSE")}
-              className="text-xs font-bold text-rose-600 dark:text-rose-400 hover:text-rose-700 cursor-pointer"
-            >
-              - To‘lash
-            </button>
+            <span className="font-mono font-medium text-slate-500 dark:text-slate-400">Jami qarz</span>
           </div>
         </div>
 
@@ -485,12 +439,6 @@ export function DashboardView({
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={onOpenBatchModal}
-              className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 px-3 py-1.5 rounded-full hover:bg-blue-50 dark:hover:bg-slate-700 transition-colors cursor-pointer"
-            >
-              + Yangi partiya
-            </button>
-            <button
               onClick={onViewAllBatches}
               className="text-xs font-semibold text-slate-400 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer"
             >
@@ -545,16 +493,13 @@ export function DashboardView({
                   </div>
                 </div>
 
-                <div className="mt-4 pt-3 border-t border-slate-200/60 dark:border-slate-700 flex items-center justify-between">
-                  <span className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-[140px]" title={b.supplierName}>
-                    {b.supplierName}
+                <div className="mt-4 pt-3 border-t border-slate-200/60 dark:border-slate-700 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                  <span className="truncate max-w-[180px]" title={b.supplierName}>
+                    Ta&apos;minotchi: <strong className="text-slate-700 dark:text-slate-300">{b.supplierName}</strong>
                   </span>
-                  <button
-                    onClick={() => onOpenSaleModal(b.id)}
-                    className="px-3.5 py-1.5 text-xs font-bold bg-blue-600 text-white rounded-lg hover:bg-blue-700 active:scale-95 transition-all shadow-xs cursor-pointer"
-                  >
-                    Chipta sotish →
-                  </button>
+                  <span className="font-mono text-[11px] font-semibold text-slate-400">
+                    {b.status === "ACTIVE" ? "Faol" : "Tugagan"}
+                  </span>
                 </div>
               </div>
             );

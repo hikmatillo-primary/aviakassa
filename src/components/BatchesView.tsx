@@ -1,19 +1,17 @@
 "use client";
 
 import React, { useState } from "react";
-import { Package, Search, Plus, CheckCircle2, AlertCircle } from "lucide-react";
+import { Package, Search, PackagePlus, CheckCircle2, AlertCircle } from "lucide-react";
 
 interface BatchesViewProps {
   batches: any[];
-  onOpenBatchModal: () => void;
-  onOpenSaleModal: (batchId: number) => void;
+  onOpenBatchModal?: () => void;
   onToggleStatus: (id: number) => void;
 }
 
 export function BatchesView({
   batches,
   onOpenBatchModal,
-  onOpenSaleModal,
   onToggleStatus,
 }: BatchesViewProps) {
   const [filter, setFilter] = useState<"ALL" | "ACTIVE" | "COMPLETED">("ALL");
@@ -49,12 +47,15 @@ export function BatchesView({
             Xarid qilingan barcha bloklar, ularning qoldiqlari va joylar holati
           </p>
         </div>
-        <button
-          onClick={onOpenBatchModal}
-          className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-full shadow-sm shadow-blue-500/25 transition-all cursor-pointer self-start sm:self-auto"
-        >
-          <Plus className="w-3.5 h-3.5" /> + Yangi partiya sotib olish
-        </button>
+        {onOpenBatchModal && (
+          <button
+            onClick={onOpenBatchModal}
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-full shadow-sm shadow-blue-500/25 transition-all cursor-pointer self-start sm:self-auto"
+          >
+            <PackagePlus className="w-4 h-4" />
+            Yangi Partiya
+          </button>
+        )}
       </div>
 
       {/* Filters & Search Bar */}
@@ -118,7 +119,6 @@ export function BatchesView({
                 <th className="py-3 px-4 text-center">Chipta Qoldig‘i</th>
                 <th className="py-3 px-4 text-right">Tannarx (1 ta / Jami)</th>
                 <th className="py-3 px-4 text-center">Holati</th>
-                <th className="py-3 px-4 text-right">Amallar</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-700/60 text-xs text-slate-700 dark:text-slate-300">
@@ -202,24 +202,13 @@ export function BatchesView({
                         )}
                       </button>
                     </td>
-
-                    {/* Actions */}
-                    <td className="py-3.5 px-4 text-right">
-                      <button
-                        onClick={() => onOpenSaleModal(batch.id)}
-                        disabled={batch.remainingQty <= 0}
-                        className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-full shadow-xs transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
-                      >
-                        Chipta sotish
-                      </button>
-                    </td>
                   </tr>
                 );
               })}
 
               {filteredBatches.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-xs text-slate-400">
+                  <td colSpan={6} className="py-12 text-center text-xs text-slate-400">
                     Mos keladigan partiyalar topilmadi
                   </td>
                 </tr>

@@ -406,7 +406,7 @@ export function AppContainer() {
 
       {/* Main Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-5">
-        {/* Tab 1: Dashboard */}
+        {/* Tab 1: Dashboard (Faqat ma'lumotlar va tahlil) */}
         {activeTab === "dashboard" && (
           <DashboardView
             stats={stats}
@@ -414,49 +414,36 @@ export function AppContainer() {
             sales={sales}
             payments={payments}
             partners={partners}
-            onOpenSaleModal={handleOpenSaleModal}
-            onOpenBatchModal={() => setIsBatchModalOpen(true)}
-            onOpenPaymentModal={handleOpenPaymentModal}
-            onOpenDebtOffsetModal={handleOpenDebtOffsetModal}
             onViewAllBatches={() => setActiveTab("inventory")}
             onViewAllPartners={() => setActiveTab("purchases")}
             onResetDemo={handleResetDemo}
           />
         )}
 
-        {/* Tab 2: Xarid (Ta'minotchilar va Yangi partiya xaridlari) */}
+        {/* Tab 2: Xarid (Faqat xaridlar va yangi xarid qilish) */}
         {activeTab === "purchases" && (
           <PartnersView
-            partners={partners}
             batches={batches}
-            onOpenPartnerModal={handleOpenPartnerModal}
-            onOpenPaymentModal={handleOpenPaymentModal}
-            onOpenHistoryModal={handleOpenHistoryModal}
             onOpenBatchModal={() => setIsBatchModalOpen(true)}
-            onOpenDebtOffsetModal={handleOpenDebtOffsetModal}
+            onOpenPartnerModal={() => handleOpenPartnerModal("SUPPLIER")}
           />
         )}
 
-        {/* Tab 3: Ombor (Blok chiptalar ombori va qoldiqlar) */}
+        {/* Tab 3: Ombor (Faqat bloklar va qoldiqlar) */}
         {activeTab === "inventory" && (
           <BatchesView
             batches={batches}
             onOpenBatchModal={() => setIsBatchModalOpen(true)}
-            onOpenSaleModal={handleOpenSaleModal}
             onToggleStatus={handleToggleBatchStatus}
           />
         )}
 
-        {/* Tab 4: Sotuv (Sotuvlar daftari va Mijozlar hisob-kitobi) */}
+        {/* Tab 4: Sotuv (Faqat sotuvlar daftari va chipta sotish) */}
         {activeTab === "sales" && (
           <SalesView
             sales={sales}
-            partners={partners}
             onOpenSaleModal={() => handleOpenSaleModal()}
-            onOpenHistoryModal={handleOpenHistoryModal}
-            onOpenPaymentModal={handleOpenPaymentModal}
-            onOpenDebtOffsetModal={handleOpenDebtOffsetModal}
-            onOpenPartnerModal={handleOpenPartnerModal}
+            onOpenPartnerModal={() => handleOpenPartnerModal("CLIENT")}
           />
         )}
 
