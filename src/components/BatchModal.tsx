@@ -4,6 +4,8 @@ import React, { useState } from "react";
 import { Modal } from "./Modal";
 import { PackagePlus, Calculator } from "lucide-react";
 
+import { RouteSelector } from "./RouteSelector";
+
 interface BatchModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -31,7 +33,7 @@ export function BatchModal({
   const [error, setError] = useState<string | null>(null);
 
   const [batchNumber, setBatchNumber] = useState("");
-  const [route, setRoute] = useState("");
+  const [route, setRoute] = useState("Toshkent — Dubay");
   const [flightDate, setFlightDate] = useState("");
   const [flightNumber, setFlightNumber] = useState("");
   const [supplierId, setSupplierId] = useState("");
@@ -82,7 +84,7 @@ export function BatchModal({
       onClose={onClose}
       title="Yangi partiya sotib olish (Kirim)"
       description="Ta'minotchidan blok chiptalar sotib oling va omborga kiring"
-      maxWidth="max-w-lg"
+      maxWidth="max-w-xl"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
@@ -91,8 +93,15 @@ export function BatchModal({
           </div>
         )}
 
-        {/* Partiya raqami va Yo'nalish */}
-        <div className="grid grid-cols-3 gap-3">
+        {/* 1. Aviasales uslubidagi 2 tomonlama Yo'nalish tanlash */}
+        <RouteSelector
+          initialOrigin="Toshkent"
+          initialDestination="Dubay"
+          onChange={(newRoute) => setRoute(newRoute)}
+        />
+
+        {/* 2. Partiya kodi, Uchish sanasi va Reys raqami */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
             <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
               Partiya kodi *
@@ -105,23 +114,6 @@ export function BatchModal({
               required
             />
           </div>
-          <div className="col-span-2">
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-              Yo&apos;nalish (Shahar - Shahar) *
-            </label>
-            <input
-              type="text"
-              placeholder="Masalan: Toshkent - Dubay"
-              value={route}
-              onChange={(e) => setRoute(e.target.value)}
-              className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
-              required
-            />
-          </div>
-        </div>
-
-        {/* Uchish sanasi va Reys raqami */}
-        <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
               Uchish sanasi *
@@ -140,7 +132,7 @@ export function BatchModal({
             </label>
             <input
               type="text"
-              placeholder="Masalan: FZ-780 / HY-333"
+              placeholder="FZ-780 / HY-333"
               value={flightNumber}
               onChange={(e) => setFlightNumber(e.target.value)}
               className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase font-mono"
