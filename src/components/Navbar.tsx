@@ -82,8 +82,8 @@ export function Navbar({
           })}
         </nav>
 
-        {/* Right: Theme Toggle, Settings, User Profile */}
-        <div className="flex items-center gap-2.5">
+        {/* Right: Theme Toggle & User Profile with Settings Dropdown */}
+        <div className="flex items-center gap-2">
           {/* Dark Mode Toggle */}
           <button
             onClick={onToggleTheme}
@@ -93,28 +93,46 @@ export function Navbar({
             {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </button>
 
-          {/* Settings / Backup Dropdown */}
+          {/* User Profile Pill with Integrated Settings */}
           <div className="relative">
             <button
               onClick={() => setShowSettingsMenu(!showSettingsMenu)}
-              title="Sozlamalar va Zaxira nusxa"
-              className="w-9 h-9 rounded-full bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white shadow-xs transition-colors cursor-pointer"
+              title="Profil va Sozlamalar"
+              className="flex items-center gap-2 bg-white dark:bg-slate-800 pl-1.5 pr-2.5 sm:pr-3 py-1 rounded-full border border-slate-200/80 dark:border-slate-700 shadow-xs hover:border-slate-300 dark:hover:border-slate-600 transition-all cursor-pointer"
             >
-              <Settings className="w-4 h-4" />
+              <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-500 text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0">
+                A
+              </div>
+              <div className="text-left hidden sm:block">
+                <span className="block text-xs font-bold text-slate-900 dark:text-white leading-none">
+                  Aviakassa Admin
+                </span>
+                <span className="text-[10px] text-slate-400 dark:text-slate-400 leading-none mt-0.5 block">
+                  admin@aviakassa.uz
+                </span>
+              </div>
+              <Settings className="w-3.5 h-3.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 ml-0.5 transition-colors" />
             </button>
 
             {showSettingsMenu && (
               <div
-                className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-200/80 dark:border-slate-700 py-2 z-50 text-xs font-medium animate-in fade-in zoom-in-95 duration-100"
+                className="absolute right-0 mt-2 w-60 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-200/80 dark:border-slate-700 py-2 z-50 text-xs font-medium animate-in fade-in zoom-in-95 duration-100"
                 onClick={() => setShowSettingsMenu(false)}
               >
-                <div className="px-3 py-1 text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                  Zaxira & Sozlamalar
+                {/* Profile header inside dropdown */}
+                <div className="px-3.5 py-2 border-b border-slate-100 dark:border-slate-700">
+                  <div className="font-bold text-slate-900 dark:text-white text-xs">Aviakassa Admin</div>
+                  <div className="text-[11px] text-slate-400">admin@aviakassa.uz</div>
                 </div>
+
+                <div className="px-3.5 pt-2 pb-1 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                  Tizim Sozlamalari
+                </div>
+
                 {onExportData && (
                   <button
                     onClick={onExportData}
-                    className="w-full px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-700/60 flex items-center gap-2.5 text-slate-700 dark:text-slate-200 hover:text-blue-600 cursor-pointer"
+                    className="w-full px-3.5 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-700/60 flex items-center gap-2.5 text-slate-700 dark:text-slate-200 hover:text-blue-600 cursor-pointer"
                   >
                     <Download className="w-4 h-4 text-slate-400" />
                     Zaxirani yuklab olish (JSON)
@@ -123,7 +141,7 @@ export function Navbar({
                 {onImportData && (
                   <button
                     onClick={onImportData}
-                    className="w-full px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-700/60 flex items-center gap-2.5 text-slate-700 dark:text-slate-200 hover:text-emerald-600 cursor-pointer"
+                    className="w-full px-3.5 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-700/60 flex items-center gap-2.5 text-slate-700 dark:text-slate-200 hover:text-emerald-600 cursor-pointer"
                   >
                     <Upload className="w-4 h-4 text-slate-400" />
                     Zaxirani tiklash (JSON)
@@ -133,7 +151,7 @@ export function Navbar({
                 {onResetDemo && (
                   <button
                     onClick={onResetDemo}
-                    className="w-full px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-700/60 flex items-center gap-2.5 text-slate-600 dark:text-slate-300 hover:text-rose-600 cursor-pointer"
+                    className="w-full px-3.5 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-700/60 flex items-center gap-2.5 text-slate-600 dark:text-slate-300 hover:text-rose-600 cursor-pointer"
                   >
                     <RotateCcw className="w-4 h-4 text-slate-400" />
                     Demo ma&apos;lumotlarni tiklash
@@ -141,21 +159,6 @@ export function Navbar({
                 )}
               </div>
             )}
-          </div>
-
-          {/* User Profile Pill */}
-          <div className="flex items-center gap-2.5 bg-white dark:bg-slate-800 pl-1.5 pr-3 py-1 rounded-full border border-slate-200/80 dark:border-slate-700 shadow-xs">
-            <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-500 text-white flex items-center justify-center font-bold text-xs shadow-xs">
-              A
-            </div>
-            <div className="text-left hidden sm:block">
-              <span className="block text-xs font-bold text-slate-900 dark:text-white leading-none">
-                Aviakassa Admin
-              </span>
-              <span className="text-[10px] text-slate-400 dark:text-slate-400 leading-none mt-0.5 block">
-                admin@aviakassa.uz
-              </span>
-            </div>
           </div>
         </div>
       </div>

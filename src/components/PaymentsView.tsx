@@ -66,43 +66,95 @@ export function PaymentsView({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-            Kassa & Moliyaviy Harakatlar
+            Kassa
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-            Kassadagi haqiqiy naqd/bank pul oqimi va tomonlar o‘rtasidagi o‘zaro qarz surishlar
-          </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           {onOpenDebtOffsetModal && (
             <button
               onClick={() => onOpenDebtOffsetModal()}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-blue-50 dark:bg-slate-800 hover:bg-blue-100 dark:hover:bg-slate-700 text-blue-700 dark:text-blue-300 text-xs font-bold rounded-full shadow-xs border border-blue-200 dark:border-slate-700 transition-all cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 sm:py-2.5 bg-blue-50 dark:bg-slate-800 hover:bg-blue-100 dark:hover:bg-slate-700 text-blue-700 dark:text-blue-300 text-xs font-bold rounded-full shadow-xs border border-blue-200 dark:border-slate-700 transition-all cursor-pointer"
             >
-              <ArrowRightLeft className="w-3.5 h-3.5" /> ⇄ Qarzni surish (O‘zaro hisob)
+              <ArrowRightLeft className="w-3.5 h-3.5" /> ⇄ Qarzni surish
             </button>
           )}
 
           <button
             onClick={() => onOpenPaymentModal("EXPENSE")}
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-full shadow-sm shadow-rose-500/25 transition-all cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 sm:py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-full shadow-sm shadow-rose-500/25 transition-all cursor-pointer"
           >
-            <ArrowUpRight className="w-3.5 h-3.5" /> - Chiqim (To‘lash)
+            <ArrowUpRight className="w-3.5 h-3.5" /> - Chiqim
           </button>
 
           <button
             onClick={() => onOpenPaymentModal("INCOME")}
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-full shadow-sm shadow-emerald-500/25 transition-all cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-2 sm:py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-full shadow-sm shadow-emerald-500/25 transition-all cursor-pointer"
           >
-            <ArrowDownLeft className="w-3.5 h-3.5" /> + Kirim (Qabul qilish)
+            <ArrowDownLeft className="w-3.5 h-3.5" /> + Kirim
           </button>
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Mobile Compact Indicators (Minimal 2x2 grid) */}
+      <div className="grid grid-cols-2 gap-2 sm:hidden">
+        {/* Kirim */}
+        <div className="bg-white dark:bg-slate-800 p-3 rounded-2xl border border-slate-200/70 dark:border-slate-700 shadow-xs">
+          <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium">
+            <span>Kirim:</span>
+            <ArrowDownLeft className="w-3 h-3 text-emerald-500" />
+          </div>
+          <div className="text-base font-black text-emerald-600 dark:text-emerald-400 font-mono mt-0.5">
+            +{formatUSD(totalIncome)}
+          </div>
+        </div>
+
+        {/* Chiqim */}
+        <div className="bg-white dark:bg-slate-800 p-3 rounded-2xl border border-slate-200/70 dark:border-slate-700 shadow-xs">
+          <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium">
+            <span>Chiqim:</span>
+            <ArrowUpRight className="w-3 h-3 text-rose-500" />
+          </div>
+          <div className="text-base font-black text-rose-600 dark:text-rose-400 font-mono mt-0.5">
+            -{formatUSD(totalExpense)}
+          </div>
+        </div>
+
+        {/* Kassa naqd qoldig'i */}
+        <div className="bg-white dark:bg-slate-800 p-3 rounded-2xl border border-slate-200/70 dark:border-slate-700 shadow-xs">
+          <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium">
+            <span>Naqd qoldiq:</span>
+            <Wallet className="w-3 h-3 text-blue-500" />
+          </div>
+          <div
+            className={`text-base font-black font-mono mt-0.5 ${
+              netCashFlow >= 0
+                ? "text-slate-900 dark:text-white"
+                : "text-rose-600 dark:text-rose-400"
+            }`}
+          >
+            {netCashFlow >= 0
+              ? `+${formatUSD(netCashFlow)}`
+              : `-${formatUSD(Math.abs(netCashFlow))}`}
+          </div>
+        </div>
+
+        {/* Surilgan qarzlar */}
+        <div className="bg-white dark:bg-slate-800 p-3 rounded-2xl border border-slate-200/70 dark:border-slate-700 shadow-xs">
+          <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium">
+            <span>Surilgan qarz:</span>
+            <ArrowRightLeft className="w-3 h-3 text-indigo-500" />
+          </div>
+          <div className="text-base font-black text-indigo-600 dark:text-indigo-400 font-mono mt-0.5">
+            {formatUSD(totalOffsetsAmount)}
+          </div>
+        </div>
+      </div>
+
+      {/* Desktop Summary Cards (hidden on mobile, shown on sm+) */}
+      <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Kirim */}
         <div className="bg-white dark:bg-slate-800 p-5 rounded-3xl border border-slate-200/70 dark:border-slate-700 shadow-xs">
           <div className="flex items-center justify-between text-xs text-slate-400 dark:text-slate-400 font-medium">
