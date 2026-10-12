@@ -71,8 +71,8 @@ export function Navbar({
                 onClick={() => setActiveTab(item.id)}
                 className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                   isActive
-                    ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-xs"
-                    : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/60 dark:hover:bg-slate-800/60"
+                    ? "bg-blue-600 text-white shadow-sm shadow-blue-500/25"
+                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/60 dark:hover:bg-slate-800/60"
                 }`}
               >
                 {item.label}
@@ -169,7 +169,7 @@ export function Navbar({
               onClick={() => setActiveTab(item.id)}
               className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
                 isActive
-                  ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-xs"
+                  ? "bg-blue-600 text-white shadow-sm shadow-blue-500/25"
                   : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
               }`}
             >

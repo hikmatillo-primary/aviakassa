@@ -449,7 +449,7 @@ export function DashboardView({
                 <strong className="text-base font-bold text-slate-900 dark:text-white font-mono">
                   ${(totalSalesRevenue > 0 ? (totalSalesRevenue / 1000).toFixed(1) : "30.9")}k
                 </strong>
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-slate-900 dark:bg-white text-white dark:text-slate-900">
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-slate-900 dark:bg-slate-800 text-white dark:text-slate-200 border border-transparent dark:border-slate-700">
                   4.5% ↗
                 </span>
               </div>

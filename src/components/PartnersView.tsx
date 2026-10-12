@@ -32,6 +32,8 @@ export function PartnersView({
     });
 
   const totalBalance = filteredPartners.reduce((acc, p) => acc + (p.balance > 0 ? p.balance : 0), 0);
+  const totalDeals = filteredPartners.reduce((acc, p) => acc + (p.totalDeal || 0), 0);
+  const totalPaid = filteredPartners.reduce((acc, p) => acc + (p.totalPaid || 0), 0);
 
   return (
     <div className="space-y-6">
@@ -51,7 +53,7 @@ export function PartnersView({
           {tab === "SUPPLIER" && onOpenBatchModal && (
             <button
               onClick={onOpenBatchModal}
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-900 dark:bg-white hover:bg-slate-800 dark:hover:bg-slate-100 text-white dark:text-slate-900 text-xs font-bold rounded-full shadow-xs transition-all cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white text-xs font-bold rounded-full shadow-xs border border-transparent dark:border-slate-700 transition-all cursor-pointer"
             >
               <PackagePlus className="w-3.5 h-3.5" /> + Yangi partiya sotib olish
             </button>
@@ -66,69 +68,80 @@ export function PartnersView({
         </div>
       </div>
 
-      {/* Tab Selector & Stats (2 large rounded-3xl cards) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {/* Tab 1: Ta'minotchilar */}
-        <div
-          onClick={() => setTab("SUPPLIER")}
-          className={`cursor-pointer p-6 rounded-3xl border transition-all ${
+      {/* Sub Tabs Switch */}
+      <div className="flex items-center gap-1.5 bg-slate-200/60 dark:bg-slate-800 p-1 rounded-2xl w-fit">
+        <button
+          onClick={() => {
+            setTab("SUPPLIER");
+            setSearch("");
+          }}
+          className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
             tab === "SUPPLIER"
-              ? "bg-white dark:bg-slate-800 border-blue-500 ring-2 ring-blue-500/10 shadow-md"
-              : "bg-white/80 dark:bg-slate-800/60 border-slate-200/70 dark:border-slate-700 hover:bg-white"
+              ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs"
+              : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
           }`}
         >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-              <Users className="w-4 h-4 text-rose-600" /> Ta&apos;minotchilar (1-qo&apos;l dilerlar)
-            </span>
-            <span className="text-xs bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 font-bold px-2.5 py-0.5 rounded-full border border-rose-200/60 dark:border-rose-800/60">
-              {partners.filter((p) => p.type === "SUPPLIER").length} ta
-            </span>
-          </div>
-          <div className="mt-3">
-            <span className="text-xs text-slate-400 dark:text-slate-500">Bizning qarzimiz (Ta&apos;minotchilarga):</span>
-            <div className="text-2xl font-black text-slate-900 dark:text-white font-mono mt-0.5">
-              $
-              {partners
-                .filter((p) => p.type === "SUPPLIER")
-                .reduce((acc, p) => acc + (p.balance > 0 ? p.balance : 0), 0)
-                .toLocaleString()}
-            </div>
+          <Users className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
+          Ta&apos;minotchilar ({partners.filter((p) => p.type === "SUPPLIER").length})
+        </button>
+        <button
+          onClick={() => {
+            setTab("CLIENT");
+            setSearch("");
+          }}
+          className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+            tab === "CLIENT"
+              ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs"
+              : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+          }`}
+        >
+          <Users className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+          Mijozlar & Sub-agentlar ({partners.filter((p) => p.type === "CLIENT").length})
+        </button>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200/70 dark:border-slate-800 shadow-xs">
+          <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">
+            {tab === "SUPPLIER" ? "Jami ta'minotchilar:" : "Jami mijozlar:"}
+          </span>
+          <div className="text-2xl font-black text-slate-900 dark:text-white font-mono mt-1">
+            {filteredPartners.length} <span className="text-xs font-normal text-slate-400 dark:text-slate-500">ta</span>
           </div>
         </div>
 
-        {/* Tab 2: Mijozlar */}
-        <div
-          onClick={() => setTab("CLIENT")}
-          className={`cursor-pointer p-6 rounded-3xl border transition-all ${
-            tab === "CLIENT"
-              ? "bg-white dark:bg-slate-800 border-blue-500 ring-2 ring-blue-500/10 shadow-md"
-              : "bg-white/80 dark:bg-slate-800/60 border-slate-200/70 dark:border-slate-700 hover:bg-white"
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-              <Users className="w-4 h-4 text-blue-600" /> Mijozlar & Sub-agentlar
-            </span>
-            <span className="text-xs bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 font-bold px-2.5 py-0.5 rounded-full border border-blue-200/60 dark:border-blue-800/60">
-              {partners.filter((p) => p.type === "CLIENT").length} ta
-            </span>
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200/70 dark:border-slate-800 shadow-xs">
+          <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">
+            {tab === "SUPPLIER" ? "Bizning qarzimiz (Ta'minotchilarga):" : "Bizning haqimiz (Mijozlar qarzi):"}
+          </span>
+          <div
+            className={`text-2xl font-black font-mono mt-1 ${
+              tab === "SUPPLIER"
+                ? totalBalance > 0
+                  ? "text-rose-600 dark:text-rose-400"
+                  : "text-slate-900 dark:text-white"
+                : totalBalance > 0
+                ? "text-amber-600 dark:text-amber-400"
+                : "text-slate-900 dark:text-white"
+            }`}
+          >
+            ${totalBalance.toLocaleString()}
           </div>
-          <div className="mt-3">
-            <span className="text-xs text-slate-400 dark:text-slate-500">Bizning haqimiz (Mijozlar qarzi):</span>
-            <div className="text-2xl font-black text-slate-900 dark:text-white font-mono mt-0.5">
-              $
-              {partners
-                .filter((p) => p.type === "CLIENT")
-                .reduce((acc, p) => acc + (p.balance > 0 ? p.balance : 0), 0)
-                .toLocaleString()}
-            </div>
+        </div>
+
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200/70 dark:border-slate-800 shadow-xs">
+          <span className="text-xs text-slate-400 dark:text-slate-500 font-medium">
+            {tab === "SUPPLIER" ? "Jami xarid qilingan partiyalar:" : "Jami xarid summasi:"}
+          </span>
+          <div className="text-2xl font-black text-slate-900 dark:text-white font-mono mt-1">
+            ${totalDeals.toLocaleString()}
           </div>
         </div>
       </div>
 
       {/* Search Bar */}
-      <div className="bg-white dark:bg-slate-800 p-3 rounded-3xl border border-slate-200/70 dark:border-slate-700 shadow-xs flex items-center justify-between">
+      <div className="bg-white dark:bg-slate-900 p-3 rounded-3xl border border-slate-200/70 dark:border-slate-800 shadow-xs flex items-center justify-between">
         <div className="relative w-full sm:w-80">
           <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3.5 top-2.5" />
           <input
@@ -136,20 +149,21 @@ export function PartnersView({
             placeholder={tab === "CLIENT" ? "Mijoz nomi yoki telefon..." : "Ta'minotchi nomi yoki telefon..."}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50/70 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-full focus:bg-white dark:focus:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white transition-all"
+            className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50/70 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all"
           />
         </div>
-        <div className="text-xs font-semibold text-slate-400 pr-2 hidden sm:block">
-          Jami qarz: <strong className="text-slate-800 dark:text-slate-200 font-mono">${totalBalance.toLocaleString()}</strong>
+        <div className="text-xs font-semibold text-slate-400 dark:text-slate-500 pr-2 hidden sm:block">
+          {tab === "SUPPLIER" ? "Umumiy qarzimiz: " : "Mijozlar qarzi: "}
+          <strong className="text-slate-800 dark:text-slate-200 font-mono">${totalBalance.toLocaleString()}</strong>
         </div>
       </div>
 
       {/* Partners List / Table */}
-      <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200/70 dark:border-slate-700 overflow-hidden shadow-xs p-2">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/70 dark:border-slate-800 overflow-hidden shadow-xs p-2">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-slate-100 dark:border-slate-700 text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+              <tr className="border-b border-slate-100 dark:border-slate-800 text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                 <th className="py-3 px-4">Hamkor nomi</th>
                 <th className="py-3 px-4">Telefon</th>
                 <th className="py-3 px-4 text-right">
@@ -160,13 +174,13 @@ export function PartnersView({
                 <th className="py-3 px-4 text-right">Amallar</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-700/60 text-xs text-slate-700 dark:text-slate-300">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs text-slate-700 dark:text-slate-300">
               {filteredPartners.map((partner) => {
                 const isSupplier = partner.type === "SUPPLIER";
                 const hasDebt = (partner.balance || 0) > 0;
 
                 return (
-                  <tr key={partner.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-700/40 transition-colors">
+                  <tr key={partner.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/50 transition-colors">
                     {/* Name */}
                     <td className="py-3.5 px-4">
                       <div className="font-bold text-slate-900 dark:text-white text-sm">{partner.name}</div>
@@ -219,7 +233,7 @@ export function PartnersView({
                         <button
                           onClick={() => onOpenHistoryModal(partner.id)}
                           title="Akt Sverka (Hisob daftari)"
-                          className="px-3.5 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-full transition-colors cursor-pointer flex items-center gap-1"
+                          className="px-3.5 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors cursor-pointer flex items-center gap-1"
                         >
                           <FileText className="w-3.5 h-3.5" /> Sverka
                         </button>
@@ -245,7 +259,7 @@ export function PartnersView({
 
               {filteredPartners.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-xs text-slate-400">
+                  <td colSpan={6} className="py-12 text-center text-xs text-slate-400 dark:text-slate-500">
                     Hamkorlar topilmadi
                   </td>
                 </tr>
