@@ -27,9 +27,37 @@ import {
 export function AppContainer() {
   const [data, setData] = useState<AviakassaData>(INITIAL_DEMO_DATA);
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [isDark, setIsDark] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Initialize from localStorage on mount
+  // Initialize theme from localStorage / system preference
+  useEffect(() => {
+    const savedTheme = localStorage.getItem("aviakassa_theme");
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const shouldDark = savedTheme === "dark" || (!savedTheme && prefersDark);
+    setIsDark(shouldDark);
+    if (shouldDark) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }, []);
+
+  const handleToggleTheme = () => {
+    setIsDark((prev) => {
+      const next = !prev;
+      if (next) {
+        document.documentElement.classList.add("dark");
+        localStorage.setItem("aviakassa_theme", "dark");
+      } else {
+        document.documentElement.classList.remove("dark");
+        localStorage.setItem("aviakassa_theme", "light");
+      }
+      return next;
+    });
+  };
+
+  // Initialize data from localStorage on mount
   useEffect(() => {
     const saved = loadData();
     setData(saved);
@@ -302,7 +330,7 @@ export function AppContainer() {
   const suppliers = partners.filter((p) => p.type === "SUPPLIER");
 
   return (
-    <div className="min-h-screen bg-[#f4f5f8] flex flex-col font-sans">
+    <div className="min-h-screen bg-[#f4f5f8] dark:bg-[#0b0f19] text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors duration-200">
       <input
         type="file"
         ref={fileInputRef}
@@ -311,10 +339,12 @@ export function AppContainer() {
         className="hidden"
       />
 
-      {/* Navbar */}
+      {/* Navbar with exact requested tabs and dark mode toggle */}
       <Navbar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
+        isDark={isDark}
+        onToggleTheme={handleToggleTheme}
         onOpenSaleModal={() => handleOpenSaleModal()}
         onOpenBatchModal={() => setIsBatchModalOpen(true)}
         onExportData={handleExportBackup}
@@ -323,7 +353,8 @@ export function AppContainer() {
       />
 
       {/* Main Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-5">
+        {/* Tab 1: Dashboard */}
         {activeTab === "dashboard" && (
           <DashboardView
             stats={stats}
@@ -334,13 +365,26 @@ export function AppContainer() {
             onOpenSaleModal={handleOpenSaleModal}
             onOpenBatchModal={() => setIsBatchModalOpen(true)}
             onOpenPaymentModal={handleOpenPaymentModal}
-            onViewAllBatches={() => setActiveTab("batches")}
-            onViewAllPartners={() => setActiveTab("partners")}
+            onViewAllBatches={() => setActiveTab("inventory")}
+            onViewAllPartners={() => setActiveTab("purchases")}
             onResetDemo={handleResetDemo}
           />
         )}
 
-        {activeTab === "batches" && (
+        {/* Tab 2: Xarid (Ta'minotchilar va Yangi partiya xaridlari) */}
+        {activeTab === "purchases" && (
+          <PartnersView
+            partners={partners}
+            defaultTab="SUPPLIER"
+            onOpenPartnerModal={handleOpenPartnerModal}
+            onOpenPaymentModal={handleOpenPaymentModal}
+            onOpenHistoryModal={handleOpenHistoryModal}
+            onOpenBatchModal={() => setIsBatchModalOpen(true)}
+          />
+        )}
+
+        {/* Tab 3: Ombor (Blok chiptalar ombori va qoldiqlar) */}
+        {activeTab === "inventory" && (
           <BatchesView
             batches={batches}
             onOpenBatchModal={() => setIsBatchModalOpen(true)}
@@ -349,23 +393,18 @@ export function AppContainer() {
           />
         )}
 
-        {activeTab === "partners" && (
-          <PartnersView
+        {/* Tab 4: Sotuv (Sotuvlar daftari va Mijozlar hisob-kitobi) */}
+        {activeTab === "sales" && (
+          <SalesView
+            sales={sales}
             partners={partners}
-            onOpenPartnerModal={handleOpenPartnerModal}
-            onOpenPaymentModal={handleOpenPaymentModal}
+            onOpenSaleModal={() => handleOpenSaleModal()}
             onOpenHistoryModal={handleOpenHistoryModal}
           />
         )}
 
-        {activeTab === "sales" && (
-          <SalesView
-            sales={sales}
-            onOpenSaleModal={() => handleOpenSaleModal()}
-          />
-        )}
-
-        {activeTab === "payments" && (
+        {/* Tab 5: Kassa (Kassa kirim/chiqim va to'lovlar) */}
+        {activeTab === "cash" && (
           <PaymentsView
             payments={payments}
             onOpenPaymentModal={handleOpenPaymentModal}

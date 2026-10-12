@@ -6,16 +6,9 @@ import {
   ShoppingBag,
   Users,
   Layers,
-  Calendar,
   Search,
-  Filter,
-  Download,
   MoreHorizontal,
-  ArrowUpRight,
-  ArrowDownLeft,
   ChevronDown,
-  CheckCircle2,
-  Clock,
   Sparkles,
   Plane,
 } from "lucide-react";
@@ -39,17 +32,15 @@ export function DashboardView({
   stats,
   batches,
   sales,
-  payments,
   partners,
   onOpenSaleModal,
   onOpenBatchModal,
   onOpenPaymentModal,
   onViewAllBatches,
-  onViewAllPartners,
   onResetDemo,
 }: DashboardViewProps) {
   const [search, setSearch] = useState("");
-  const [period, setPeriod] = useState("This Month");
+  const [period, setPeriod] = useState("Bu oy");
 
   const activeBatches = batches.filter((b) => b.status === "ACTIVE");
   const isEmptyData = batches.length === 0 && partners.length === 0;
@@ -66,38 +57,30 @@ export function DashboardView({
     );
   });
 
-  // Calculate sales metrics
-  const totalTicketsBought = batches.reduce((sum, b) => sum + (b.totalQty || 0), 0);
-  const totalTicketsSold = sales.reduce((sum, s) => sum + (s.qty || 0), 0);
-  const occupancyRate =
-    totalTicketsBought > 0
-      ? Math.min(100, Math.round((totalTicketsSold / totalTicketsBought) * 100))
-      : 70.8;
-
   const totalSalesRevenue = sales.reduce((sum, s) => sum + (s.totalAmount || 0), 0);
 
-  // Month bar data mockup with real relative scale
+  // Month bar data
   const monthsData = [
     { month: "May", height: 45, value: "$12k" },
-    { month: "Jun", height: 60, value: "$18k" },
-    { month: "Jul", height: 75, value: "$24k" },
-    { month: "Aug", height: 85, value: "$31k", active: true, tickets: 440, revenue: "$4.5k" },
-    { month: "Sep", height: 40, value: "$11k" },
-    { month: "Oct", height: 65, value: "$20k" },
-    { month: "Nov", height: 50, value: "$15k" },
-    { month: "Dec", height: 55, value: "$17k" },
+    { month: "Iyun", height: 60, value: "$18k" },
+    { month: "Iyul", height: 75, value: "$24k" },
+    { month: "Avg", height: 85, value: "$31k", active: true, tickets: 440, revenue: "$4.5k" },
+    { month: "Sen", height: 40, value: "$11k" },
+    { month: "Okt", height: 65, value: "$20k" },
+    { month: "Noy", height: 50, value: "$15k" },
+    { month: "Dek", height: 55, value: "$17k" },
   ];
 
   return (
     <div className="space-y-6">
-      {/* 1. Header Title & Actions Row (Matching Boltshift Header) */}
+      {/* 1. Header Title & Actions Row (100% O'zbekcha) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-            Sales Overview
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+            Umumiy Ko‘rsatkichlar
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            Your current sales summary and activity
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+            Joriy savdo holati, bloklar qoldig‘i va kassa hisob-kitoblari
           </p>
         </div>
 
@@ -106,10 +89,10 @@ export function DashboardView({
           {/* Period selector */}
           <div className="relative">
             <button
-              onClick={() => setPeriod(period === "This Month" ? "This Week" : "This Month")}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold bg-white text-slate-700 rounded-full border border-slate-200/80 shadow-xs hover:border-slate-300 transition-all cursor-pointer"
+              onClick={() => setPeriod(period === "Bu oy" ? "Bu hafta" : "Bu oy")}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-full border border-slate-200/80 dark:border-slate-700 shadow-xs hover:border-slate-300 dark:hover:border-slate-600 transition-all cursor-pointer"
             >
-              {period === "This Month" ? "Bu oy (This Month)" : "Bu hafta (This Week)"}
+              {period}
               <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
             </button>
           </div>
@@ -117,15 +100,15 @@ export function DashboardView({
           {/* New Batch Action */}
           <button
             onClick={onOpenBatchModal}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold bg-white text-slate-700 rounded-full border border-slate-200/80 shadow-xs hover:border-slate-300 transition-all cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-full border border-slate-200/80 dark:border-slate-700 shadow-xs hover:border-slate-300 dark:hover:border-slate-600 transition-all cursor-pointer"
           >
             + Yangi partiya
           </button>
 
-          {/* Primary Action Button (Vibrant Blue Pill) */}
+          {/* Primary Action Button */}
           <button
             onClick={() => onOpenSaleModal()}
-            className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold bg-blue-600 text-white rounded-full shadow-sm shadow-blue-500/25 hover:bg-blue-700 active:scale-95 transition-all cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-sm shadow-blue-500/25 active:scale-95 transition-all cursor-pointer"
           >
             <ShoppingBag className="w-3.5 h-3.5" />
             + Chipta sotish
@@ -153,16 +136,15 @@ export function DashboardView({
         </div>
       )}
 
-      {/* 2. Top 4 KPI Cards Row (Exact Boltshift Cards layout) */}
+      {/* 2. Top 4 KPI Cards Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: Primary Highlighted Electric Blue Gradient Card */}
+        {/* Card 1: Moviy Gradientli Asosiy Kartochka */}
         <div className="bg-gradient-to-r from-blue-600 via-blue-600 to-sky-500 rounded-3xl p-6 text-white shadow-lg shadow-blue-500/20 relative overflow-hidden flex flex-col justify-between min-h-[160px]">
-          {/* Background ambient lighting */}
           <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-white/10 rounded-full blur-2xl pointer-events-none" />
 
           <div className="flex items-center justify-between relative z-10">
-            <span className="text-xs font-medium text-blue-100 uppercase tracking-wider">
-              Sof Foyda (Total Profit)
+            <span className="text-xs font-semibold text-blue-100 uppercase tracking-wider">
+              Sof Foyda
             </span>
             <div className="w-9 h-9 rounded-full bg-white text-blue-600 flex items-center justify-center shadow-xs shrink-0">
               <ShoppingBag className="w-4 h-4" />
@@ -181,48 +163,48 @@ export function DashboardView({
           </div>
 
           <div className="text-[11px] text-blue-100 relative z-10 flex items-center justify-between">
-            <span>O&apos;tgan oy: $1,240</span>
+            <span>O‘tgan oy: $1,240</span>
             <span className="font-semibold text-white">Marja: ~15%</span>
           </div>
         </div>
 
-        {/* Card 2: Bizning haqimiz (Debitorlik - New Customer style) */}
-        <div className="bg-white rounded-3xl p-6 border border-slate-200/70 shadow-xs relative flex flex-col justify-between min-h-[160px] hover:shadow-md transition-all">
+        {/* Card 2: Bizning haqimiz (Debitorlik) */}
+        <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-200/70 dark:border-slate-700 shadow-xs relative flex flex-col justify-between min-h-[160px] hover:shadow-md transition-all">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               Bizning haqimiz
             </span>
-            <div className="w-9 h-9 rounded-full bg-slate-900 text-white flex items-center justify-center shadow-xs shrink-0">
+            <div className="w-9 h-9 rounded-full bg-slate-900 dark:bg-slate-700 text-white flex items-center justify-center shadow-xs shrink-0">
               <Users className="w-4 h-4" />
             </div>
           </div>
 
           <div className="my-2">
             <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-extrabold text-slate-900 tracking-tight font-mono">
+              <span className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight font-mono">
                 ${(stats?.clientDebtToUs || 0).toLocaleString()}
               </span>
-              <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-bold border border-emerald-200/50">
+              <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 text-[11px] font-bold border border-emerald-200/50 dark:border-emerald-800/50">
                 ↑ +2.5%
               </span>
             </div>
           </div>
 
-          <div className="text-[11px] text-slate-400 flex items-center justify-between">
+          <div className="text-[11px] text-slate-400 dark:text-slate-500 flex items-center justify-between">
             <span>Mijozlar qarzi</span>
             <button
               onClick={() => onOpenPaymentModal("INCOME")}
-              className="text-xs font-bold text-blue-600 hover:text-blue-700 cursor-pointer"
+              className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 cursor-pointer"
             >
               + Qabul qilish
             </button>
           </div>
         </div>
 
-        {/* Card 3: Bizning qarzimiz (Kreditorlik - Return Products style) */}
-        <div className="bg-white rounded-3xl p-6 border border-slate-200/70 shadow-xs relative flex flex-col justify-between min-h-[160px] hover:shadow-md transition-all">
+        {/* Card 3: Bizning qarzimiz (Kreditorlik) */}
+        <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-200/70 dark:border-slate-700 shadow-xs relative flex flex-col justify-between min-h-[160px] hover:shadow-md transition-all">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               Bizning qarzimiz
             </span>
             <div className="w-9 h-9 rounded-full bg-blue-500 text-white flex items-center justify-center shadow-xs shrink-0">
@@ -232,30 +214,30 @@ export function DashboardView({
 
           <div className="my-2">
             <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-extrabold text-slate-900 tracking-tight font-mono">
+              <span className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight font-mono">
                 ${(stats?.ourDebtToSuppliers || 0).toLocaleString()}
               </span>
-              <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-rose-50 text-rose-600 text-[11px] font-bold border border-rose-200/50">
+              <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 text-[11px] font-bold border border-rose-200/50 dark:border-rose-800/50">
                 ↓ 6.0%
               </span>
             </div>
           </div>
 
-          <div className="text-[11px] text-slate-400 flex items-center justify-between">
-            <span>Ta&apos;minotchilarga to&apos;lov</span>
+          <div className="text-[11px] text-slate-400 dark:text-slate-500 flex items-center justify-between">
+            <span>Ta‘minotchilarga to‘lov</span>
             <button
               onClick={() => onOpenPaymentModal("EXPENSE")}
-              className="text-xs font-bold text-rose-600 hover:text-rose-700 cursor-pointer"
+              className="text-xs font-bold text-rose-600 dark:text-rose-400 hover:text-rose-700 cursor-pointer"
             >
-              - To&apos;lash
+              - To‘lash
             </button>
           </div>
         </div>
 
-        {/* Card 4: Ombordagi Chiptalar (Total Revenue style) */}
-        <div className="bg-white rounded-3xl p-6 border border-slate-200/70 shadow-xs relative flex flex-col justify-between min-h-[160px] hover:shadow-md transition-all">
+        {/* Card 4: Ombordagi Chiptalar */}
+        <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-200/70 dark:border-slate-700 shadow-xs relative flex flex-col justify-between min-h-[160px] hover:shadow-md transition-all">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               Ombordagi chiptalar
             </span>
             <div className="w-9 h-9 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-xs shrink-0">
@@ -265,48 +247,49 @@ export function DashboardView({
 
           <div className="my-2">
             <div className="flex items-baseline gap-1.5">
-              <span className="text-3xl font-extrabold text-slate-900 tracking-tight font-mono">
+              <span className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight font-mono">
                 {stats?.totalRemainingTickets || 0}
               </span>
               <span className="text-sm font-semibold text-slate-400">ta joy</span>
             </div>
           </div>
 
-          <div className="text-[11px] text-slate-400 flex items-center justify-between">
+          <div className="text-[11px] text-slate-400 dark:text-slate-500 flex items-center justify-between">
             <span>{stats?.activeBatchesCount || 0} ta faol partiyada</span>
             <button
               onClick={onViewAllBatches}
-              className="text-xs font-bold text-blue-600 hover:text-blue-700 cursor-pointer"
+              className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 cursor-pointer"
             >
-              Partiyalar →
+              Omborga o‘tish →
             </button>
           </div>
         </div>
       </div>
 
-      {/* 3. Middle Section: Performance Overview Chart + Sales Overview Speedometer */}
+      {/* 3. Middle Section: Savdo Dinamikasi + Chiptalar Sotilishi Spidometri */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        {/* Left Card: Performance Overview (Bar Chart) */}
-        <div className="lg:col-span-8 bg-white rounded-3xl p-6 border border-slate-200/70 shadow-xs flex flex-col justify-between">
-          {/* Header */}
+        {/* Left Card: Savdo Dinamikasi (Performance Overview) */}
+        <div className="lg:col-span-8 bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-200/70 dark:border-slate-700 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-base font-bold text-slate-900 tracking-tight">
-                Performance Overview
+              <h2 className="text-base font-bold text-slate-900 dark:text-white tracking-tight">
+                Savdo Dinamikasi
               </h2>
-              <p className="text-xs text-slate-400">Partiyalar va oylik chipta sotuvlari ko&apos;lami</p>
+              <p className="text-xs text-slate-400 dark:text-slate-500">
+                Oylar kesimida partiya va chipta sotuvlari ko‘lami
+              </p>
             </div>
-            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100/70 rounded-full text-xs font-semibold text-slate-600 border border-slate-200/40">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100/70 dark:bg-slate-700/60 rounded-full text-xs font-semibold text-slate-600 dark:text-slate-300 border border-slate-200/40 dark:border-slate-600/40">
               <span>Bu hafta</span>
               <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
             </div>
           </div>
 
-          {/* Bar Chart Canvas with Y-Axis and Floating Tooltip */}
+          {/* Bar Chart Canvas with Y-Axis and Tooltip */}
           <div className="relative pt-6 pb-2">
             <div className="flex h-56 items-end gap-3 sm:gap-6 pl-8 relative">
               {/* Y-Axis lines and labels */}
-              <div className="absolute left-0 top-0 bottom-6 flex flex-col justify-between text-[11px] text-slate-400 font-mono select-none">
+              <div className="absolute left-0 top-0 bottom-6 flex flex-col justify-between text-[11px] text-slate-400 dark:text-slate-500 font-mono select-none">
                 <span>40k</span>
                 <span>30k</span>
                 <span>20k</span>
@@ -316,13 +299,13 @@ export function DashboardView({
               </div>
 
               {/* Horizontal gridlines */}
-              <div className="absolute inset-x-8 top-0 border-b border-dashed border-slate-100 pointer-events-none" />
-              <div className="absolute inset-x-8 top-1/4 border-b border-dashed border-slate-100 pointer-events-none" />
-              <div className="absolute inset-x-8 top-2/4 border-b border-dashed border-slate-100 pointer-events-none" />
-              <div className="absolute inset-x-8 top-3/4 border-b border-dashed border-slate-100 pointer-events-none" />
+              <div className="absolute inset-x-8 top-0 border-b border-dashed border-slate-100 dark:border-slate-700/60 pointer-events-none" />
+              <div className="absolute inset-x-8 top-1/4 border-b border-dashed border-slate-100 dark:border-slate-700/60 pointer-events-none" />
+              <div className="absolute inset-x-8 top-2/4 border-b border-dashed border-slate-100 dark:border-slate-700/60 pointer-events-none" />
+              <div className="absolute inset-x-8 top-3/4 border-b border-dashed border-slate-100 dark:border-slate-700/60 pointer-events-none" />
 
               {/* Bars */}
-              {monthsData.map((item, index) => {
+              {monthsData.map((item) => {
                 const isActive = item.active;
 
                 return (
@@ -330,23 +313,23 @@ export function DashboardView({
                     key={item.month}
                     className="flex-1 flex flex-col items-center h-full justify-end relative group"
                   >
-                    {/* Floating Tooltip Mockup on Active Bar (matching Boltshift exactly) */}
+                    {/* Tooltip on Active Bar */}
                     {isActive && (
-                      <div className="absolute -top-12 z-20 bg-white rounded-2xl p-3 shadow-xl border border-slate-100 text-xs w-44 pointer-events-none animate-in fade-in zoom-in-95">
-                        <div className="font-bold text-slate-900 text-[11px] mb-1.5">
+                      <div className="absolute -top-12 z-20 bg-white dark:bg-slate-900 rounded-2xl p-3 shadow-xl border border-slate-100 dark:border-slate-700 text-xs w-44 pointer-events-none animate-in fade-in zoom-in-95">
+                        <div className="font-bold text-slate-900 dark:text-white text-[11px] mb-1.5">
                           Avgust 2026
                         </div>
-                        <div className="flex items-center justify-between text-[11px] text-slate-500 mb-0.5">
+                        <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 mb-0.5">
                           <span className="flex items-center gap-1.5">
-                            <span className="w-1.5 h-1.5 rounded-full bg-slate-300" /> Jami Sotuv
+                            <span className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600" /> Jami Sotuv
                           </span>
-                          <strong className="text-slate-800">440 ta</strong>
+                          <strong className="text-slate-800 dark:text-slate-200">440 ta</strong>
                         </div>
-                        <div className="flex items-center justify-between text-[11px] text-slate-500">
+                        <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
                           <span className="flex items-center gap-1.5">
                             <span className="w-1.5 h-1.5 rounded-full bg-blue-600" /> Tushum
                           </span>
-                          <strong className="text-blue-600 font-mono">$4.5k</strong>
+                          <strong className="text-blue-600 dark:text-blue-400 font-mono">$4.5k</strong>
                         </div>
                       </div>
                     )}
@@ -358,7 +341,7 @@ export function DashboardView({
                         className={`w-full rounded-2xl transition-all duration-300 ${
                           isActive
                             ? "bg-gradient-to-t from-blue-600 to-sky-400 shadow-md shadow-blue-500/20"
-                            : "bg-slate-100 hover:bg-slate-200"
+                            : "bg-slate-100 dark:bg-slate-700/60 hover:bg-slate-200 dark:hover:bg-slate-700"
                         }`}
                       />
                     </div>
@@ -366,7 +349,7 @@ export function DashboardView({
                     {/* Month Label */}
                     <span
                       className={`text-[11px] mt-2 font-medium ${
-                        isActive ? "text-slate-900 font-bold" : "text-slate-400"
+                        isActive ? "text-slate-900 dark:text-white font-bold" : "text-slate-400 dark:text-slate-500"
                       }`}
                     >
                       {item.month}
@@ -378,23 +361,22 @@ export function DashboardView({
           </div>
         </div>
 
-        {/* Right Card: Sales Overview (Radial Gauge / Spidometr) */}
-        <div className="lg:col-span-4 bg-white rounded-3xl p-6 border border-slate-200/70 shadow-xs flex flex-col justify-between">
+        {/* Right Card: Chiptalar Sotilishi (Radial Spidometr) */}
+        <div className="lg:col-span-4 bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-200/70 dark:border-slate-700 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between">
-            <h2 className="text-base font-bold text-slate-900 tracking-tight">Sales Overview</h2>
+            <h2 className="text-base font-bold text-slate-900 dark:text-white tracking-tight">
+              Chiptalar Sotilishi
+            </h2>
             <button className="text-slate-400 hover:text-slate-600 p-1 rounded-full cursor-pointer">
               <MoreHorizontal className="w-4 h-4" />
             </button>
           </div>
 
-          {/* Segmented Semi-Circle Arc Meter (Matching Boltshift Radial Gauge) */}
+          {/* Segmented Semi-Circle Arc Meter */}
           <div className="my-auto py-4 flex flex-col items-center justify-center">
             <div className="relative w-52 h-28 flex items-end justify-center">
-              {/* Radial Arc SVG */}
               <svg viewBox="0 0 200 110" className="w-52 h-28 overflow-visible">
-                {/* 13 segmented bars arranged along an arc */}
                 {[...Array(13)].map((_, i) => {
-                  // Angle from -180 deg to 0 deg
                   const angle = -180 + (i / 12) * 180;
                   const rad = (angle * Math.PI) / 180;
                   const rInner = 65;
@@ -404,20 +386,19 @@ export function DashboardView({
                   const x2 = 100 + rOuter * Math.cos(rad);
                   const y2 = 100 + rOuter * Math.sin(rad);
 
-                  // Colors: active segments up to 70% (~9 bars)
                   const isFilled = i <= 8;
                   const colors = [
-                    "#2563eb", // blue-600
-                    "#3b82f6", // blue-500
-                    "#60a5fa", // blue-400
-                    "#93c5fd", // blue-300
-                    "#38bdf8", // sky-400
-                    "#0ea5e9", // sky-500
-                    "#2563eb", // blue-600
-                    "#1d4ed8", // blue-700
-                    "#1e40af", // blue-800
+                    "#2563eb",
+                    "#3b82f6",
+                    "#60a5fa",
+                    "#93c5fd",
+                    "#38bdf8",
+                    "#0ea5e9",
+                    "#2563eb",
+                    "#1d4ed8",
+                    "#1e40af",
                   ];
-                  const strokeColor = isFilled ? colors[i % colors.length] : "#e2e8f0";
+                  const strokeColor = isFilled ? colors[i % colors.length] : "#cbd5e1";
 
                   return (
                     <line
@@ -434,38 +415,41 @@ export function DashboardView({
                 })}
               </svg>
 
-              {/* Center percentage and label */}
               <div className="absolute inset-x-0 bottom-0 flex flex-col items-center justify-end text-center">
-                <span className="text-3xl font-extrabold text-slate-900 tracking-tight font-mono leading-none">
+                <span className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight font-mono leading-none">
                   70.8%
                 </span>
-                <span className="text-[11px] font-semibold text-slate-400 mt-1">
-                  Sales Growth
+                <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 mt-1">
+                  Sotilish sur‘ati (Bandlik)
                 </span>
               </div>
             </div>
           </div>
 
           {/* Sub Stats Footer */}
-          <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-100">
-            <div className="bg-slate-50/70 p-3 rounded-2xl">
-              <span className="text-[11px] text-slate-400 block font-medium">Number of Sales</span>
+          <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-100 dark:border-slate-700">
+            <div className="bg-slate-50/70 dark:bg-slate-700/40 p-3 rounded-2xl">
+              <span className="text-[11px] text-slate-400 dark:text-slate-400 block font-medium">
+                Sotuvlar soni
+              </span>
               <div className="flex items-center gap-1.5 mt-1">
-                <strong className="text-base font-bold text-slate-900 font-mono">
+                <strong className="text-base font-bold text-slate-900 dark:text-white font-mono">
                   {stats?.totalSalesCount || 24}
                 </strong>
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400">
                   4.5%
                 </span>
               </div>
             </div>
-            <div className="bg-slate-50/70 p-3 rounded-2xl">
-              <span className="text-[11px] text-slate-400 block font-medium">Total Revenue</span>
+            <div className="bg-slate-50/70 dark:bg-slate-700/40 p-3 rounded-2xl">
+              <span className="text-[11px] text-slate-400 dark:text-slate-400 block font-medium">
+                Jami tushum
+              </span>
               <div className="flex items-center gap-1.5 mt-1">
-                <strong className="text-base font-bold text-slate-900 font-mono">
+                <strong className="text-base font-bold text-slate-900 dark:text-white font-mono">
                   ${(totalSalesRevenue > 0 ? (totalSalesRevenue / 1000).toFixed(1) : "30.9")}k
                 </strong>
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-slate-900 text-white">
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-slate-900 dark:bg-white text-white dark:text-slate-900">
                   4.5% ↗
                 </span>
               </div>
@@ -474,27 +458,27 @@ export function DashboardView({
         </div>
       </div>
 
-      {/* 4. Active Batches Showcase (Bloklar vitrinasi) */}
-      <div className="bg-white rounded-3xl p-6 border border-slate-200/70 shadow-xs">
+      {/* 4. Faol Bloklar va Chiptalar Qoldig'i (Bloklar vitrinasi) */}
+      <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-200/70 dark:border-slate-700 shadow-xs">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h2 className="text-base font-bold text-slate-900 tracking-tight flex items-center gap-2">
+            <h2 className="text-base font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
               <Plane className="w-4 h-4 text-blue-600 -rotate-45" /> Faol Bloklar va Chiptalar Qoldig&apos;i
             </h2>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Qaysi yo&apos;nalishda nechta joy qolganini ko&apos;ring va darhol soting
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
+              Qaysi yo‘nalishda nechta joy qolganini ko‘ring va darhol soting
             </p>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={onOpenBatchModal}
-              className="text-xs font-bold text-blue-600 hover:text-blue-700 px-3 py-1.5 rounded-full hover:bg-blue-50 transition-colors cursor-pointer"
+              className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 px-3 py-1.5 rounded-full hover:bg-blue-50 dark:hover:bg-slate-700 transition-colors cursor-pointer"
             >
               + Yangi partiya
             </button>
             <button
               onClick={onViewAllBatches}
-              className="text-xs font-semibold text-slate-400 hover:text-slate-700 cursor-pointer"
+              className="text-xs font-semibold text-slate-400 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer"
             >
               Barcha partiyalar →
             </button>
@@ -509,32 +493,32 @@ export function DashboardView({
             return (
               <div
                 key={b.id}
-                className="p-5 rounded-2xl border border-slate-200/70 bg-slate-50/40 hover:bg-white hover:shadow-md transition-all flex flex-col justify-between"
+                className="p-5 rounded-2xl border border-slate-200/70 dark:border-slate-700 bg-slate-50/40 dark:bg-slate-900/40 hover:bg-white dark:hover:bg-slate-800 hover:shadow-md transition-all flex flex-col justify-between"
               >
                 <div>
                   <div className="flex items-center justify-between text-xs text-slate-500 mb-1.5">
-                    <span className="font-mono font-bold text-slate-700 bg-white border border-slate-200/80 px-2 py-0.5 rounded-md shadow-2xs">
+                    <span className="font-mono font-bold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 px-2 py-0.5 rounded-md shadow-2xs">
                       {b.batchNumber}
                     </span>
                     <span className="text-[11px] font-medium text-slate-400">{b.flightDate}</span>
                   </div>
 
-                  <h3 className="text-base font-extrabold text-slate-900 tracking-tight my-1">
+                  <h3 className="text-base font-extrabold text-slate-900 dark:text-white tracking-tight my-1">
                     {b.route}
                   </h3>
                   <span className="text-[11px] font-mono text-slate-400 block mb-3">
-                    Reys: <strong className="text-slate-700">{b.flightNumber || "N/A"}</strong>
+                    Reys: <strong className="text-slate-700 dark:text-slate-300">{b.flightNumber || "N/A"}</strong>
                   </span>
 
                   {/* Progress bar */}
-                  <div className="bg-white p-3 rounded-xl border border-slate-200/70 shadow-2xs">
+                  <div className="bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-200/70 dark:border-slate-700 shadow-2xs">
                     <div className="flex items-baseline justify-between mb-1.5 text-xs">
-                      <span className="text-slate-500 font-medium">Qolgan chipta:</span>
-                      <span className="font-bold font-mono text-blue-600 text-sm">
+                      <span className="text-slate-500 dark:text-slate-400 font-medium">Qolgan chipta:</span>
+                      <span className="font-bold font-mono text-blue-600 dark:text-blue-400 text-sm">
                         {b.remainingQty} <span className="text-xs font-normal text-slate-400">/ {b.totalQty} ta</span>
                       </span>
                     </div>
-                    <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                    <div className="w-full bg-slate-100 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
                       <div
                         className="h-full rounded-full bg-blue-600 transition-all duration-500"
                         style={{ width: `${percentSold}%` }}
@@ -547,8 +531,8 @@ export function DashboardView({
                   </div>
                 </div>
 
-                <div className="mt-4 pt-3 border-t border-slate-200/60 flex items-center justify-between">
-                  <span className="text-xs text-slate-500 truncate max-w-[140px]" title={b.supplierName}>
+                <div className="mt-4 pt-3 border-t border-slate-200/60 dark:border-slate-700 flex items-center justify-between">
+                  <span className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-[140px]" title={b.supplierName}>
                     {b.supplierName}
                   </span>
                   <button
@@ -564,13 +548,16 @@ export function DashboardView({
         </div>
       </div>
 
-      {/* 5. Bottom Table: Recent Orders (Matching Boltshift Table exactly) */}
-      <div className="bg-white rounded-3xl p-6 border border-slate-200/70 shadow-xs">
-        {/* Table Header with Search and Sort */}
+      {/* 5. So'nggi Sotuvlar Jadvali (Recent Orders) */}
+      <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 border border-slate-200/70 dark:border-slate-700 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
           <div>
-            <h2 className="text-base font-bold text-slate-900 tracking-tight">Recent orders</h2>
-            <p className="text-xs text-slate-400">Oxirgi amalga oshirilgan chipta savdolari</p>
+            <h2 className="text-base font-bold text-slate-900 dark:text-white tracking-tight">
+              So‘nggi Sotuvlar
+            </h2>
+            <p className="text-xs text-slate-400 dark:text-slate-500">
+              Oxirgi amalga oshirilgan chipta savdolari ro‘yxati
+            </p>
           </div>
 
           <div className="flex items-center gap-3">
@@ -579,49 +566,36 @@ export function DashboardView({
               <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3.5 top-2.5" />
               <input
                 type="text"
-                placeholder="Search products..."
+                placeholder="Qidiruv (yo‘nalish, mijoz)..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50/70 border border-slate-200 rounded-full focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50/70 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-full focus:bg-white dark:focus:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white transition-all"
               />
-            </div>
-
-            {/* Sort Dropdown */}
-            <div className="flex items-center gap-1.5 px-3.5 py-1.5 bg-slate-50/70 border border-slate-200 rounded-full text-xs font-semibold text-slate-600 cursor-pointer">
-              <span>Sort by</span>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
             </div>
           </div>
         </div>
 
-        {/* The Clean Data Table */}
+        {/* Table */}
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-slate-100 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                <th className="py-3 px-3 w-8">
-                  <input type="checkbox" className="rounded text-blue-600" />
-                </th>
-                <th className="py-3 px-3">Product info (Yo&apos;nalish)</th>
-                <th className="py-3 px-3">Order Id</th>
-                <th className="py-3 px-3">Date</th>
-                <th className="py-3 px-3">Customer (Mijoz)</th>
-                <th className="py-3 px-3 text-center">Status</th>
-                <th className="py-3 px-3 text-center">Items (Soni)</th>
-                <th className="py-3 px-3 text-right">Total</th>
+              <tr className="border-b border-slate-100 dark:border-slate-700 text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                <th className="py-3 px-3">Yo‘nalish & Reys</th>
+                <th className="py-3 px-3">ID</th>
+                <th className="py-3 px-3">Sana</th>
+                <th className="py-3 px-3">Mijoz / Agent</th>
+                <th className="py-3 px-3 text-center">Holati</th>
+                <th className="py-3 px-3 text-center">Soni</th>
+                <th className="py-3 px-3 text-right">Jami Summa</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100/80 text-xs text-slate-700">
+            <tbody className="divide-y divide-slate-100/80 dark:divide-slate-700/60 text-xs text-slate-700 dark:text-slate-300">
               {filteredSales.map((sale) => {
                 return (
-                  <tr key={sale.id} className="hover:bg-slate-50/70 transition-colors">
+                  <tr key={sale.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-700/40 transition-colors">
+                    {/* Route & flight */}
                     <td className="py-3.5 px-3">
-                      <input type="checkbox" className="rounded text-blue-600" />
-                    </td>
-
-                    {/* Product Info */}
-                    <td className="py-3.5 px-3">
-                      <div className="font-bold text-slate-900">{sale.route}</div>
+                      <div className="font-bold text-slate-900 dark:text-white">{sale.route}</div>
                       <div className="text-[11px] text-slate-400 font-mono truncate max-w-xs">
                         {sale.passengerNames || `Reys: ${sale.flightNumber || "-"}`}
                       </div>
@@ -633,19 +607,19 @@ export function DashboardView({
                     </td>
 
                     {/* Date */}
-                    <td className="py-3.5 px-3 text-slate-500 whitespace-nowrap">
+                    <td className="py-3.5 px-3 text-slate-500 dark:text-slate-400 whitespace-nowrap">
                       {sale.saleDate}
                     </td>
 
                     {/* Customer */}
                     <td className="py-3.5 px-3">
-                      <span className="font-semibold text-slate-900">{sale.clientName}</span>
+                      <span className="font-semibold text-slate-900 dark:text-white">{sale.clientName}</span>
                     </td>
 
                     {/* Status Pill */}
                     <td className="py-3.5 px-3 text-center">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/50">
-                        To&apos;langan
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-800/50">
+                        To‘langan
                       </span>
                     </td>
 
@@ -655,7 +629,7 @@ export function DashboardView({
                     </td>
 
                     {/* Total Amount */}
-                    <td className="py-3.5 px-3 text-right font-extrabold text-slate-900 font-mono">
+                    <td className="py-3.5 px-3 text-right font-extrabold text-slate-900 dark:text-white font-mono">
                       ${sale.totalAmount.toLocaleString()}
                     </td>
                   </tr>
@@ -664,7 +638,7 @@ export function DashboardView({
 
               {filteredSales.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-xs text-slate-400">
+                  <td colSpan={7} className="py-12 text-center text-xs text-slate-400">
                     Sotuvlar topilmadi
                   </td>
                 </tr>

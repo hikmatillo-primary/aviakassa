@@ -62,26 +62,26 @@ export function PartnerHistoryModal({
     >
       <div className="space-y-5">
         {/* Top Balance Summary Card */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 bg-slate-50/60 border border-slate-200/70 rounded-3xl">
-          <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-xs">
-            <span className="text-xs text-slate-400 block font-medium">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 bg-slate-50/60 dark:bg-slate-800/40 border border-slate-200/70 dark:border-slate-800 rounded-3xl">
+          <div className="bg-white dark:bg-slate-800/80 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-xs">
+            <span className="text-xs text-slate-400 dark:text-slate-400 block font-medium">
               {isSupplier ? "Jami partiyalar (Olingan)" : "Jami chiptalar (Sotilgan)"}:
             </span>
-            <strong className="text-base font-bold text-slate-900">${totalDeals.toLocaleString()}</strong>
+            <strong className="text-base font-bold text-slate-900 dark:text-white">${totalDeals.toLocaleString()}</strong>
           </div>
-          <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-xs">
-            <span className="text-xs text-slate-400 block font-medium">
+          <div className="bg-white dark:bg-slate-800/80 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-xs">
+            <span className="text-xs text-slate-400 dark:text-slate-400 block font-medium">
               {isSupplier ? "Biz to'lagan summa:" : "Mijoz to'lagan summa:"}
             </span>
-            <strong className="text-base font-bold text-slate-900">${totalPaid.toLocaleString()}</strong>
+            <strong className="text-base font-bold text-slate-900 dark:text-white">${totalPaid.toLocaleString()}</strong>
           </div>
           <div
             className={`p-4 rounded-2xl border shadow-xs ${
               balance > 0
                 ? isSupplier
-                  ? "bg-rose-50 border-rose-200 text-rose-950"
-                  : "bg-amber-50 border-amber-200 text-amber-950"
-                : "bg-emerald-50 border-emerald-200 text-emerald-950"
+                  ? "bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800 text-rose-950 dark:text-rose-200"
+                  : "bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800 text-amber-950 dark:text-amber-200"
+                : "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800 text-emerald-950 dark:text-emerald-200"
             }`}
           >
             <span className="text-xs block font-medium">
@@ -119,23 +119,23 @@ export function PartnerHistoryModal({
         {/* Tabs or Two Columns: Deals vs Payments */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Column 1: Deals (Batches / Sales) */}
-          <div className="border border-slate-200/70 rounded-3xl overflow-hidden bg-white shadow-xs">
-            <div className="bg-slate-50/70 px-4 py-3 border-b border-slate-100 text-xs font-bold text-slate-700 uppercase tracking-wider">
+          <div className="border border-slate-200/70 dark:border-slate-800 rounded-3xl overflow-hidden bg-white dark:bg-slate-900 shadow-xs">
+            <div className="bg-slate-50/70 dark:bg-slate-800/60 px-4 py-3 border-b border-slate-100 dark:border-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
               {isSupplier ? "Olingan partiyalar" : "Sotilgan chiptalar"}
             </div>
-            <div className="divide-y divide-slate-100 max-h-64 overflow-y-auto">
+            <div className="divide-y divide-slate-100 dark:divide-slate-800 max-h-64 overflow-y-auto">
               {deals.length === 0 ? (
-                <p className="p-4 text-xs text-slate-400 text-center">Bitimlar yo&apos;q</p>
+                <p className="p-4 text-xs text-slate-400 dark:text-slate-500 text-center">Bitimlar yo&apos;q</p>
               ) : (
                 deals.map((item: any) => (
-                  <div key={item.id} className="p-3.5 text-xs hover:bg-slate-50/50">
-                    <div className="flex items-center justify-between font-semibold text-slate-800">
+                  <div key={item.id} className="p-3.5 text-xs hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
+                    <div className="flex items-center justify-between font-semibold text-slate-800 dark:text-slate-200">
                       <span>{item.route || item.batchNumber}</span>
-                      <span className="text-slate-900 font-mono font-bold">
+                      <span className="text-slate-900 dark:text-white font-mono font-bold">
                         ${(isSupplier ? item.totalCost : item.totalAmount).toLocaleString()}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between text-slate-500 mt-1">
+                    <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mt-1">
                       <span>
                         {isSupplier
                           ? `${item.totalQty} ta chipta ($${item.buyPrice} dan)`
@@ -144,7 +144,7 @@ export function PartnerHistoryModal({
                       <span>{item.saleDate || item.flightDate}</span>
                     </div>
                     {item.passengerNames && (
-                      <p className="text-[11px] text-slate-400 mt-0.5 truncate">{item.passengerNames}</p>
+                      <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5 truncate">{item.passengerNames}</p>
                     )}
                   </div>
                 ))
@@ -153,28 +153,28 @@ export function PartnerHistoryModal({
           </div>
 
           {/* Column 2: Payments */}
-          <div className="border border-slate-200/70 rounded-3xl overflow-hidden bg-white shadow-xs">
-            <div className="bg-slate-50/70 px-4 py-3 border-b border-slate-100 text-xs font-bold text-slate-700 uppercase tracking-wider">
+          <div className="border border-slate-200/70 dark:border-slate-800 rounded-3xl overflow-hidden bg-white dark:bg-slate-900 shadow-xs">
+            <div className="bg-slate-50/70 dark:bg-slate-800/60 px-4 py-3 border-b border-slate-100 dark:border-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
               To&apos;lovlar tarixi
             </div>
-            <div className="divide-y divide-slate-100 max-h-64 overflow-y-auto">
+            <div className="divide-y divide-slate-100 dark:divide-slate-800 max-h-64 overflow-y-auto">
               {partnerPayments.length === 0 ? (
-                <p className="p-4 text-xs text-slate-400 text-center">To&apos;lovlar yo&apos;q</p>
+                <p className="p-4 text-xs text-slate-400 dark:text-slate-500 text-center">To&apos;lovlar yo&apos;q</p>
               ) : (
                 partnerPayments.map((p: any) => (
-                  <div key={p.id} className="p-3.5 text-xs hover:bg-slate-50/50">
-                    <div className="flex items-center justify-between font-semibold text-slate-800">
+                  <div key={p.id} className="p-3.5 text-xs hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
+                    <div className="flex items-center justify-between font-semibold text-slate-800 dark:text-slate-200">
                       <span className="flex items-center gap-1 font-bold">
                         {p.type === "INCOME" ? (
-                          <ArrowDownLeft className="w-3.5 h-3.5 text-emerald-600" />
+                          <ArrowDownLeft className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                         ) : (
-                          <ArrowUpRight className="w-3.5 h-3.5 text-rose-600" />
+                          <ArrowUpRight className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
                         )}
                         ${p.amount.toLocaleString()}
                       </span>
-                      <span className="text-slate-400">{p.paymentDate}</span>
+                      <span className="text-slate-400 dark:text-slate-500">{p.paymentDate}</span>
                     </div>
-                    <div className="flex items-center justify-between text-slate-400 mt-1">
+                    <div className="flex items-center justify-between text-slate-400 dark:text-slate-500 mt-1">
                       <span>Usuli: {p.paymentMethod || "CASH"}</span>
                       <span>{p.notes || "-"}</span>
                     </div>

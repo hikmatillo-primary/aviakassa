@@ -138,20 +138,20 @@ export function SaleModal({
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
-          <div className="p-3 text-xs bg-red-50 text-red-600 rounded-lg border border-red-200">
+          <div className="p-3 text-xs bg-red-50 dark:bg-red-950/50 text-red-600 dark:text-red-400 rounded-xl border border-red-200 dark:border-red-800">
             {error}
           </div>
         )}
 
         {/* 1. Partiya tanlash */}
         <div>
-          <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
             Qaysi partiyadan sotiladi? *
           </label>
           <select
             value={batchId}
             onChange={(e) => handleBatchChange(e.target.value)}
-            className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+            className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
             required
           >
             <option value="">-- Partiyani tanlang --</option>
@@ -162,10 +162,10 @@ export function SaleModal({
             ))}
           </select>
           {selectedBatch && (
-            <div className="mt-1.5 flex items-center justify-between text-xs text-slate-500 bg-slate-50 px-2.5 py-1.5 rounded border border-slate-200/60">
-              <span>Mavjud: <strong className="text-blue-600">{selectedBatch.remainingQty} ta</strong></span>
-              <span>1 ta tannarxi: <strong className="text-slate-800">${selectedBatch.buyPrice}</strong></span>
-              <span>Reys: <strong>{selectedBatch.flightNumber || "N/A"}</strong></span>
+            <div className="mt-1.5 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/60 px-2.5 py-1.5 rounded-lg border border-slate-200/60 dark:border-slate-700">
+              <span>Mavjud: <strong className="text-blue-600 dark:text-blue-400">{selectedBatch.remainingQty} ta</strong></span>
+              <span>1 ta tannarxi: <strong className="text-slate-800 dark:text-slate-200">${selectedBatch.buyPrice}</strong></span>
+              <span>Reys: <strong className="text-slate-800 dark:text-slate-200">{selectedBatch.flightNumber || "N/A"}</strong></span>
             </div>
           )}
         </div>
@@ -173,12 +173,12 @@ export function SaleModal({
         {/* 2. Mijoz tanlash */}
         <div>
           <div className="flex items-center justify-between mb-1.5">
-            <label className="text-xs font-semibold text-slate-700">Kimga sotiladi? *</label>
+            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Kimga sotiladi? *</label>
             {onOpenClientModal && (
               <button
                 type="button"
                 onClick={onOpenClientModal}
-                className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium cursor-pointer"
               >
                 + Yangi mijoz
               </button>
@@ -187,7 +187,7 @@ export function SaleModal({
           <select
             value={clientId}
             onChange={(e) => setClientId(e.target.value)}
-            className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+            className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
             required
           >
             <option value="">-- Mijoz / Sub-agentni tanlang --</option>
@@ -202,7 +202,7 @@ export function SaleModal({
         {/* 3. Soni va Sotish narxi */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
               Chipta soni *
             </label>
             <input
@@ -211,23 +211,23 @@ export function SaleModal({
               max={selectedBatch?.remainingQty || 9999}
               value={qty}
               onChange={(e) => setQty(Math.max(1, parseInt(e.target.value) || 0))}
-              className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold"
+              className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold"
               required
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
               1 ta chipta narxi ($) *
             </label>
             <div className="relative">
-              <span className="absolute left-3 top-2 text-slate-400 text-sm">$</span>
+              <span className="absolute left-3 top-2 text-slate-400 dark:text-slate-500 text-sm">$</span>
               <input
                 type="number"
                 min="0"
                 step="any"
                 value={sellPrice}
                 onChange={(e) => setSellPrice(parseFloat(e.target.value) || 0)}
-                className="w-full pl-7 pr-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold text-slate-900"
+                className="w-full pl-7 pr-3 py-2 text-sm bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold text-slate-900 dark:text-white"
                 required
               />
             </div>
@@ -235,34 +235,34 @@ export function SaleModal({
         </div>
 
         {/* Real-time Calculation Summary Card */}
-        <div className="p-3 bg-blue-50/70 border border-blue-200/60 rounded-xl space-y-1.5">
-          <div className="flex items-center justify-between text-xs text-blue-900">
+        <div className="p-3 bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200/60 dark:border-blue-800/60 rounded-2xl space-y-1.5">
+          <div className="flex items-center justify-between text-xs text-blue-900 dark:text-blue-200">
             <span>Jami sotuv summasi:</span>
-            <strong className="text-sm font-bold text-blue-950">${totalAmount.toLocaleString()}</strong>
+            <strong className="text-sm font-bold text-blue-950 dark:text-white">${totalAmount.toLocaleString()}</strong>
           </div>
-          <div className="flex items-center justify-between text-xs text-blue-900">
+          <div className="flex items-center justify-between text-xs text-blue-900 dark:text-blue-200">
             <span>Tannarx jami ({qty} ta x ${selectedBatch?.buyPrice || 0}):</span>
             <span>${totalCost.toLocaleString()}</span>
           </div>
-          <div className="pt-1.5 border-t border-blue-200 flex items-center justify-between text-xs">
-            <span className="font-semibold text-emerald-800 flex items-center gap-1">
+          <div className="pt-1.5 border-t border-blue-200 dark:border-blue-800 flex items-center justify-between text-xs">
+            <span className="font-semibold text-emerald-800 dark:text-emerald-300 flex items-center gap-1">
               <Calculator className="w-3.5 h-3.5" /> Sof foyda:
             </span>
-            <strong className={`text-sm font-bold ${estimatedProfit >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+            <strong className={`text-sm font-bold ${estimatedProfit >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>
               {estimatedProfit >= 0 ? `+$${estimatedProfit.toLocaleString()}` : `-$${Math.abs(estimatedProfit).toLocaleString()}`}
             </strong>
           </div>
         </div>
 
         {/* 4. Darhol to'lov (ixtiyoriy) */}
-        <div className="pt-2 border-t border-slate-200">
+        <div className="pt-2 border-t border-slate-200 dark:border-slate-800">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                 Hozir qancha to&apos;ladi? ($)
               </label>
               <div className="relative">
-                <span className="absolute left-3 top-2 text-slate-400 text-sm">$</span>
+                <span className="absolute left-3 top-2 text-slate-400 dark:text-slate-500 text-sm">$</span>
                 <input
                   type="number"
                   min="0"
@@ -271,21 +271,21 @@ export function SaleModal({
                   value={paidNow}
                   onChange={(e) => setPaidNow(parseFloat(e.target.value) || 0)}
                   placeholder="0 (Nasiya bo'lsa 0 qoldiring)"
-                  className="w-full pl-7 pr-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full pl-7 pr-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
-              <span className="text-[11px] text-slate-500">
+              <span className="text-[11px] text-slate-500 dark:text-slate-400">
                 Qolgan qarz: <strong>${Math.max(0, totalAmount - paidNow).toLocaleString()}</strong>
               </span>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                 To&apos;lov usuli
               </label>
               <select
                 value={paymentMethod}
                 onChange={(e) => setPaymentMethod(e.target.value)}
-                className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="CASH">Naqd (Cash)</option>
                 <option value="CARD">Karta / O&apos;tkazma</option>
@@ -298,18 +298,18 @@ export function SaleModal({
         {/* 5. Yo'lovchi ismlari va Sana */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
               Sotuv sanasi
             </label>
             <input
               type="date"
               value={saleDate}
               onChange={(e) => setSaleDate(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
+            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
               Yo&apos;lovchilar / PNR (ixtiyoriy)
             </label>
             <input
@@ -317,14 +317,14 @@ export function SaleModal({
               placeholder="Masalan: Karim Aliyev, PNR: 4X9F8"
               value={passengerNames}
               onChange={(e) => setPassengerNames(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
         </div>
 
         {/* Izoh */}
         <div>
-          <label className="block text-xs font-semibold text-slate-700 mb-1">
+          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
             Izoh (ixtiyoriy)
           </label>
           <input
@@ -332,16 +332,16 @@ export function SaleModal({
             placeholder="Qo'shimcha eslatma..."
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            className="w-full px-3 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
 
         {/* Action Buttons */}
-        <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+        <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-2">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-xs font-semibold text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-full transition-colors cursor-pointer"
+            className="px-4 py-2 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors cursor-pointer"
           >
             Bekor qilish
           </button>

@@ -3,18 +3,19 @@
 import React, { useState } from "react";
 import {
   Zap,
-  Bell,
+  Sun,
+  Moon,
   Settings,
   Download,
   Upload,
   RotateCcw,
-  Plane,
-  Plus,
 } from "lucide-react";
 
 interface NavbarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
+  isDark: boolean;
+  onToggleTheme: () => void;
   onOpenSaleModal: () => void;
   onOpenBatchModal: () => void;
   onExportData?: () => void;
@@ -25,20 +26,21 @@ interface NavbarProps {
 export function Navbar({
   activeTab,
   setActiveTab,
-  onOpenSaleModal,
-  onOpenBatchModal,
+  isDark,
+  onToggleTheme,
   onExportData,
   onImportData,
   onResetDemo,
 }: NavbarProps) {
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
 
+  // Exact 5 tabs requested by user: Dashboard, Xarid, Ombor, Sotuv, Kassa
   const navItems = [
     { id: "dashboard", label: "Dashboard" },
-    { id: "batches", label: "Partiyalar (Bloklar)" },
-    { id: "sales", label: "Sotuvlar" },
-    { id: "partners", label: "Hamkorlar & Qarz" },
-    { id: "payments", label: "Kassa & To'lovlar" },
+    { id: "purchases", label: "Xarid" },
+    { id: "inventory", label: "Ombor" },
+    { id: "sales", label: "Sotuv" },
+    { id: "cash", label: "Kassa" },
   ];
 
   return (
@@ -53,14 +55,14 @@ export function Navbar({
             <Zap className="w-5 h-5 fill-white text-white" />
           </div>
           <div>
-            <span className="font-extrabold text-lg text-slate-900 tracking-tight flex items-center gap-1">
+            <span className="font-extrabold text-lg text-slate-900 dark:text-white tracking-tight flex items-center gap-0.5">
               Aviakassa<span className="text-blue-600">.</span>
             </span>
           </div>
         </div>
 
         {/* Center: Floating Segmented Pill Nav */}
-        <nav className="hidden md:flex items-center bg-white/80 backdrop-blur border border-slate-200/70 p-1 rounded-full shadow-xs">
+        <nav className="hidden md:flex items-center bg-white/80 dark:bg-slate-900/80 backdrop-blur border border-slate-200/70 dark:border-slate-800 p-1 rounded-full shadow-xs">
           {navItems.map((item) => {
             const isActive = activeTab === item.id;
             return (
@@ -69,8 +71,8 @@ export function Navbar({
                 onClick={() => setActiveTab(item.id)}
                 className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                   isActive
-                    ? "bg-slate-900 text-white shadow-xs"
-                    : "text-slate-500 hover:text-slate-900 hover:bg-slate-100/60"
+                    ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-xs"
+                    : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/60 dark:hover:bg-slate-800/60"
                 }`}
               >
                 {item.label}
@@ -79,30 +81,39 @@ export function Navbar({
           })}
         </nav>
 
-        {/* Right: Actions, Notification, Settings, User Profile */}
-        <div className="flex items-center gap-3">
+        {/* Right: Theme Toggle, Settings, User Profile */}
+        <div className="flex items-center gap-2.5">
+          {/* Dark Mode Toggle */}
+          <button
+            onClick={onToggleTheme}
+            title={isDark ? "Yorug' rejim (Light mode)" : "Tungi rejim (Dark mode)"}
+            className="w-9 h-9 rounded-full bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-amber-400 hover:text-slate-900 dark:hover:text-amber-300 shadow-xs transition-colors cursor-pointer"
+          >
+            {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+          </button>
+
           {/* Settings / Backup Dropdown */}
           <div className="relative">
             <button
               onClick={() => setShowSettingsMenu(!showSettingsMenu)}
               title="Sozlamalar va Zaxira nusxa"
-              className="w-9 h-9 rounded-full bg-white border border-slate-200/80 flex items-center justify-center text-slate-600 hover:text-slate-900 hover:border-slate-300 shadow-xs transition-colors cursor-pointer"
+              className="w-9 h-9 rounded-full bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white shadow-xs transition-colors cursor-pointer"
             >
               <Settings className="w-4 h-4" />
             </button>
 
             {showSettingsMenu && (
               <div
-                className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-200/80 py-2 z-50 text-xs font-medium animate-in fade-in zoom-in-95 duration-100"
+                className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-200/80 dark:border-slate-700 py-2 z-50 text-xs font-medium animate-in fade-in zoom-in-95 duration-100"
                 onClick={() => setShowSettingsMenu(false)}
               >
-                <div className="px-3 py-1 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                <div className="px-3 py-1 text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                   Zaxira & Sozlamalar
                 </div>
                 {onExportData && (
                   <button
                     onClick={onExportData}
-                    className="w-full px-3 py-2 text-left hover:bg-slate-50 flex items-center gap-2.5 text-slate-700 hover:text-blue-600 cursor-pointer"
+                    className="w-full px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-700/60 flex items-center gap-2.5 text-slate-700 dark:text-slate-200 hover:text-blue-600 cursor-pointer"
                   >
                     <Download className="w-4 h-4 text-slate-400" />
                     Zaxirani yuklab olish (JSON)
@@ -111,17 +122,17 @@ export function Navbar({
                 {onImportData && (
                   <button
                     onClick={onImportData}
-                    className="w-full px-3 py-2 text-left hover:bg-slate-50 flex items-center gap-2.5 text-slate-700 hover:text-emerald-600 cursor-pointer"
+                    className="w-full px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-700/60 flex items-center gap-2.5 text-slate-700 dark:text-slate-200 hover:text-emerald-600 cursor-pointer"
                   >
                     <Upload className="w-4 h-4 text-slate-400" />
                     Zaxirani tiklash (JSON)
                   </button>
                 )}
-                <div className="my-1.5 border-t border-slate-100" />
+                <div className="my-1.5 border-t border-slate-100 dark:border-slate-700" />
                 {onResetDemo && (
                   <button
                     onClick={onResetDemo}
-                    className="w-full px-3 py-2 text-left hover:bg-slate-50 flex items-center gap-2.5 text-slate-600 hover:text-rose-600 cursor-pointer"
+                    className="w-full px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-700/60 flex items-center gap-2.5 text-slate-600 dark:text-slate-300 hover:text-rose-600 cursor-pointer"
                   >
                     <RotateCcw className="w-4 h-4 text-slate-400" />
                     Demo ma&apos;lumotlarni tiklash
@@ -131,16 +142,16 @@ export function Navbar({
             )}
           </div>
 
-          {/* User Profile Pill matching Boltshift */}
-          <div className="flex items-center gap-2.5 bg-white pl-1.5 pr-3 py-1 rounded-full border border-slate-200/80 shadow-xs">
+          {/* User Profile Pill */}
+          <div className="flex items-center gap-2.5 bg-white dark:bg-slate-800 pl-1.5 pr-3 py-1 rounded-full border border-slate-200/80 dark:border-slate-700 shadow-xs">
             <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-500 text-white flex items-center justify-center font-bold text-xs shadow-xs">
               A
             </div>
             <div className="text-left hidden sm:block">
-              <span className="block text-xs font-bold text-slate-900 leading-none">
+              <span className="block text-xs font-bold text-slate-900 dark:text-white leading-none">
                 Aviakassa Admin
               </span>
-              <span className="text-[10px] text-slate-400 leading-none mt-0.5 block">
+              <span className="text-[10px] text-slate-400 dark:text-slate-400 leading-none mt-0.5 block">
                 admin@aviakassa.uz
               </span>
             </div>
@@ -158,8 +169,8 @@ export function Navbar({
               onClick={() => setActiveTab(item.id)}
               className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
                 isActive
-                  ? "bg-slate-900 text-white shadow-xs"
-                  : "bg-white text-slate-600 border border-slate-200"
+                  ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-xs"
+                  : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
               }`}
             >
               {item.label}

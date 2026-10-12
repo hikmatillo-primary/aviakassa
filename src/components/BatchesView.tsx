@@ -42,11 +42,11 @@ export function BatchesView({
       {/* Top Header & Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-            Partiyalar (Bloklar)
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+            Ombor (Blok Chiptalar)
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            Xarid qilingan barcha bloklar, ularning qoldiqlari va tannarxi
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+            Xarid qilingan barcha bloklar, ularning qoldiqlari va joylar holati
           </p>
         </div>
         <button
@@ -58,25 +58,27 @@ export function BatchesView({
       </div>
 
       {/* Filters & Search Bar */}
-      <div className="flex flex-col sm:flex-row gap-3 items-center justify-between bg-white p-3 rounded-3xl border border-slate-200/70 shadow-xs">
+      <div className="flex flex-col sm:flex-row gap-3 items-center justify-between bg-white dark:bg-slate-800 p-3 rounded-3xl border border-slate-200/70 dark:border-slate-700 shadow-xs">
         {/* Search */}
         <div className="relative w-full sm:w-80">
           <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3.5 top-2.5" />
           <input
             type="text"
-            placeholder="Yo'nalish, reys, ta'minotchi qidirish..."
+            placeholder="Yo‘nalish, reys, ta‘minotchi qidirish..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50/70 border border-slate-200 rounded-full focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+            className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50/70 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-full focus:bg-white dark:focus:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white transition-all"
           />
         </div>
 
         {/* Status Filter Tabs */}
-        <div className="flex items-center gap-1 bg-slate-100/70 p-1 rounded-full w-full sm:w-auto">
+        <div className="flex items-center gap-1 bg-slate-100/70 dark:bg-slate-700/50 p-1 rounded-full w-full sm:w-auto">
           <button
             onClick={() => setFilter("ALL")}
             className={`px-4 py-1.5 text-xs font-semibold rounded-full transition-all cursor-pointer ${
-              filter === "ALL" ? "bg-white text-slate-900 shadow-xs" : "text-slate-500 hover:text-slate-900"
+              filter === "ALL"
+                ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs"
+                : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
             }`}
           >
             Barchasi ({batches.length})
@@ -84,7 +86,9 @@ export function BatchesView({
           <button
             onClick={() => setFilter("ACTIVE")}
             className={`px-4 py-1.5 text-xs font-semibold rounded-full transition-all cursor-pointer ${
-              filter === "ACTIVE" ? "bg-white text-blue-700 shadow-xs" : "text-slate-500 hover:text-slate-900"
+              filter === "ACTIVE"
+                ? "bg-white dark:bg-slate-900 text-blue-700 dark:text-blue-400 shadow-xs"
+                : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
             }`}
           >
             Faol ({batches.filter((b) => b.status === "ACTIVE").length})
@@ -92,7 +96,9 @@ export function BatchesView({
           <button
             onClick={() => setFilter("COMPLETED")}
             className={`px-4 py-1.5 text-xs font-semibold rounded-full transition-all cursor-pointer ${
-              filter === "COMPLETED" ? "bg-white text-slate-900 shadow-xs" : "text-slate-500 hover:text-slate-900"
+              filter === "COMPLETED"
+                ? "bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs"
+                : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
             }`}
           >
             Tugagan ({batches.filter((b) => b.status === "COMPLETED").length})
@@ -101,61 +107,61 @@ export function BatchesView({
       </div>
 
       {/* Batches Table */}
-      <div className="bg-white rounded-3xl border border-slate-200/70 overflow-hidden shadow-xs p-2">
+      <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200/70 dark:border-slate-700 overflow-hidden shadow-xs p-2">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-slate-100 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                <th className="py-3 px-4">Partiya & Yo&apos;nalish</th>
+              <tr className="border-b border-slate-100 dark:border-slate-700 text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                <th className="py-3 px-4">Partiya & Yo‘nalish</th>
                 <th className="py-3 px-4">Sana & Reys</th>
-                <th className="py-3 px-4">Ta&apos;minotchi</th>
-                <th className="py-3 px-4 text-center">Chipta Qoldig&apos;i</th>
+                <th className="py-3 px-4">Ta‘minotchi</th>
+                <th className="py-3 px-4 text-center">Chipta Qoldig‘i</th>
                 <th className="py-3 px-4 text-right">Tannarx (1 ta / Jami)</th>
                 <th className="py-3 px-4 text-center">Holati</th>
                 <th className="py-3 px-4 text-right">Amallar</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-700/60 text-xs text-slate-700 dark:text-slate-300">
               {filteredBatches.map((batch) => {
                 const soldQty = batch.totalQty - batch.remainingQty;
                 const percentSold = Math.round((soldQty / batch.totalQty) * 100);
 
                 return (
-                  <tr key={batch.id} className="hover:bg-slate-50/70 transition-colors">
-                    {/* Partiya & Yo'nalish */}
+                  <tr key={batch.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-700/40 transition-colors">
+                    {/* Route & batch code */}
                     <td className="py-3.5 px-4">
-                      <div className="font-bold text-slate-900 text-sm">{batch.route}</div>
-                      <span className="font-mono text-[11px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md mt-0.5 inline-block">
+                      <div className="font-bold text-slate-900 dark:text-white text-sm">{batch.route}</div>
+                      <span className="font-mono text-[11px] text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded-md mt-0.5 inline-block">
                         {batch.batchNumber}
                       </span>
                     </td>
 
-                    {/* Sana & Reys */}
+                    {/* Date & Flight */}
                     <td className="py-3.5 px-4">
-                      <div className="font-semibold text-slate-800">{batch.flightDate}</div>
+                      <div className="font-semibold text-slate-800 dark:text-slate-200">{batch.flightDate}</div>
                       <div className="text-[11px] text-slate-400 font-mono">
-                        {batch.flightNumber || "Reys ko'rsatilmagan"}
+                        {batch.flightNumber || "Reys ko‘rsatilmagan"}
                       </div>
                     </td>
 
-                    {/* Ta'minotchi */}
+                    {/* Supplier */}
                     <td className="py-3.5 px-4">
-                      <span className="font-semibold text-slate-800">{batch.supplierName}</span>
+                      <span className="font-semibold text-slate-800 dark:text-slate-200">{batch.supplierName}</span>
                     </td>
 
-                    {/* Qoldiq Progress */}
+                    {/* Remaining Tickets Progress */}
                     <td className="py-3.5 px-4 text-center">
                       <div className="inline-block min-w-[130px]">
                         <div className="flex items-center justify-between text-[11px] font-bold mb-1">
-                          <span className={batch.remainingQty === 0 ? "text-slate-400" : "text-blue-600"}>
+                          <span className={batch.remainingQty === 0 ? "text-slate-400" : "text-blue-600 dark:text-blue-400"}>
                             {batch.remainingQty} ta qoldi
                           </span>
                           <span className="text-slate-400">{batch.totalQty} tadan</span>
                         </div>
-                        <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                        <div className="w-full bg-slate-100 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
                           <div
                             className={`h-full rounded-full transition-all duration-300 ${
-                              batch.remainingQty === 0 ? "bg-slate-300" : "bg-blue-600"
+                              batch.remainingQty === 0 ? "bg-slate-300 dark:bg-slate-600" : "bg-blue-600"
                             }`}
                             style={{ width: `${percentSold}%` }}
                           />
@@ -166,9 +172,9 @@ export function BatchesView({
                       </div>
                     </td>
 
-                    {/* Tannarx */}
+                    {/* Cost */}
                     <td className="py-3.5 px-4 text-right">
-                      <div className="font-bold text-slate-900 font-mono">${batch.buyPrice}</div>
+                      <div className="font-bold text-slate-900 dark:text-white font-mono">${batch.buyPrice}</div>
                       <div className="text-[11px] text-slate-400 font-mono">
                         Jami: ${batch.totalCost.toLocaleString()}
                       </div>
@@ -181,13 +187,13 @@ export function BatchesView({
                         title="Statusni almashtirish uchun bosing"
                         className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-semibold transition-all cursor-pointer ${
                           batch.status === "ACTIVE"
-                            ? "bg-emerald-50 text-emerald-700 border border-emerald-200/60 hover:bg-emerald-100"
-                            : "bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200"
+                            ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/60 hover:bg-emerald-100"
+                            : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:bg-slate-200"
                         }`}
                       >
                         {batch.status === "ACTIVE" ? (
                           <>
-                            <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Faol
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" /> Faol
                           </>
                         ) : (
                           <>
