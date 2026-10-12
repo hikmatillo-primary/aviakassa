@@ -53,17 +53,18 @@ export function PartnersView({
           {tab === "SUPPLIER" && onOpenBatchModal && (
             <button
               onClick={onOpenBatchModal}
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white text-xs font-bold rounded-full shadow-xs border border-transparent dark:border-slate-700 transition-all cursor-pointer"
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-full shadow-sm shadow-blue-500/25 transition-all cursor-pointer"
             >
-              <PackagePlus className="w-3.5 h-3.5" /> + Yangi partiya sotib olish
+              <PackagePlus className="w-4 h-4" />
+              Yangi Xarid
             </button>
           )}
           <button
             onClick={() => onOpenPartnerModal(tab)}
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-full shadow-sm shadow-blue-500/25 transition-all cursor-pointer"
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white text-xs font-bold rounded-full shadow-xs border border-transparent dark:border-slate-700 transition-all cursor-pointer"
           >
-            <Plus className="w-3.5 h-3.5" />
-            {tab === "CLIENT" ? "+ Yangi mijoz qo'shish" : "+ Yangi ta'minotchi"}
+            <Users className="w-4 h-4" />
+            {tab === "CLIENT" ? "Yangi Mijoz" : "Yangi Ta'minotchi"}
           </button>
         </div>
       </div>

@@ -187,6 +187,8 @@ export function AppContainer() {
     totalQty: number;
     buyPrice: number;
     notes: string;
+    paidNow?: number;
+    paymentMethod?: string;
   }) => {
     const newBatch: Batch = {
       id: Date.now(),
@@ -204,9 +206,24 @@ export function AppContainer() {
       createdAt: new Date().toISOString(),
     };
 
+    const newPayments = [...data.payments];
+    if (batchInput.paidNow && batchInput.paidNow > 0) {
+      newPayments.unshift({
+        id: Date.now() + 1,
+        partnerId: batchInput.supplierId,
+        type: "EXPENSE",
+        amount: batchInput.paidNow,
+        paymentDate: batchInput.flightDate || new Date().toISOString().split("T")[0],
+        paymentMethod: batchInput.paymentMethod || "CASH",
+        notes: `Partiya xaridi uchun to'lov (${batchInput.batchNumber}: ${batchInput.route})`,
+        createdAt: new Date().toISOString(),
+      });
+    }
+
     updateData({
       ...data,
       batches: [newBatch, ...data.batches],
+      payments: newPayments,
     });
   };
 
