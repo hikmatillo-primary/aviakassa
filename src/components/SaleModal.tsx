@@ -62,9 +62,12 @@ export function SaleModal({
       if (b) {
         setSellPrice(Math.round(b.buyPrice + 30));
       }
-    } else if (activeBatches.length > 0 && !batchId) {
-      setBatchId(String(activeBatches[0].id));
-      setSellPrice(Math.round(activeBatches[0].buyPrice + 30));
+    } else if (batches.length > 0) {
+      const active = batches.find((b) => b.status === "ACTIVE" && b.remainingQty > 0);
+      if (active) {
+        setBatchId(String(active.id));
+        setSellPrice(Math.round(active.buyPrice + 30));
+      }
     }
   }, [selectedBatchId, batches]);
 
