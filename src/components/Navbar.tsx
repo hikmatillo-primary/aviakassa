@@ -99,12 +99,12 @@ export function Navbar({
                 {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
               </button>
 
-              {/* User Profile Pill with Integrated Settings */}
+              {/* User Profile Pill (Settings inside dropdown on click) */}
               <div className="relative">
                 <button
                   onClick={() => setShowSettingsMenu(!showSettingsMenu)}
                   title="Profil va Sozlamalar"
-                  className="flex items-center gap-2 bg-white dark:bg-slate-800 pl-1.5 pr-2.5 sm:pr-3 py-1 rounded-full border border-slate-200/80 dark:border-slate-700 shadow-xs hover:border-slate-300 dark:hover:border-slate-600 transition-all cursor-pointer"
+                  className="flex items-center gap-2 bg-white dark:bg-slate-800 p-1 sm:pl-1.5 sm:pr-3.5 sm:py-1 rounded-full border border-slate-200/80 dark:border-slate-700 shadow-xs hover:border-slate-300 dark:hover:border-slate-600 transition-all cursor-pointer"
                 >
                   <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-500 text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0">
                     A
@@ -117,7 +117,6 @@ export function Navbar({
                       admin@aviakassa.uz
                     </span>
                   </div>
-                  <Settings className="w-3.5 h-3.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 ml-0.5 transition-colors" />
                 </button>
 
                 {showSettingsMenu && (
@@ -133,7 +132,8 @@ export function Navbar({
                       <div className="text-[11px] text-slate-400">admin@aviakassa.uz</div>
                     </div>
 
-                    <div className="px-3.5 pt-2 pb-1 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                    <div className="px-3.5 pt-2 pb-1 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                      <Settings className="w-3.5 h-3.5 text-slate-400" />
                       Tizim Sozlamalari
                     </div>
 
