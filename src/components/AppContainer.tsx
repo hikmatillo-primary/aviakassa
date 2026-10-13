@@ -14,6 +14,7 @@ import { PartnerModal } from "./PartnerModal";
 import { PartnerHistoryModal } from "./PartnerHistoryModal";
 import { DebtOffsetModal } from "./DebtOffsetModal";
 import { EditPriceModal } from "./EditPriceModal";
+import { BatchDetailView } from "./BatchDetailView";
 import {
   AviakassaData,
   INITIAL_DEMO_DATA,
@@ -30,6 +31,7 @@ import {
 export function AppContainer() {
   const [data, setData] = useState<AviakassaData>(INITIAL_DEMO_DATA);
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [detailBatchId, setDetailBatchId] = useState<number | null>(null);
   const [isDark, setIsDark] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -526,7 +528,10 @@ export function AppContainer() {
       {/* Navbar with exact requested tabs and dark mode toggle */}
       <Navbar
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
+        setActiveTab={(tab) => {
+          setActiveTab(tab);
+          setDetailBatchId(null);
+        }}
         isDark={isDark}
         onToggleTheme={handleToggleTheme}
         onOpenSaleModal={() => handleOpenSaleModal()}
@@ -537,7 +542,7 @@ export function AppContainer() {
       />
 
       {/* Main Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-5">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-5 pb-24 md:pb-6">
         {/* Tab 1: Dashboard (Faqat ma'lumotlar va tahlil) */}
         {activeTab === "dashboard" && (
           <DashboardView
@@ -546,7 +551,10 @@ export function AppContainer() {
             sales={sales}
             payments={payments}
             partners={partners}
-            onViewAllBatches={() => setActiveTab("inventory")}
+            onViewAllBatches={() => {
+              setActiveTab("inventory");
+              setDetailBatchId(null);
+            }}
             onViewAllPartners={() => setActiveTab("purchases")}
             onResetDemo={handleResetDemo}
           />
@@ -564,15 +572,30 @@ export function AppContainer() {
           />
         )}
 
-        {/* Tab 3: Ombor (Faqat bloklar va qoldiqlar) */}
+        {/* Tab 3: Ombor (Bloklar va mahsulot ichki Xarid/Sotuv sahifasi) */}
         {activeTab === "inventory" && (
-          <BatchesView
-            batches={batches}
-            onOpenBatchModal={() => setIsBatchModalOpen(true)}
-            onToggleStatus={handleToggleBatchStatus}
-            onEditBatch={handleOpenEditBatch}
-            onOpenHistoryModal={handleOpenHistoryModal}
-          />
+          detailBatchId !== null && batches.find((b) => b.id === detailBatchId) ? (
+            <BatchDetailView
+              batch={batches.find((b) => b.id === detailBatchId)}
+              allBatches={batches}
+              allSales={sales}
+              onBack={() => setDetailBatchId(null)}
+              onOpenBatchModal={() => setIsBatchModalOpen(true)}
+              onOpenSaleModal={(batchId) => handleOpenSaleModal(batchId)}
+              onEditBatch={handleOpenEditBatch}
+              onEditSale={handleOpenEditSale}
+              onOpenHistoryModal={handleOpenHistoryModal}
+            />
+          ) : (
+            <BatchesView
+              batches={batches}
+              onOpenBatchModal={() => setIsBatchModalOpen(true)}
+              onToggleStatus={handleToggleBatchStatus}
+              onEditBatch={handleOpenEditBatch}
+              onOpenHistoryModal={handleOpenHistoryModal}
+              onSelectBatch={(batchId) => setDetailBatchId(batchId)}
+            />
+          )
         )}
 
         {/* Tab 4: Sotuv (Faqat sotuvlar daftari va chipta sotish) */}

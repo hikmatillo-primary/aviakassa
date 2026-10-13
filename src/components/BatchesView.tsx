@@ -1,7 +1,15 @@
 "use client";
 
 import React, { useState } from "react";
-import { Search, PackagePlus, CheckCircle2, AlertCircle, Calendar, Pencil } from "lucide-react";
+import {
+  Search,
+  PackagePlus,
+  CheckCircle2,
+  AlertCircle,
+  Calendar,
+  Pencil,
+  ChevronRight,
+} from "lucide-react";
 import { formatUSD } from "@/lib/format";
 
 interface BatchesViewProps {
@@ -10,6 +18,7 @@ interface BatchesViewProps {
   onToggleStatus: (id: number) => void;
   onEditBatch?: (batch: any) => void;
   onOpenHistoryModal?: (partnerId: number) => void;
+  onSelectBatch?: (batchId: number) => void;
 }
 
 export function BatchesView({
@@ -18,6 +27,7 @@ export function BatchesView({
   onToggleStatus,
   onEditBatch,
   onOpenHistoryModal,
+  onSelectBatch,
 }: BatchesViewProps) {
   const [filter, setFilter] = useState<"ALL" | "ACTIVE" | "COMPLETED">("ALL");
   const [search, setSearch] = useState("");
@@ -48,6 +58,9 @@ export function BatchesView({
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
             Ombor
           </h1>
+          <p className="text-xs text-slate-400 mt-0.5">
+            Mahsulot ustiga bosib, kimdan xarid qilingani va kimga sotilganini ko‘ring
+          </p>
         </div>
         {onOpenBatchModal && (
           <button
@@ -118,19 +131,24 @@ export function BatchesView({
           return (
             <div
               key={batch.id}
-              className="bg-white dark:bg-slate-800 p-4 rounded-3xl border border-slate-200/70 dark:border-slate-700 shadow-xs space-y-3"
+              onClick={() => onSelectBatch && onSelectBatch(batch.id)}
+              className="bg-white dark:bg-slate-800 p-4 rounded-3xl border border-slate-200/70 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-500 shadow-xs space-y-3 cursor-pointer transition-all"
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <h3 className="font-extrabold text-slate-900 dark:text-white text-base leading-snug">
-                    {batch.route}
+                  <h3 className="font-extrabold text-blue-600 dark:text-blue-400 text-base leading-snug flex items-center gap-1">
+                    <span>{batch.route}</span>
+                    <ChevronRight className="w-4 h-4 shrink-0" />
                   </h3>
                   <span className="font-mono text-[11px] font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700/90 px-2.5 py-0.5 rounded-full mt-1.5 inline-block border border-slate-200/60 dark:border-slate-600">
                     {batch.batchNumber}
                   </span>
                 </div>
                 <button
-                  onClick={() => handleToggleStatus(batch.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleToggleStatus(batch.id);
+                  }}
                   className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-semibold transition-all cursor-pointer shrink-0 ${
                     batch.status === "ACTIVE"
                       ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/60 hover:bg-emerald-100"
@@ -165,8 +183,11 @@ export function BatchesView({
                   <span className="text-[11px] text-slate-400 block font-medium">Kompaniya:</span>
                   <button
                     type="button"
-                    onClick={() => onOpenHistoryModal && onOpenHistoryModal(batch.supplierId)}
-                    className="font-bold text-blue-600 dark:text-blue-400 hover:underline block truncate mt-0.5 text-left cursor-pointer"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onOpenHistoryModal?.(batch.supplierId);
+                    }}
+                    className="font-bold text-slate-800 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 hover:underline block truncate mt-0.5 text-left cursor-pointer"
                   >
                     {batch.supplierName}
                   </button>
@@ -207,10 +228,13 @@ export function BatchesView({
                 {onEditBatch && (
                   <button
                     type="button"
-                    onClick={() => onEditBatch(batch)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEditBatch(batch);
+                    }}
                     className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 text-blue-600 dark:text-blue-400 text-xs font-bold rounded-full border border-blue-200 dark:border-blue-800 cursor-pointer"
                   >
-                    <Pencil className="w-3 h-3" /> Narxni o‘zgartirish
+                    <Pencil className="w-3 h-3" /> Narx
                   </button>
                 )}
               </div>
@@ -231,7 +255,7 @@ export function BatchesView({
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-slate-100 dark:border-slate-700 text-[11px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider">
-                <th className="py-3 px-4">Partiya & Yo‘nalish</th>
+                <th className="py-3 px-4">Partiya & Yo‘nalish (Batafsil ko‘rish uchun bosing)</th>
                 <th className="py-3 px-4">Sana & Reys</th>
                 <th className="py-3 px-4">Kompaniya</th>
                 <th className="py-3 px-4 text-center">Chipta Qoldig‘i</th>
@@ -245,10 +269,17 @@ export function BatchesView({
                 const percentSold = Math.round((soldQty / batch.totalQty) * 100);
 
                 return (
-                  <tr key={batch.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-700/40 transition-colors">
+                  <tr
+                    key={batch.id}
+                    onClick={() => onSelectBatch && onSelectBatch(batch.id)}
+                    className="hover:bg-blue-50/40 dark:hover:bg-slate-700/50 transition-colors cursor-pointer group"
+                  >
                     {/* Route & batch code */}
                     <td className="py-3.5 px-4">
-                      <div className="font-bold text-slate-900 dark:text-white text-sm">{batch.route}</div>
+                      <div className="font-bold text-blue-600 dark:text-blue-400 group-hover:underline text-sm flex items-center gap-1">
+                        <span>{batch.route}</span>
+                        <ChevronRight className="w-3.5 h-3.5 opacity-70 group-hover:translate-x-0.5 transition-transform" />
+                      </div>
                       <span className="font-mono text-[11px] text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded-md mt-0.5 inline-block">
                         {batch.batchNumber}
                       </span>
@@ -266,8 +297,11 @@ export function BatchesView({
                     <td className="py-3.5 px-4">
                       <button
                         type="button"
-                        onClick={() => onOpenHistoryModal && onOpenHistoryModal(batch.supplierId)}
-                        className="font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer text-left"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onOpenHistoryModal?.(batch.supplierId);
+                        }}
+                        className="font-bold text-slate-800 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 hover:underline cursor-pointer text-left"
                       >
                         {batch.supplierName}
                       </button>
@@ -310,7 +344,10 @@ export function BatchesView({
                     <td className="py-3.5 px-4 text-center">
                       <div className="flex items-center justify-center gap-2">
                         <button
-                          onClick={() => handleToggleStatus(batch.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleToggleStatus(batch.id);
+                          }}
                           title="Statusni almashtirish uchun bosing"
                           className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all cursor-pointer ${
                             batch.status === "ACTIVE"
@@ -332,7 +369,10 @@ export function BatchesView({
                         {onEditBatch && (
                           <button
                             type="button"
-                            onClick={() => onEditBatch(batch)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onEditBatch(batch);
+                            }}
                             title="Kompaniyadan olingan narxni o'zgartirish"
                             className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-blue-600 dark:text-blue-400 text-[11px] font-bold rounded-full border border-blue-200 dark:border-blue-800 transition-all cursor-pointer"
                           >
