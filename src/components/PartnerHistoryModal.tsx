@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Modal } from "./Modal";
-import { ArrowDownLeft, ArrowUpRight, ArrowRightLeft } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, ArrowRightLeft, Pencil } from "lucide-react";
 import { formatUSD } from "@/lib/format";
 
 interface PartnerHistoryModalProps {
@@ -16,6 +16,8 @@ interface PartnerHistoryModalProps {
   debtOffsets?: any[];
   onOpenPaymentModal?: (type: "INCOME" | "EXPENSE", partnerId: number) => void;
   onOpenDebtOffsetModal?: (fromPartnerId?: number, toPartnerId?: number) => void;
+  onEditBatch?: (batch: any) => void;
+  onEditSale?: (sale: any) => void;
 }
 
 export function PartnerHistoryModal({
@@ -29,6 +31,8 @@ export function PartnerHistoryModal({
   debtOffsets = [],
   onOpenPaymentModal,
   onOpenDebtOffsetModal,
+  onEditBatch,
+  onEditSale,
 }: PartnerHistoryModalProps) {
   if (!isOpen || !partnerId) return null;
 
@@ -75,11 +79,11 @@ export function PartnerHistoryModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={`${partner.name} — Hisob-kitob daftari (Sverka)`}
+      title={`${partner.name} — Hisob-kitob daftari (Otchyot)`}
       description={
         isSupplier
-          ? "Ta'minotchi bilan barcha partiyalar, to'lovlar va o'zaro hisob-kitoblar"
-          : "Mijoz bilan barcha chipta xaridlari, to'lovlar va o'zaro hisob-kitoblar"
+          ? "Kompaniya (Ta'minotchi) bilan barcha partiyalar, to'lovlar va o'zaro hisob-kitoblar"
+          : "Mijoz bilan barcha chipta sotuvi, to'lovlar va o'zaro hisob-kitoblar"
       }
       maxWidth="max-w-4xl"
     >
@@ -179,13 +183,30 @@ export function PartnerHistoryModal({
                         {formatUSD(isSupplier ? item.totalCost : item.totalAmount)}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mt-1">
+                    <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mt-1.5">
                       <span>
                         {isSupplier
-                          ? `${item.totalQty} ta chipta (${formatUSD(item.buyPrice)} dan)`
-                          : `${item.qty} ta chipta (${formatUSD(item.sellPrice)} dan)`}
+                          ? `${item.totalQty} ta × ${formatUSD(item.buyPrice)}`
+                          : `${item.qty} ta × ${formatUSD(item.sellPrice)}`}
                       </span>
-                      <span>{item.saleDate || item.flightDate}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px]">{item.saleDate || item.flightDate}</span>
+                        {((isSupplier && onEditBatch) || (!isSupplier && onEditSale)) && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (isSupplier && onEditBatch) {
+                                onEditBatch(item);
+                              } else if (!isSupplier && onEditSale) {
+                                onEditSale(item);
+                              }
+                            }}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 text-blue-600 dark:text-blue-400 text-[11px] font-bold rounded-full border border-blue-200 dark:border-blue-800 cursor-pointer"
+                          >
+                            <Pencil className="w-2.5 h-2.5" /> Narxni o‘zgartirish
+                          </button>
+                        )}
+                      </div>
                     </div>
                     {item.passengerNames && (
                       <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5 truncate">{item.passengerNames}</p>

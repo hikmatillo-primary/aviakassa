@@ -256,26 +256,33 @@ export function calculateEnrichedData(data: AviakassaData) {
   const { partners, batches, sales, payments } = data;
   const debtOffsets = data.debtOffsets || [];
 
-  // Enrich batches with supplier names
+  // Enrich batches with supplier names & live totalCost
   const enrichedBatches = batches.map((b) => {
     const supplier = partners.find((p) => p.id === b.supplierId);
+    const totalCost = (b.totalQty || 0) * (b.buyPrice || 0);
     return {
       ...b,
+      totalCost,
       supplierName: supplier?.name || "Noma'lum",
     };
   });
 
-  // Enrich sales with client & batch details
+  // Enrich sales with client & batch details (live profit & totalAmount)
   const enrichedSales = sales.map((s) => {
     const client = partners.find((p) => p.id === s.clientId);
     const batch = batches.find((b) => b.id === s.batchId);
+    const buyPrice = batch ? batch.buyPrice : s.buyPrice || 0;
+    const totalAmount = (s.qty || 0) * (s.sellPrice || 0);
+    const profit = totalAmount - (s.qty || 0) * buyPrice;
     return {
       ...s,
       clientName: client?.name || "Noma'lum",
-      route: batch?.route || "-",
-      flightDate: batch?.flightDate || "-",
-      flightNumber: batch?.flightNumber || "-",
-      buyPrice: batch?.buyPrice || 0,
+      route: batch?.route || s.route || "-",
+      flightDate: batch?.flightDate || s.flightDate || "-",
+      flightNumber: batch?.flightNumber || s.flightNumber || "-",
+      buyPrice,
+      totalAmount,
+      profit,
     };
   });
 
@@ -306,7 +313,7 @@ export function calculateEnrichedData(data: AviakassaData) {
     let totalPaid = 0;
 
     if (partner.type === "SUPPLIER") {
-      totalDeal = batches
+      totalDeal = enrichedBatches
         .filter((b) => b.supplierId === partner.id)
         .reduce((sum, b) => sum + (b.totalCost || 0), 0);
       const paidDirect = payments
@@ -323,7 +330,7 @@ export function calculateEnrichedData(data: AviakassaData) {
 
       totalPaid = paidDirect + offsetTo - offsetFrom;
     } else {
-      totalDeal = sales
+      totalDeal = enrichedSales
         .filter((s) => s.clientId === partner.id)
         .reduce((sum, s) => sum + (s.totalAmount || 0), 0);
       const paidDirect = payments
@@ -352,7 +359,7 @@ export function calculateEnrichedData(data: AviakassaData) {
   });
 
   // Calculate Dashboard Stats
-  const totalProfit = sales.reduce((sum, s) => sum + (s.profit || 0), 0);
+  const totalProfit = enrichedSales.reduce((sum, s) => sum + (s.profit || 0), 0);
   const totalRemainingTickets = batches.reduce(
     (sum, b) => (b.status === "ACTIVE" ? sum + (b.remainingQty || 0) : sum),
     0

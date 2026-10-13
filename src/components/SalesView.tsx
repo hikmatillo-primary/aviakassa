@@ -1,19 +1,25 @@
 "use client";
 
 import React, { useState } from "react";
-import { Search, ShoppingBag, Users, Calendar, TrendingUp } from "lucide-react";
+import { Search, ShoppingBag, Users, Pencil, FileSpreadsheet } from "lucide-react";
 import { formatUSD } from "@/lib/format";
 
 interface SalesViewProps {
   sales: any[];
+  clients?: any[];
   onOpenSaleModal: () => void;
   onOpenPartnerModal?: (type?: "CLIENT") => void;
+  onEditSale?: (sale: any) => void;
+  onOpenHistoryModal?: (partnerId: number) => void;
 }
 
 export function SalesView({
   sales,
+  clients = [],
   onOpenSaleModal,
   onOpenPartnerModal,
+  onEditSale,
+  onOpenHistoryModal,
 }: SalesViewProps) {
   const [search, setSearch] = useState("");
 
@@ -31,7 +37,7 @@ export function SalesView({
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -60,6 +66,50 @@ export function SalesView({
         </div>
       </div>
 
+      {/* Clients (Mijozlar) Otchyot Summary Strip */}
+      {clients.length > 0 && (
+        <div className="space-y-2">
+          <div className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider px-1">
+            Mijozlar (Xaridorlar) bilan hisob-kitob (Otchyot):
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {clients.map((client) => {
+              const debt = client.balance || 0;
+              return (
+                <div
+                  key={client.id}
+                  onClick={() => onOpenHistoryModal && onOpenHistoryModal(client.id)}
+                  className="bg-white dark:bg-slate-800 p-3.5 rounded-2xl border border-slate-200/70 dark:border-slate-700 shadow-xs hover:border-blue-400 dark:hover:border-blue-500 transition-all cursor-pointer flex items-center justify-between gap-3"
+                >
+                  <div className="min-w-0">
+                    <div className="font-bold text-slate-900 dark:text-white text-sm truncate">
+                      {client.name}
+                    </div>
+                    <div className="text-[11px] text-slate-400 mt-0.5 font-mono">
+                      Jami sotilgan: <b className="text-slate-700 dark:text-slate-300">{formatUSD(client.totalDeal || 0)}</b>
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div
+                      className={`text-xs font-black font-mono ${
+                        debt > 0
+                          ? "text-amber-600 dark:text-amber-400"
+                          : "text-emerald-600 dark:text-emerald-400"
+                      }`}
+                    >
+                      {debt > 0 ? `Qarzi: ${formatUSD(debt)}` : "Qarzi yo‘q"}
+                    </div>
+                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 dark:text-blue-400 mt-0.5">
+                      <FileSpreadsheet className="w-3 h-3" /> Otchyot
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Search Bar */}
       <div className="bg-white dark:bg-slate-800 p-3 rounded-3xl border border-slate-200/70 dark:border-slate-700 shadow-xs flex items-center justify-between">
         <div className="relative w-full sm:w-96">
@@ -73,7 +123,11 @@ export function SalesView({
           />
         </div>
         <div className="text-xs font-semibold text-slate-400 dark:text-slate-400 pr-2 hidden sm:block">
-          Sotuvlar soni: <strong className="text-slate-800 dark:text-slate-200 font-mono">{filteredSales.length}</strong> ta
+          Sotuvlar soni:{" "}
+          <strong className="text-slate-800 dark:text-slate-200 font-mono">
+            {filteredSales.length}
+          </strong>{" "}
+          ta
         </div>
       </div>
 
@@ -97,8 +151,16 @@ export function SalesView({
                 <span className="text-lg font-black text-slate-900 dark:text-white font-mono block">
                   {formatUSD(sale.totalAmount)}
                 </span>
-                <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 font-mono block">
-                  +{formatUSD(sale.profit || 0)} foyda
+                <span
+                  className={`text-[11px] font-bold font-mono block ${
+                    (sale.profit || 0) >= 0
+                      ? "text-emerald-600 dark:text-emerald-400"
+                      : "text-rose-600 dark:text-rose-400"
+                  }`}
+                >
+                  {(sale.profit || 0) >= 0
+                    ? `+${formatUSD(sale.profit || 0)} foyda`
+                    : `-${formatUSD(Math.abs(sale.profit || 0))} zarar`}
                 </span>
               </div>
             </div>
@@ -112,28 +174,39 @@ export function SalesView({
               </div>
               <div>
                 <span className="text-[11px] text-slate-400 block font-medium">Xaridor (Mijoz):</span>
-                <span className="font-semibold text-slate-800 dark:text-slate-200 block truncate mt-0.5">
+                <button
+                  type="button"
+                  onClick={() => onOpenHistoryModal && onOpenHistoryModal(sale.clientId)}
+                  className="font-bold text-blue-600 dark:text-blue-400 hover:underline block truncate mt-0.5 text-left cursor-pointer"
+                >
                   {sale.clientName}
-                </span>
+                </button>
               </div>
             </div>
 
             <div className="flex items-center justify-between text-xs pt-2.5 border-t border-slate-100 dark:border-slate-700/80 bg-slate-50/70 dark:bg-slate-900/50 -mx-4 -mb-4 px-4 py-3 rounded-b-3xl">
               <div className="flex items-center gap-1.5">
-                <span className="text-slate-500 dark:text-slate-400 text-xs">Sana:</span>
-                <span className="font-medium text-slate-700 dark:text-slate-300">
-                  {sale.saleDate}
-                </span>
-              </div>
-              <div className="flex items-center gap-1.5">
                 <span className="font-mono font-bold text-blue-600 dark:text-blue-400">
                   {sale.qty} ta
                 </span>
                 <span className="text-slate-400">×</span>
-                <span className="font-mono font-bold text-slate-900 dark:text-white">
+                <span className="font-mono font-black text-slate-900 dark:text-white text-sm">
                   {formatUSD(sale.sellPrice)}
                 </span>
+                <span className="text-[11px] text-slate-400 font-mono">
+                  (Olingan: {formatUSD(sale.buyPrice || 0)})
+                </span>
               </div>
+
+              {onEditSale && (
+                <button
+                  type="button"
+                  onClick={() => onEditSale(sale)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-blue-600 dark:text-blue-400 text-xs font-bold rounded-full border border-blue-200 dark:border-blue-800 transition-colors cursor-pointer"
+                >
+                  <Pencil className="w-3 h-3" /> Narxni o‘zgartirish
+                </button>
+              )}
             </div>
           </div>
         ))}
@@ -151,14 +224,16 @@ export function SalesView({
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-slate-100 dark:border-slate-700 text-[11px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider">
-                <th className="py-3 px-4">Sotuv Sanasi</th>
+                <th className="py-3 px-4">Sana</th>
                 <th className="py-3 px-4">Yo‘nalish & Reys</th>
-                <th className="py-3 px-4">Yo‘lovchilar</th>
-                <th className="py-3 px-4">Xaridor (Mijoz / Agent)</th>
+                <th className="py-3 px-4">Yo‘lovchi</th>
+                <th className="py-3 px-4">Mijoz (Xaridor)</th>
                 <th className="py-3 px-4 text-center">Soni</th>
-                <th className="py-3 px-4 text-right">Sotish Narxi</th>
-                <th className="py-3 px-4 text-right">Jami Summa</th>
+                <th className="py-3 px-4 text-right">Olingan Narx</th>
+                <th className="py-3 px-4 text-right">Sotilgan Narx</th>
+                <th className="py-3 px-4 text-right">Jami Hisob</th>
                 <th className="py-3 px-4 text-right">Sof Foyda</th>
+                <th className="py-3 px-4 text-center">Amal</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-700/60 text-xs text-slate-700 dark:text-slate-300">
@@ -190,8 +265,15 @@ export function SalesView({
                   </td>
 
                   {/* Client name */}
-                  <td className="py-3.5 px-4 font-semibold text-slate-900 dark:text-white">
-                    {sale.clientName}
+                  <td className="py-3.5 px-4">
+                    <button
+                      type="button"
+                      onClick={() => onOpenHistoryModal && onOpenHistoryModal(sale.clientId)}
+                      title="Mijoz bilan hisob-kitob (otchyot) oynasini ochish"
+                      className="font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer text-left"
+                    >
+                      {sale.clientName}
+                    </button>
                   </td>
 
                   {/* Qty */}
@@ -199,8 +281,13 @@ export function SalesView({
                     {sale.qty} ta
                   </td>
 
+                  {/* Buy Price (Tannarx) */}
+                  <td className="py-3.5 px-4 text-right font-mono text-slate-500 dark:text-slate-400">
+                    {formatUSD(sale.buyPrice || 0)}
+                  </td>
+
                   {/* Sell Price */}
-                  <td className="py-3.5 px-4 text-right font-mono font-bold text-slate-900 dark:text-white">
+                  <td className="py-3.5 px-4 text-right font-mono font-bold text-slate-900 dark:text-white text-sm">
                     {formatUSD(sale.sellPrice)}
                   </td>
 
@@ -210,8 +297,29 @@ export function SalesView({
                   </td>
 
                   {/* Profit */}
-                  <td className="py-3.5 px-4 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                    +{formatUSD(sale.profit || 0)}
+                  <td
+                    className={`py-3.5 px-4 text-right font-mono font-bold ${
+                      (sale.profit || 0) >= 0
+                        ? "text-emerald-600 dark:text-emerald-400"
+                        : "text-rose-600 dark:text-rose-400"
+                    }`}
+                  >
+                    {(sale.profit || 0) >= 0
+                      ? `+${formatUSD(sale.profit || 0)}`
+                      : `-${formatUSD(Math.abs(sale.profit || 0))}`}
+                  </td>
+
+                  {/* Edit Action */}
+                  <td className="py-3.5 px-4 text-center">
+                    {onEditSale && (
+                      <button
+                        type="button"
+                        onClick={() => onEditSale(sale)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-blue-600 dark:text-blue-400 text-xs font-bold rounded-full border border-blue-200 dark:border-blue-800 transition-all cursor-pointer"
+                      >
+                        <Pencil className="w-3 h-3" /> Narxni o‘zgartirish
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -219,7 +327,7 @@ export function SalesView({
               {filteredSales.length === 0 && (
                 <tr>
                   <td
-                    colSpan={8}
+                    colSpan={10}
                     className="py-12 text-center text-xs text-slate-400 dark:text-slate-500"
                   >
                     Sotuvlar topilmadi

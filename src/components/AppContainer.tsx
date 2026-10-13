@@ -13,6 +13,7 @@ import { PaymentModal } from "./PaymentModal";
 import { PartnerModal } from "./PartnerModal";
 import { PartnerHistoryModal } from "./PartnerHistoryModal";
 import { DebtOffsetModal } from "./DebtOffsetModal";
+import { EditPriceModal } from "./EditPriceModal";
 import {
   AviakassaData,
   INITIAL_DEMO_DATA,
@@ -96,10 +97,36 @@ export function AppContainer() {
   const [debtOffsetModalFromId, setDebtOffsetModalFromId] = useState<number | null>(null);
   const [debtOffsetModalToId, setDebtOffsetModalToId] = useState<number | null>(null);
 
+  const [editPriceModal, setEditPriceModal] = useState<{
+    isOpen: boolean;
+    mode: "BATCH" | "SALE";
+    item: any | null;
+  }>({
+    isOpen: false,
+    mode: "BATCH",
+    item: null,
+  });
+
   // Quick Open Handlers
   const handleOpenSaleModal = (batchId?: number) => {
     setSelectedBatchId(batchId || null);
     setIsSaleModalOpen(true);
+  };
+
+  const handleOpenEditBatch = (batch: any) => {
+    setEditPriceModal({
+      isOpen: true,
+      mode: "BATCH",
+      item: batch,
+    });
+  };
+
+  const handleOpenEditSale = (sale: any) => {
+    setEditPriceModal({
+      isOpen: true,
+      mode: "SALE",
+      item: sale,
+    });
   };
 
   const handleOpenPaymentModal = (type: "INCOME" | "EXPENSE" = "INCOME", partnerId?: number) => {
@@ -367,6 +394,69 @@ export function AppContainer() {
     });
   };
 
+  // Xarid narxi va sonini tahrirlash (Kompaniya hisob-kitobi va sof foydani qayta hisoblaydi)
+  const handleUpdateBatchPrice = (batchId: number, newBuyPrice: number, newTotalQty: number) => {
+    const updatedBatches = data.batches.map((b) => {
+      if (b.id === batchId) {
+        return {
+          ...b,
+          buyPrice: newBuyPrice,
+          totalQty: newTotalQty,
+          totalCost: newTotalQty * newBuyPrice,
+        };
+      }
+      return b;
+    });
+
+    const updatedSales = data.sales.map((s) => {
+      if (s.batchId === batchId) {
+        return {
+          ...s,
+          buyPrice: newBuyPrice,
+          profit: s.qty * s.sellPrice - s.qty * newBuyPrice,
+        };
+      }
+      return s;
+    });
+
+    updateData({
+      ...data,
+      batches: updatedBatches,
+      sales: updatedSales,
+    });
+  };
+
+  // Sotuv narxi va sonini tahrirlash (Mijoz hisob-kitobi va sof foydani qayta hisoblaydi)
+  const handleUpdateSalePrice = (
+    saleId: number,
+    newSellPrice: number,
+    newQty: number,
+    newPassengerNames: string
+  ) => {
+    const updatedSales = data.sales.map((s) => {
+      if (s.id === saleId) {
+        const currentBatch = data.batches.find((b) => b.id === s.batchId);
+        const currentBuyPrice = currentBatch ? currentBatch.buyPrice : (s.buyPrice || 0);
+        const newTotalAmount = newQty * newSellPrice;
+        return {
+          ...s,
+          sellPrice: newSellPrice,
+          qty: newQty,
+          passengerNames: newPassengerNames,
+          buyPrice: currentBuyPrice,
+          totalAmount: newTotalAmount,
+          profit: newTotalAmount - newQty * currentBuyPrice,
+        };
+      }
+      return s;
+    });
+
+    updateData({
+      ...data,
+      sales: updatedSales,
+    });
+  };
+
   // Backup & Restore
   const handleExportBackup = () => {
     const jsonStr = JSON.stringify(data, null, 2);
@@ -466,8 +556,11 @@ export function AppContainer() {
         {activeTab === "purchases" && (
           <PartnersView
             batches={batches}
+            suppliers={suppliers}
             onOpenBatchModal={() => setIsBatchModalOpen(true)}
             onOpenPartnerModal={() => handleOpenPartnerModal("SUPPLIER")}
+            onEditBatch={handleOpenEditBatch}
+            onOpenHistoryModal={handleOpenHistoryModal}
           />
         )}
 
@@ -477,6 +570,8 @@ export function AppContainer() {
             batches={batches}
             onOpenBatchModal={() => setIsBatchModalOpen(true)}
             onToggleStatus={handleToggleBatchStatus}
+            onEditBatch={handleOpenEditBatch}
+            onOpenHistoryModal={handleOpenHistoryModal}
           />
         )}
 
@@ -484,8 +579,11 @@ export function AppContainer() {
         {activeTab === "sales" && (
           <SalesView
             sales={sales}
+            clients={clients}
             onOpenSaleModal={() => handleOpenSaleModal()}
             onOpenPartnerModal={() => handleOpenPartnerModal("CLIENT")}
+            onEditSale={handleOpenEditSale}
+            onOpenHistoryModal={handleOpenHistoryModal}
           />
         )}
 
@@ -552,6 +650,8 @@ export function AppContainer() {
         debtOffsets={debtOffsets}
         onOpenPaymentModal={handleOpenPaymentModal}
         onOpenDebtOffsetModal={handleOpenDebtOffsetModal}
+        onEditBatch={handleOpenEditBatch}
+        onEditSale={handleOpenEditSale}
       />
 
       <DebtOffsetModal
@@ -561,6 +661,15 @@ export function AppContainer() {
         defaultFromPartnerId={debtOffsetModalFromId}
         defaultToPartnerId={debtOffsetModalToId}
         onSave={handleAddDebtOffset}
+      />
+
+      <EditPriceModal
+        isOpen={editPriceModal.isOpen}
+        onClose={() => setEditPriceModal((prev) => ({ ...prev, isOpen: false }))}
+        mode={editPriceModal.mode}
+        item={editPriceModal.item}
+        onSaveBatch={handleUpdateBatchPrice}
+        onSaveSale={handleUpdateSalePrice}
       />
     </div>
   );
