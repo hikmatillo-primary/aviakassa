@@ -66,50 +66,6 @@ export function SalesView({
         </div>
       </div>
 
-      {/* Clients (Mijozlar) Otchyot Summary Strip */}
-      {clients.length > 0 && (
-        <div className="space-y-2">
-          <div className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider px-1">
-            Mijozlar (Xaridorlar) bilan hisob-kitob (Otchyot):
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {clients.map((client) => {
-              const debt = client.balance || 0;
-              return (
-                <div
-                  key={client.id}
-                  onClick={() => onOpenHistoryModal && onOpenHistoryModal(client.id)}
-                  className="bg-white dark:bg-slate-800 p-3.5 rounded-2xl border border-slate-200/70 dark:border-slate-700 shadow-xs hover:border-blue-400 dark:hover:border-blue-500 transition-all cursor-pointer flex items-center justify-between gap-3"
-                >
-                  <div className="min-w-0">
-                    <div className="font-bold text-slate-900 dark:text-white text-sm truncate">
-                      {client.name}
-                    </div>
-                    <div className="text-[11px] text-slate-400 mt-0.5 font-mono">
-                      Jami sotilgan: <b className="text-slate-700 dark:text-slate-300">{formatUSD(client.totalDeal || 0)}</b>
-                    </div>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <div
-                      className={`text-xs font-black font-mono ${
-                        debt > 0
-                          ? "text-amber-600 dark:text-amber-400"
-                          : "text-emerald-600 dark:text-emerald-400"
-                      }`}
-                    >
-                      {debt > 0 ? `Qarzi: ${formatUSD(debt)}` : "Qarzi yo‘q"}
-                    </div>
-                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 dark:text-blue-400 mt-0.5">
-                      <FileSpreadsheet className="w-3 h-3" /> Otchyot
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
       {/* Search Bar */}
       <div className="bg-white dark:bg-slate-800 p-3 rounded-3xl border border-slate-200/70 dark:border-slate-700 shadow-xs flex items-center justify-between">
         <div className="relative w-full sm:w-96">

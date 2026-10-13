@@ -587,13 +587,15 @@ export function AppContainer() {
           />
         )}
 
-        {/* Tab 5: Kassa (Kassa kirim/chiqim va to'lovlar) */}
+        {/* Tab 5: Kassa (Kassa kirim/chiqim, hamkorlar otchyoti va to'lovlar) */}
         {activeTab === "cash" && (
           <PaymentsView
             payments={payments}
             debtOffsets={debtOffsets}
+            partners={partners}
             onOpenPaymentModal={handleOpenPaymentModal}
             onOpenDebtOffsetModal={handleOpenDebtOffsetModal}
+            onOpenHistoryModal={handleOpenHistoryModal}
           />
         )}
       </main>

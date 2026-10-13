@@ -8,26 +8,32 @@ import {
   ArrowUpRight,
   ArrowRightLeft,
   Receipt,
-  Sparkles,
   Calendar,
+  FileSpreadsheet,
+  Users,
 } from "lucide-react";
 import { formatUSD } from "@/lib/format";
 
 interface PaymentsViewProps {
   payments: any[];
   debtOffsets?: any[];
-  onOpenPaymentModal: (type?: "INCOME" | "EXPENSE") => void;
+  partners?: any[];
+  onOpenPaymentModal: (type?: "INCOME" | "EXPENSE", partnerId?: number) => void;
   onOpenDebtOffsetModal?: (fromPartnerId?: number, toPartnerId?: number) => void;
+  onOpenHistoryModal?: (partnerId: number) => void;
 }
 
 export function PaymentsView({
   payments,
   debtOffsets = [],
+  partners = [],
   onOpenPaymentModal,
   onOpenDebtOffsetModal,
+  onOpenHistoryModal,
 }: PaymentsViewProps) {
-  const [activeSubTab, setActiveSubTab] = useState<"CASH" | "OFFSETS">("CASH");
+  const [activeSubTab, setActiveSubTab] = useState<"CASH" | "PARTNERS" | "OFFSETS">("CASH");
   const [filter, setFilter] = useState<"ALL" | "INCOME" | "EXPENSE">("ALL");
+  const [partnerFilter, setPartnerFilter] = useState<"ALL" | "CLIENT" | "SUPPLIER">("ALL");
   const [search, setSearch] = useState("");
 
   const filteredPayments = payments.filter((p) => {
@@ -39,6 +45,18 @@ export function PaymentsView({
       p.partnerName?.toLowerCase().includes(q) ||
       p.notes?.toLowerCase().includes(q) ||
       p.paymentDate?.toLowerCase().includes(q)
+    );
+  });
+
+  const filteredPartners = partners.filter((pt) => {
+    if (partnerFilter === "CLIENT" && pt.type !== "CLIENT") return false;
+    if (partnerFilter === "SUPPLIER" && pt.type !== "SUPPLIER") return false;
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    return (
+      pt.name?.toLowerCase().includes(q) ||
+      pt.phone?.toLowerCase().includes(q) ||
+      pt.notes?.toLowerCase().includes(q)
     );
   });
 
@@ -64,7 +82,7 @@ export function PaymentsView({
   const totalOffsetsAmount = debtOffsets.reduce((acc, o) => acc + (o.amount || 0), 0);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
@@ -219,14 +237,88 @@ export function PaymentsView({
         </div>
       </div>
 
+      {/* Hamkorlar (Mijozlar va Kompaniyalar) bilan Hisob-kitob (Otchyot) Strip */}
+      {partners.length > 0 && activeSubTab !== "PARTNERS" && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between px-1">
+            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+              Hamkorlar (Mijoz va Kompaniyalar) hisob-kitobi (Otchyot):
+            </span>
+            <button
+              onClick={() => setActiveSubTab("PARTNERS")}
+              className="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+            >
+              Barchasi ({partners.length}) →
+            </button>
+          </div>
+
+          <div className="flex sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-2.5 overflow-x-auto pb-1">
+            {partners.map((pt) => {
+              const isSupplier = pt.type === "SUPPLIER";
+              const debt = pt.balance || 0;
+              return (
+                <div
+                  key={pt.id}
+                  onClick={() => onOpenHistoryModal && onOpenHistoryModal(pt.id)}
+                  className="min-w-[230px] sm:min-w-0 bg-white dark:bg-slate-800 p-3.5 rounded-2xl border border-slate-200/70 dark:border-slate-700 shadow-xs hover:border-blue-400 dark:hover:border-blue-500 transition-all cursor-pointer flex items-center justify-between gap-2.5 shrink-0"
+                >
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span
+                        className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded uppercase ${
+                          isSupplier
+                            ? "bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400"
+                            : "bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400"
+                        }`}
+                      >
+                        {isSupplier ? "Kompaniya" : "Mijoz"}
+                      </span>
+                    </div>
+                    <div className="font-bold text-slate-900 dark:text-white text-xs sm:text-sm truncate mt-1">
+                      {pt.name}
+                    </div>
+                    <div className="text-[11px] text-slate-400 mt-0.5 font-mono">
+                      Jami:{" "}
+                      <b className="text-slate-700 dark:text-slate-300">
+                        {formatUSD(pt.totalDeal || 0)}
+                      </b>
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div
+                      className={`text-xs font-black font-mono ${
+                        debt > 0
+                          ? isSupplier
+                            ? "text-rose-600 dark:text-rose-400"
+                            : "text-amber-600 dark:text-amber-400"
+                          : "text-emerald-600 dark:text-emerald-400"
+                      }`}
+                    >
+                      {debt > 0
+                        ? isSupplier
+                          ? `Qarzimiz: ${formatUSD(debt)}`
+                          : `Qarzi: ${formatUSD(debt)}`
+                        : "Qarz yo‘q"}
+                    </div>
+                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 dark:text-blue-400 mt-1">
+                      <FileSpreadsheet className="w-3 h-3" /> Otchyot
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Sub Tabs Switch */}
-      <div className="flex items-center gap-1.5 bg-slate-200/60 dark:bg-slate-800 p-1 rounded-2xl w-fit">
+      <div className="flex items-center gap-1.5 bg-slate-200/60 dark:bg-slate-800 p-1 rounded-2xl w-fit max-w-full overflow-x-auto">
         <button
           onClick={() => {
             setActiveSubTab("CASH");
             setSearch("");
           }}
-          className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+          className={`flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer whitespace-nowrap ${
             activeSubTab === "CASH"
               ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-xs"
               : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
@@ -235,19 +327,35 @@ export function PaymentsView({
           <Receipt className="w-3.5 h-3.5" />
           Kassa Harakatlari ({payments.length})
         </button>
+
+        <button
+          onClick={() => {
+            setActiveSubTab("PARTNERS");
+            setSearch("");
+          }}
+          className={`flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer whitespace-nowrap ${
+            activeSubTab === "PARTNERS"
+              ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-xs"
+              : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+          }`}
+        >
+          <Users className="w-3.5 h-3.5" />
+          Hamkorlar Otchyoti ({partners.length})
+        </button>
+
         <button
           onClick={() => {
             setActiveSubTab("OFFSETS");
             setSearch("");
           }}
-          className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+          className={`flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer whitespace-nowrap ${
             activeSubTab === "OFFSETS"
               ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-xs"
               : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
           }`}
         >
           <ArrowRightLeft className="w-3.5 h-3.5" />
-          O‘zaro Qarz Surish Daftari ({debtOffsets.length})
+          O‘zaro Qarz Surish ({debtOffsets.length})
         </button>
       </div>
 
@@ -261,6 +369,8 @@ export function PaymentsView({
             placeholder={
               activeSubTab === "CASH"
                 ? "Hamkor nomi yoki izoh..."
+                : activeSubTab === "PARTNERS"
+                ? "Mijoz yoki kompaniya nomi..."
                 : "Qarz beruvchi, oluvchi yoki izoh..."
             }
             value={search}
@@ -304,6 +414,42 @@ export function PaymentsView({
             </button>
           </div>
         )}
+
+        {/* Filter Tabs for Partners */}
+        {activeSubTab === "PARTNERS" && (
+          <div className="flex items-center gap-1 bg-slate-100/70 dark:bg-slate-700/60 p-1 rounded-full w-full sm:w-auto">
+            <button
+              onClick={() => setPartnerFilter("ALL")}
+              className={`px-4 py-1.5 text-xs font-semibold rounded-full transition-all cursor-pointer ${
+                partnerFilter === "ALL"
+                  ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs"
+                  : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+              }`}
+            >
+              Barchasi ({partners.length})
+            </button>
+            <button
+              onClick={() => setPartnerFilter("CLIENT")}
+              className={`px-4 py-1.5 text-xs font-semibold rounded-full transition-all cursor-pointer ${
+                partnerFilter === "CLIENT"
+                  ? "bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-xs"
+                  : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+              }`}
+            >
+              Mijozlar ({partners.filter((p) => p.type === "CLIENT").length})
+            </button>
+            <button
+              onClick={() => setPartnerFilter("SUPPLIER")}
+              className={`px-4 py-1.5 text-xs font-semibold rounded-full transition-all cursor-pointer ${
+                partnerFilter === "SUPPLIER"
+                  ? "bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-xs"
+                  : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+              }`}
+            >
+              Kompaniyalar ({partners.filter((p) => p.type === "SUPPLIER").length})
+            </button>
+          </div>
+        )}
       </div>
 
       {/* SUB-TAB 1: CASH PAYMENTS */}
@@ -318,9 +464,13 @@ export function PaymentsView({
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <h3 className="font-extrabold text-slate-900 dark:text-white text-base">
+                    <button
+                      type="button"
+                      onClick={() => onOpenHistoryModal && onOpenHistoryModal(p.partnerId)}
+                      className="font-extrabold text-blue-600 dark:text-blue-400 hover:underline text-base text-left cursor-pointer"
+                    >
                       {p.partnerName}
-                    </h3>
+                    </button>
                     <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 mt-1">
                       <Calendar className="w-3 h-3 text-slate-400" />
                       {p.paymentDate}
@@ -378,7 +528,7 @@ export function PaymentsView({
                   <tr className="border-b border-slate-100 dark:border-slate-700 text-[11px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider">
                     <th className="py-3 px-4">Sana</th>
                     <th className="py-3 px-4">Turi</th>
-                    <th className="py-3 px-4">Hamkor</th>
+                    <th className="py-3 px-4">Hamkor (Otchyot uchun bosing)</th>
                     <th className="py-3 px-4 text-right">Summa</th>
                     <th className="py-3 px-4">To‘lov Usuli</th>
                     <th className="py-3 px-4">Izoh</th>
@@ -404,8 +554,14 @@ export function PaymentsView({
                           </span>
                         )}
                       </td>
-                      <td className="py-3.5 px-4 font-semibold text-slate-900 dark:text-white">
-                        {p.partnerName}
+                      <td className="py-3.5 px-4 font-semibold">
+                        <button
+                          type="button"
+                          onClick={() => onOpenHistoryModal && onOpenHistoryModal(p.partnerId)}
+                          className="text-blue-600 dark:text-blue-400 hover:underline font-bold cursor-pointer text-left"
+                        >
+                          {p.partnerName}
+                        </button>
                       </td>
                       <td
                         className={`py-3.5 px-4 text-right font-mono font-bold text-sm ${
@@ -450,7 +606,128 @@ export function PaymentsView({
         </>
       )}
 
-      {/* SUB-TAB 2: DEBT OFFSETS (QARZ SURISH) JOURNAL */}
+      {/* SUB-TAB 2: PARTNERS SETTLEMENT & OTCHYOT */}
+      {activeSubTab === "PARTNERS" && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+          {filteredPartners.map((pt) => {
+            const isSupplier = pt.type === "SUPPLIER";
+            const debt = pt.balance || 0;
+            return (
+              <div
+                key={pt.id}
+                className="bg-white dark:bg-slate-800 p-4 sm:p-5 rounded-3xl border border-slate-200/70 dark:border-slate-700 shadow-xs flex flex-col justify-between gap-4"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <span
+                      className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase ${
+                        isSupplier
+                          ? "bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400"
+                          : "bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400"
+                      }`}
+                    >
+                      {isSupplier ? "Kompaniya (Ta'minotchi)" : "Mijoz (Xaridor)"}
+                    </span>
+                    <h3 className="font-extrabold text-slate-900 dark:text-white text-base sm:text-lg mt-1.5">
+                      {pt.name}
+                    </h3>
+                    {pt.phone && (
+                      <p className="text-xs text-slate-400 font-mono mt-0.5">{pt.phone}</p>
+                    )}
+                  </div>
+
+                  <div className="text-right shrink-0">
+                    <span className="text-[10px] text-slate-400 uppercase font-bold block">
+                      {debt > 0
+                        ? isSupplier
+                          ? "Bizning qarzimiz"
+                          : "Mijozning qarzi"
+                        : debt < 0
+                        ? "Avans (Ortiqcha to'lov)"
+                        : "Hisob-kitob holati"}
+                    </span>
+                    <span
+                      className={`text-lg sm:text-xl font-black font-mono block mt-0.5 ${
+                        debt > 0
+                          ? isSupplier
+                            ? "text-rose-600 dark:text-rose-400"
+                            : "text-amber-600 dark:text-amber-400"
+                          : "text-emerald-600 dark:text-emerald-400"
+                      }`}
+                    >
+                      {debt > 0
+                        ? formatUSD(debt)
+                        : debt < 0
+                        ? `+${formatUSD(Math.abs(debt))}`
+                        : "Qarz yo‘q ($0)"}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Financial breakdown row */}
+                <div className="grid grid-cols-2 gap-2 p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-700/70 text-xs">
+                  <div>
+                    <span className="text-slate-400 block text-[11px]">
+                      {isSupplier ? "Jami olingan chiptalar:" : "Jami sotilgan chiptalar:"}
+                    </span>
+                    <span className="font-bold font-mono text-slate-800 dark:text-slate-200">
+                      {formatUSD(pt.totalDeal || 0)}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-slate-400 block text-[11px]">
+                      {isSupplier ? "Jami to‘lab berilgan:" : "Jami to‘lab bergan:"}
+                    </span>
+                    <span className="font-bold font-mono text-emerald-600 dark:text-emerald-400">
+                      {formatUSD(pt.totalPaid || 0)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Action buttons */}
+                <div className="flex items-center justify-between gap-2 pt-1 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => onOpenHistoryModal && onOpenHistoryModal(pt.id)}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-full shadow-xs transition-all cursor-pointer"
+                  >
+                    <FileSpreadsheet className="w-3.5 h-3.5" />
+                    To‘liq Otchyot (Narxlarni tahrirlash)
+                  </button>
+
+                  <div className="flex items-center gap-1.5">
+                    {isSupplier ? (
+                      <button
+                        type="button"
+                        onClick={() => onOpenPaymentModal("EXPENSE", pt.id)}
+                        className="inline-flex items-center gap-1 px-3 py-2 bg-rose-50 dark:bg-rose-950/50 hover:bg-rose-100 text-rose-600 dark:text-rose-400 text-xs font-bold rounded-full border border-rose-200 dark:border-rose-800/60 transition-all cursor-pointer"
+                      >
+                        <ArrowUpRight className="w-3.5 h-3.5" /> Pul berish
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => onOpenPaymentModal("INCOME", pt.id)}
+                        className="inline-flex items-center gap-1 px-3 py-2 bg-emerald-50 dark:bg-emerald-950/50 hover:bg-emerald-100 text-emerald-600 dark:text-emerald-400 text-xs font-bold rounded-full border border-emerald-200 dark:border-emerald-800/60 transition-all cursor-pointer"
+                      >
+                        <ArrowDownLeft className="w-3.5 h-3.5" /> Pul olish
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+
+          {filteredPartners.length === 0 && (
+            <div className="col-span-full bg-white dark:bg-slate-800 rounded-3xl border border-slate-200/70 dark:border-slate-700 p-8 text-center text-xs text-slate-400 dark:text-slate-500">
+              Hamkorlar topilmadi
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* SUB-TAB 3: DEBT OFFSETS (QARZ SURISH) JOURNAL */}
       {activeSubTab === "OFFSETS" && (
         <>
           {/* MOBILE LIST VIEW */}
