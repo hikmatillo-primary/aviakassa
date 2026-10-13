@@ -99,9 +99,16 @@ export function PartnersView({
                 <h3 className="font-extrabold text-slate-900 dark:text-white text-base leading-snug">
                   {batch.route}
                 </h3>
-                <span className="font-mono text-[11px] font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700/90 px-2.5 py-0.5 rounded-full mt-1 inline-block border border-slate-200/60 dark:border-slate-600">
-                  {batch.batchNumber}
-                </span>
+                <div className="flex items-center gap-1.5 flex-wrap mt-1">
+                  <span className="font-mono text-[11px] font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700/90 px-2.5 py-0.5 rounded-full inline-block border border-slate-200/60 dark:border-slate-600">
+                    {batch.batchNumber}
+                  </span>
+                  {batch.isRoundTrip && (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
+                      ⇄ Obratno
+                    </span>
+                  )}
+                </div>
               </div>
               <div className="text-right shrink-0">
                 <span className="text-lg font-black text-slate-900 dark:text-white font-mono block">
@@ -121,6 +128,11 @@ export function PartnersView({
                 <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono block mt-0.5">
                   {batch.flightNumber || "Reys ko‘rsatilmagan"}
                 </span>
+                {batch.isRoundTrip && batch.returnDate && (
+                  <span className="text-[11px] text-blue-600 dark:text-blue-400 font-semibold block mt-0.5">
+                    ⇄ Qaytish: {batch.returnDate} {batch.returnFlightNumber ? `(${batch.returnFlightNumber})` : ""}
+                  </span>
+                )}
               </div>
               <div>
                 <span className="text-[11px] text-slate-400 block font-medium">Kompaniya:</span>
@@ -191,9 +203,16 @@ export function PartnersView({
                     <div className="font-bold text-slate-900 dark:text-white text-sm">
                       {batch.route}
                     </div>
-                    <span className="font-mono text-[11px] text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded-md mt-0.5 inline-block">
-                      {batch.batchNumber}
-                    </span>
+                    <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                      <span className="font-mono text-[11px] text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded-md inline-block">
+                        {batch.batchNumber}
+                      </span>
+                      {batch.isRoundTrip && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
+                          ⇄ Obratno
+                        </span>
+                      )}
+                    </div>
                   </td>
 
                   {/* Flight Date & Flight Number */}
@@ -205,6 +224,11 @@ export function PartnersView({
                     <div className="text-[11px] text-slate-400 font-mono mt-0.5">
                       {batch.flightNumber || "Reys ko‘rsatilmagan"}
                     </div>
+                    {batch.isRoundTrip && batch.returnDate && (
+                      <div className="text-[11px] text-blue-600 dark:text-blue-400 font-semibold mt-0.5">
+                        ⇄ Qaytish: {batch.returnDate} {batch.returnFlightNumber ? `(${batch.returnFlightNumber})` : ""}
+                      </div>
+                    )}
                   </td>
 
                   {/* Supplier */}

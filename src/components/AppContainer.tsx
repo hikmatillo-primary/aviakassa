@@ -188,6 +188,9 @@ export function AppContainer() {
       qty: number;
       sellPrice: number;
       passengerNames?: string;
+      isRoundTrip?: boolean;
+      returnDate?: string;
+      returnFlightNumber?: string;
     }>;
   }) => {
     const newSales: Sale[] = [];
@@ -210,6 +213,9 @@ export function AppContainer() {
         sellPrice: item.sellPrice,
         totalAmount,
         profit,
+        isRoundTrip: item.isRoundTrip ?? targetBatch.isRoundTrip ?? false,
+        returnDate: item.returnDate || targetBatch.returnDate || "",
+        returnFlightNumber: item.returnFlightNumber || targetBatch.returnFlightNumber || "",
         passengerNames: item.passengerNames || "",
         saleDate: saleInput.saleDate,
         notes: saleInput.notes,
@@ -262,6 +268,9 @@ export function AppContainer() {
       route: string;
       flightDate: string;
       flightNumber?: string;
+      isRoundTrip?: boolean;
+      returnDate?: string;
+      returnFlightNumber?: string;
       totalQty: number;
       buyPrice: number;
       baggage?: string;
@@ -296,6 +305,11 @@ export function AppContainer() {
         route: item.route,
         flightDate: item.flightDate,
         flightNumber: item.flightNumber ? item.flightNumber.trim().toUpperCase() : "",
+        isRoundTrip: Boolean(item.isRoundTrip),
+        returnDate: item.isRoundTrip ? item.returnDate : undefined,
+        returnFlightNumber: item.isRoundTrip ? item.returnFlightNumber : undefined,
+        purchaseDate: batchInput.purchaseDate || new Date().toISOString().split("T")[0],
+        baggage: item.baggage,
         supplierId: batchInput.supplierId,
         totalQty: item.totalQty,
         remainingQty: item.totalQty,

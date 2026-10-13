@@ -96,12 +96,24 @@ export function SalesView({
           >
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h3 className="font-extrabold text-slate-900 dark:text-white text-base leading-snug">
-                  {sale.route}
-                </h3>
-                <div className="text-[11px] text-slate-500 dark:text-slate-400 font-mono mt-0.5">
-                  {sale.flightNumber || "-"} ({sale.flightDate})
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <h3 className="font-extrabold text-slate-900 dark:text-white text-base leading-snug">
+                    {sale.route}
+                  </h3>
+                  {sale.isRoundTrip && (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
+                      ⇄ Obratno
+                    </span>
+                  )}
                 </div>
+                <div className="text-[11px] text-slate-500 dark:text-slate-400 font-mono mt-0.5">
+                  Borish: {sale.flightNumber || "-"} ({sale.flightDate})
+                </div>
+                {sale.isRoundTrip && sale.returnDate && (
+                  <div className="text-[11px] text-blue-600 dark:text-blue-400 font-semibold mt-0.5">
+                    ⇄ Qaytish: {sale.returnDate} {sale.returnFlightNumber ? `(${sale.returnFlightNumber})` : ""}
+                  </div>
+                )}
               </div>
               <div className="text-right shrink-0">
                 <span className="text-lg font-black text-slate-900 dark:text-white font-mono block">
@@ -205,12 +217,24 @@ export function SalesView({
 
                   {/* Route & Flight */}
                   <td className="py-3.5 px-4">
-                    <div className="font-bold text-slate-900 dark:text-white text-sm">
-                      {sale.route}
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="font-bold text-slate-900 dark:text-white text-sm">
+                        {sale.route}
+                      </span>
+                      {sale.isRoundTrip && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
+                          ⇄ Obratno
+                        </span>
+                      )}
                     </div>
                     <div className="text-[11px] text-slate-400 font-mono">
-                      {sale.flightNumber || "-"} ({sale.flightDate})
+                      Borish: {sale.flightNumber || "-"} ({sale.flightDate})
                     </div>
+                    {sale.isRoundTrip && sale.returnDate && (
+                      <div className="text-[11px] text-blue-600 dark:text-blue-400 font-semibold mt-0.5">
+                        ⇄ Qaytish: {sale.returnDate} {sale.returnFlightNumber ? `(${sale.returnFlightNumber})` : ""}
+                      </div>
+                    )}
                   </td>
 
                   {/* Passenger names */}

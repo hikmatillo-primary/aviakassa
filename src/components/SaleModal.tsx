@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Modal } from "./Modal";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, ArrowRightLeft } from "lucide-react";
 import { formatUSD } from "@/lib/format";
 
 export interface SaleItemInput {
@@ -11,6 +11,9 @@ export interface SaleItemInput {
   qty: number;
   sellPrice: number;
   passengerNames: string;
+  isRoundTrip: boolean;
+  returnDate: string;
+  returnFlightNumber: string;
 }
 
 interface SaleModalProps {
@@ -30,6 +33,9 @@ interface SaleModalProps {
       qty: number;
       sellPrice: number;
       passengerNames?: string;
+      isRoundTrip?: boolean;
+      returnDate?: string;
+      returnFlightNumber?: string;
     }>;
   }) => void;
   onOpenClientModal?: () => void;
@@ -71,6 +77,9 @@ export function SaleModal({
           qty: 1,
           sellPrice: initialBatch ? Math.round(initialBatch.buyPrice + 30) : 0,
           passengerNames: "",
+          isRoundTrip: Boolean(initialBatch?.isRoundTrip),
+          returnDate: initialBatch?.returnDate || "",
+          returnFlightNumber: initialBatch?.returnFlightNumber || "",
         },
       ]);
       setSaleDate(new Date().toISOString().split("T")[0]);
@@ -91,6 +100,9 @@ export function SaleModal({
         qty: 1,
         sellPrice: defaultBatch ? Math.round(defaultBatch.buyPrice + 30) : 0,
         passengerNames: "",
+        isRoundTrip: Boolean(defaultBatch?.isRoundTrip),
+        returnDate: defaultBatch?.returnDate || "",
+        returnFlightNumber: defaultBatch?.returnFlightNumber || "",
       },
     ]);
   };
@@ -109,6 +121,9 @@ export function SaleModal({
         const found = batches.find((b) => String(b.id) === String(value));
         if (found) {
           next[index].sellPrice = Math.round(found.buyPrice + 30);
+          next[index].isRoundTrip = Boolean(found.isRoundTrip);
+          next[index].returnDate = found.returnDate || "";
+          next[index].returnFlightNumber = found.returnFlightNumber || "";
         }
       }
       return next;
@@ -167,6 +182,10 @@ export function SaleModal({
         setError(`${i + 1}-qatorda sotish narxi 0 dan katta bo'lishi kerak!`);
         return;
       }
+      if (it.isRoundTrip && !it.returnDate) {
+        setError(`${i + 1}-qatorda obratno (qaytish) sanasi tanlanmagan!`);
+        return;
+      }
     }
 
     try {
@@ -181,6 +200,11 @@ export function SaleModal({
           qty: Number(it.qty),
           sellPrice: Number(it.sellPrice),
           passengerNames: it.passengerNames.trim(),
+          isRoundTrip: it.isRoundTrip,
+          returnDate: it.isRoundTrip ? it.returnDate : undefined,
+          returnFlightNumber: it.isRoundTrip
+            ? it.returnFlightNumber.trim().toUpperCase()
+            : undefined,
         })),
       });
       onClose();
@@ -264,7 +288,7 @@ export function SaleModal({
             </button>
           </div>
 
-          <div className="space-y-2.5 max-h-[300px] overflow-y-auto pr-0.5">
+          <div className="space-y-2.5 max-h-[320px] overflow-y-auto pr-0.5">
             {items.map((item, index) => {
               const selectedBatch = batches.find((b) => String(b.id) === item.batchId);
               const itemTotal = (item.qty || 0) * (item.sellPrice || 0);
@@ -276,8 +300,8 @@ export function SaleModal({
                   key={item.id}
                   className="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-2xl border border-slate-200/80 dark:border-slate-700 space-y-2.5 transition-all"
                 >
-                  {/* Qator tepasi: Partiya tanlash va O'chirish tugmasi */}
-                  <div className="flex items-center gap-2">
+                  {/* Qator tepasi: Partiya tanlash, Obratno tugmasi va O'chirish tugmasi */}
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                     <div className="flex-1">
                       <select
                         value={item.batchId}
@@ -290,22 +314,43 @@ export function SaleModal({
                         <option value="">-- Partiya/Reysni tanlang --</option>
                         {activeBatches.map((b) => (
                           <option key={b.id} value={b.id}>
-                            {b.route} ({b.flightDate}, {b.flightNumber || "Reys"}) — Qoldiq: {b.remainingQty} ta • Tannarx: ${b.buyPrice} ({b.batchNumber})
+                            {b.route}{" "}
+                            {b.isRoundTrip
+                              ? `[⇄ Obratno: ${b.flightDate} ➔ ${b.returnDate || ""}]`
+                              : `(${b.flightDate})`}{" "}
+                            — Qoldiq: {b.remainingQty} ta • Tannarx: ${b.buyPrice} ({b.batchNumber})
                           </option>
                         ))}
                       </select>
                     </div>
 
-                    {items.length > 1 && (
+                    <div className="flex items-center gap-1.5">
                       <button
                         type="button"
-                        onClick={() => handleRemoveItem(index)}
-                        title="Ushbu chiptani o'chirish"
-                        className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-colors cursor-pointer shrink-0"
+                        onClick={() =>
+                          handleUpdateItem(index, "isRoundTrip", !item.isRoundTrip)
+                        }
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                          item.isRoundTrip
+                            ? "bg-blue-600 text-white border-blue-600 shadow-xs"
+                            : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:border-blue-400"
+                        }`}
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <ArrowRightLeft className="w-3.5 h-3.5" />
+                        {item.isRoundTrip ? "⇄ Obratno" : "Obratno qo‘shish"}
                       </button>
-                    )}
+
+                      {items.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveItem(index)}
+                          title="Ushbu chiptani o'chirish"
+                          className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-colors cursor-pointer shrink-0"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   {/* Qator maydonlari: Soni, Narxi, Yo'lovchi */}
@@ -370,6 +415,45 @@ export function SaleModal({
                       />
                     </div>
                   </div>
+
+                  {/* OBRATNO (QAYTISH REYSI) MAYDONLARI */}
+                  {item.isRoundTrip && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-2.5 rounded-xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200/70 dark:border-blue-800/60">
+                      <div>
+                        <label className="block text-[11px] font-bold text-blue-700 dark:text-blue-300 mb-0.5">
+                          ⇄ Obratno (Qaytish) sanasi *
+                        </label>
+                        <input
+                          type="date"
+                          value={item.returnDate}
+                          onChange={(e) =>
+                            handleUpdateItem(index, "returnDate", e.target.value)
+                          }
+                          className="w-full px-2.5 py-1.5 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-blue-300 dark:border-blue-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+                          required={item.isRoundTrip}
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-blue-700 dark:text-blue-300 mb-0.5">
+                          ⇄ Obratno reys raqami (ixtiyoriy)
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Masalan: FZ-781"
+                          value={item.returnFlightNumber}
+                          onChange={(e) =>
+                            handleUpdateItem(
+                              index,
+                              "returnFlightNumber",
+                              e.target.value
+                            )
+                          }
+                          className="w-full px-2.5 py-1.5 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 border border-blue-300 dark:border-blue-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase font-mono font-bold"
+                        />
+                      </div>
+                    </div>
+                  )}
 
                   {/* Qator xulosasi */}
                   {selectedBatch && (

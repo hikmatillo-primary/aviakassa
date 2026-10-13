@@ -140,9 +140,16 @@ export function BatchesView({
                     <span>{batch.route}</span>
                     <ChevronRight className="w-4 h-4 shrink-0" />
                   </h3>
-                  <span className="font-mono text-[11px] font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700/90 px-2.5 py-0.5 rounded-full mt-1.5 inline-block border border-slate-200/60 dark:border-slate-600">
-                    {batch.batchNumber}
-                  </span>
+                  <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
+                    <span className="font-mono text-[11px] font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700/90 px-2.5 py-0.5 rounded-full inline-block border border-slate-200/60 dark:border-slate-600">
+                      {batch.batchNumber}
+                    </span>
+                    {batch.isRoundTrip && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
+                        ⇄ Obratno
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <button
                   onClick={(e) => {
@@ -178,6 +185,11 @@ export function BatchesView({
                   <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono block mt-0.5">
                     {batch.flightNumber || "Reys ko‘rsatilmagan"}
                   </span>
+                  {batch.isRoundTrip && batch.returnDate && (
+                    <span className="text-[11px] text-blue-600 dark:text-blue-400 font-semibold block mt-0.5">
+                      ⇄ Qaytish: {batch.returnDate} {batch.returnFlightNumber ? `(${batch.returnFlightNumber})` : ""}
+                    </span>
+                  )}
                 </div>
                 <div>
                   <span className="text-[11px] text-slate-400 block font-medium">Kompaniya:</span>
@@ -280,9 +292,16 @@ export function BatchesView({
                         <span>{batch.route}</span>
                         <ChevronRight className="w-3.5 h-3.5 opacity-70 group-hover:translate-x-0.5 transition-transform" />
                       </div>
-                      <span className="font-mono text-[11px] text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded-md mt-0.5 inline-block">
-                        {batch.batchNumber}
-                      </span>
+                      <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                        <span className="font-mono text-[11px] text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded-md inline-block">
+                          {batch.batchNumber}
+                        </span>
+                        {batch.isRoundTrip && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
+                            ⇄ Obratno
+                          </span>
+                        )}
+                      </div>
                     </td>
 
                     {/* Date & Flight */}
@@ -291,6 +310,11 @@ export function BatchesView({
                       <div className="text-[11px] text-slate-400 font-mono">
                         {batch.flightNumber || "Reys ko‘rsatilmagan"}
                       </div>
+                      {batch.isRoundTrip && batch.returnDate && (
+                        <div className="text-[11px] text-blue-600 dark:text-blue-400 font-semibold mt-0.5">
+                          ⇄ Qaytish: {batch.returnDate} {batch.returnFlightNumber ? `(${batch.returnFlightNumber})` : ""}
+                        </div>
+                      )}
                     </td>
 
                     {/* Supplier */}

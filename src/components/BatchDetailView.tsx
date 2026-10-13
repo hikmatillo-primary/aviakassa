@@ -119,6 +119,11 @@ export function BatchDetailView({
                     <span className="font-mono text-[11px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 px-2.5 py-0.5 rounded-full border border-blue-200/60 dark:border-blue-800/60">
                       {batch.batchNumber}
                     </span>
+                    {batch.isRoundTrip && (
+                      <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
+                        ⇄ Obratno (Borish-qaytish)
+                      </span>
+                    )}
                     {batch.status === "ACTIVE" ? (
                       <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/60">
                         <CheckCircle2 className="w-3 h-3" /> Faol
@@ -135,11 +140,16 @@ export function BatchDetailView({
                   <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 mt-1 flex-wrap">
                     <span className="inline-flex items-center gap-1 font-medium">
                       <Calendar className="w-3.5 h-3.5 text-blue-500" />
-                      Uchish: <b className="text-slate-700 dark:text-slate-200">{batch.flightDate}</b>
+                      Borish: <b className="text-slate-700 dark:text-slate-200">{batch.flightDate}</b>
                     </span>
                     <span className="font-mono bg-slate-200/70 dark:bg-slate-800 px-2 py-0.5 rounded text-[11px] text-slate-600 dark:text-slate-300">
                       Reys: {batch.flightNumber || "-"}
                     </span>
+                    {batch.isRoundTrip && batch.returnDate && (
+                      <span className="text-blue-600 dark:text-blue-400 font-bold">
+                        ⇄ Qaytish: {batch.returnDate} {batch.returnFlightNumber ? `(${batch.returnFlightNumber})` : ""}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -290,6 +300,11 @@ export function BatchDetailView({
                     <span className="font-mono text-[11px] font-bold text-slate-500 dark:text-slate-400">
                       {b.batchNumber}
                     </span>
+                    {b.isRoundTrip && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
+                        ⇄ Obratno
+                      </span>
+                    )}
                     <span className="text-[11px] text-slate-400">• {b.purchaseDate}</span>
                   </div>
 
@@ -297,7 +312,7 @@ export function BatchDetailView({
                     <Building2 className="w-4 h-4 text-indigo-500 shrink-0" />
                     <button
                       type="button"
-                      onClick={() => onOpenHistoryModal && onOpenHistoryModal(b.supplierId)}
+                      onClick={() => onOpenHistoryModal?.(b.supplierId)}
                       className="font-extrabold text-sm sm:text-base text-slate-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline truncate text-left cursor-pointer"
                     >
                       {b.supplierName}
@@ -312,8 +327,13 @@ export function BatchDetailView({
                       Qoldiq: <b className="text-blue-600 dark:text-blue-400">{b.remainingQty} ta</b>
                     </span>
                     <span>
-                      Uchish: <b className="text-slate-700 dark:text-slate-300">{b.flightDate}</b>
+                      Borish: <b className="text-slate-700 dark:text-slate-300">{b.flightDate}</b>
                     </span>
+                    {b.isRoundTrip && b.returnDate && (
+                      <span className="text-blue-600 dark:text-blue-400 font-semibold">
+                        ⇄ Qaytish: {b.returnDate}
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -398,6 +418,11 @@ export function BatchDetailView({
                     <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300">
                       Xaridor (Mijoz)
                     </span>
+                    {s.isRoundTrip && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
+                        ⇄ Obratno
+                      </span>
+                    )}
                     <span className="text-[11px] text-slate-400">• {s.saleDate}</span>
                   </div>
 
@@ -405,7 +430,7 @@ export function BatchDetailView({
                     <UserCheck className="w-4 h-4 text-blue-500 shrink-0" />
                     <button
                       type="button"
-                      onClick={() => onOpenHistoryModal && onOpenHistoryModal(s.clientId)}
+                      onClick={() => onOpenHistoryModal?.(s.clientId)}
                       className="font-extrabold text-sm sm:text-base text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 hover:underline truncate text-left cursor-pointer"
                     >
                       {s.clientName}
@@ -419,6 +444,11 @@ export function BatchDetailView({
                     <span className="truncate max-w-[220px]">
                       Yo‘lovchi: <b className="text-slate-700 dark:text-slate-300">{s.passengerNames || "-"}</b>
                     </span>
+                    {s.isRoundTrip && s.returnDate && (
+                      <span className="text-blue-600 dark:text-blue-400 font-semibold">
+                        ⇄ Qaytish: {s.returnDate}
+                      </span>
+                    )}
                   </div>
                 </div>
 

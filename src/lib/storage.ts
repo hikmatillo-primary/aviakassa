@@ -18,6 +18,11 @@ export interface Batch {
   route: string;
   flightDate: string;
   flightNumber?: string;
+  isRoundTrip?: boolean;
+  returnDate?: string;
+  returnFlightNumber?: string;
+  purchaseDate?: string;
+  baggage?: string;
   supplierId: number;
   supplierName?: string;
   totalQty: number;
@@ -37,6 +42,9 @@ export interface Sale {
   route?: string;
   flightDate?: string;
   flightNumber?: string;
+  isRoundTrip?: boolean;
+  returnDate?: string;
+  returnFlightNumber?: string;
   buyPrice?: number;
   qty: number;
   sellPrice: number;
@@ -140,13 +148,16 @@ export const INITIAL_DEMO_DATA: AviakassaData = {
       route: "Toshkent - Jidda (TAS-JED)",
       flightDate: "2026-11-05",
       flightNumber: "G9-551",
+      isRoundTrip: true,
+      returnDate: "2026-11-19",
+      returnFlightNumber: "G9-552",
       supplierId: 2,
       totalQty: 50,
       remainingQty: 40,
       buyPrice: 380,
       totalCost: 19000,
       status: "ACTIVE",
-      notes: "Umra mavsumi bloki",
+      notes: "Umra mavsumi bloki (Borish-qaytish)",
       createdAt: "2026-10-11",
     },
   ],
@@ -172,9 +183,12 @@ export const INITIAL_DEMO_DATA: AviakassaData = {
       sellPrice: 440,
       totalAmount: 4400,
       profit: 600,
+      isRoundTrip: true,
+      returnDate: "2026-11-19",
+      returnFlightNumber: "G9-552",
       passengerNames: "Umra ziyoratchilari (10 kishi)",
       saleDate: "2026-10-11",
-      notes: "Umra guruhi",
+      notes: "Umra guruhi (Obratno)",
       createdAt: "2026-10-11",
     },
     {
@@ -262,6 +276,7 @@ export function calculateEnrichedData(data: AviakassaData) {
     const totalCost = (b.totalQty || 0) * (b.buyPrice || 0);
     return {
       ...b,
+      purchaseDate: b.purchaseDate || b.createdAt?.split("T")[0] || "-",
       totalCost,
       supplierName: supplier?.name || "Noma'lum",
     };
@@ -280,6 +295,9 @@ export function calculateEnrichedData(data: AviakassaData) {
       route: batch?.route || s.route || "-",
       flightDate: batch?.flightDate || s.flightDate || "-",
       flightNumber: batch?.flightNumber || s.flightNumber || "-",
+      isRoundTrip: s.isRoundTrip ?? batch?.isRoundTrip ?? false,
+      returnDate: s.returnDate || batch?.returnDate || "",
+      returnFlightNumber: s.returnFlightNumber || batch?.returnFlightNumber || "",
       buyPrice,
       totalAmount,
       profit,
