@@ -18,9 +18,13 @@ export interface Batch {
   route: string;
   flightDate: string;
   flightNumber?: string;
+  departureTime?: string;
+  arrivalTime?: string;
   isRoundTrip?: boolean;
   returnDate?: string;
   returnFlightNumber?: string;
+  returnDepartureTime?: string;
+  returnArrivalTime?: string;
   purchaseDate?: string;
   baggage?: string;
   supplierId: number;
@@ -42,9 +46,13 @@ export interface Sale {
   route?: string;
   flightDate?: string;
   flightNumber?: string;
+  departureTime?: string;
+  arrivalTime?: string;
   isRoundTrip?: boolean;
   returnDate?: string;
   returnFlightNumber?: string;
+  returnDepartureTime?: string;
+  returnArrivalTime?: string;
   buyPrice?: number;
   qty: number;
   sellPrice: number;
@@ -130,9 +138,11 @@ export const INITIAL_DEMO_DATA: AviakassaData = {
     {
       id: 1,
       batchNumber: "P-DXB-101",
-      route: "Toshkent - Dubay (TAS-DXB)",
+      route: "Toshkent — Dubay",
       flightDate: "2026-10-25",
       flightNumber: "FZ-780",
+      departureTime: "08:30",
+      arrivalTime: "12:15",
       supplierId: 1,
       totalQty: 40,
       remainingQty: 25,
@@ -145,12 +155,16 @@ export const INITIAL_DEMO_DATA: AviakassaData = {
     {
       id: 2,
       batchNumber: "P-JED-202",
-      route: "Toshkent - Jidda (TAS-JED)",
+      route: "Toshkent — Jidda",
       flightDate: "2026-11-05",
       flightNumber: "G9-551",
+      departureTime: "09:00",
+      arrivalTime: "14:20",
       isRoundTrip: true,
       returnDate: "2026-11-19",
       returnFlightNumber: "G9-552",
+      returnDepartureTime: "16:00",
+      returnArrivalTime: "21:45",
       supplierId: 2,
       totalQty: 50,
       remainingQty: 40,
@@ -186,6 +200,8 @@ export const INITIAL_DEMO_DATA: AviakassaData = {
       isRoundTrip: true,
       returnDate: "2026-11-19",
       returnFlightNumber: "G9-552",
+      returnDepartureTime: "16:00",
+      returnArrivalTime: "21:45",
       passengerNames: "Umra ziyoratchilari (10 kishi)",
       saleDate: "2026-10-11",
       notes: "Umra guruhi (Obratno)",
@@ -295,9 +311,13 @@ export function calculateEnrichedData(data: AviakassaData) {
       route: batch?.route || s.route || "-",
       flightDate: batch?.flightDate || s.flightDate || "-",
       flightNumber: batch?.flightNumber || s.flightNumber || "-",
+      departureTime: s.departureTime || batch?.departureTime || "",
+      arrivalTime: s.arrivalTime || batch?.arrivalTime || "",
       isRoundTrip: s.isRoundTrip ?? batch?.isRoundTrip ?? false,
       returnDate: s.returnDate || batch?.returnDate || "",
       returnFlightNumber: s.returnFlightNumber || batch?.returnFlightNumber || "",
+      returnDepartureTime: s.returnDepartureTime || batch?.returnDepartureTime || "",
+      returnArrivalTime: s.returnArrivalTime || batch?.returnArrivalTime || "",
       buyPrice,
       totalAmount,
       profit,

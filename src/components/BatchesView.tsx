@@ -183,11 +183,18 @@ export function BatchesView({
                     {batch.flightDate}
                   </span>
                   <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono block mt-0.5">
-                    {batch.flightNumber || "Reys ko‘rsatilmagan"}
+                    {batch.flightNumber || "Reys ko‘rsatilmagan"}{" "}
+                    {batch.departureTime
+                      ? `• 🛫${batch.departureTime}➔🛬${batch.arrivalTime || ""}`
+                      : ""}
                   </span>
                   {batch.isRoundTrip && batch.returnDate && (
                     <span className="text-[11px] text-blue-600 dark:text-blue-400 font-semibold block mt-0.5">
-                      ⇄ Qaytish: {batch.returnDate} {batch.returnFlightNumber ? `(${batch.returnFlightNumber})` : ""}
+                      ⇄ Qaytish: {batch.returnDate}{" "}
+                      {batch.returnFlightNumber ? `(${batch.returnFlightNumber})` : ""}{" "}
+                      {batch.returnDepartureTime
+                        ? `• 🛫${batch.returnDepartureTime}➔🛬${batch.returnArrivalTime || ""}`
+                        : ""}
                     </span>
                   )}
                 </div>
@@ -307,12 +314,19 @@ export function BatchesView({
                     {/* Date & Flight */}
                     <td className="py-3.5 px-4">
                       <div className="font-semibold text-slate-800 dark:text-slate-200">{batch.flightDate}</div>
-                      <div className="text-[11px] text-slate-400 font-mono">
-                        {batch.flightNumber || "Reys ko‘rsatilmagan"}
+                      <div className="text-[11px] text-slate-500 dark:text-slate-400 font-mono mt-0.5">
+                        {batch.flightNumber || "Reys ko‘rsatilmagan"}{" "}
+                        {batch.departureTime
+                          ? `• 🛫 ${batch.departureTime} ➔ 🛬 ${batch.arrivalTime || ""}`
+                          : ""}
                       </div>
                       {batch.isRoundTrip && batch.returnDate && (
                         <div className="text-[11px] text-blue-600 dark:text-blue-400 font-semibold mt-0.5">
-                          ⇄ Qaytish: {batch.returnDate} {batch.returnFlightNumber ? `(${batch.returnFlightNumber})` : ""}
+                          ⇄ Qaytish: {batch.returnDate}{" "}
+                          {batch.returnFlightNumber ? `(${batch.returnFlightNumber})` : ""}{" "}
+                          {batch.returnDepartureTime
+                            ? `• 🛫 ${batch.returnDepartureTime} ➔ 🛬 ${batch.returnArrivalTime || ""}`
+                            : ""}
                         </div>
                       )}
                     </td>

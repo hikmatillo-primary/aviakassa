@@ -11,9 +11,13 @@ export interface SaleItemInput {
   qty: number;
   sellPrice: number;
   passengerNames: string;
+  departureTime: string;
+  arrivalTime: string;
   isRoundTrip: boolean;
   returnDate: string;
   returnFlightNumber: string;
+  returnDepartureTime: string;
+  returnArrivalTime: string;
 }
 
 interface SaleModalProps {
@@ -33,9 +37,13 @@ interface SaleModalProps {
       qty: number;
       sellPrice: number;
       passengerNames?: string;
+      departureTime?: string;
+      arrivalTime?: string;
       isRoundTrip?: boolean;
       returnDate?: string;
       returnFlightNumber?: string;
+      returnDepartureTime?: string;
+      returnArrivalTime?: string;
     }>;
   }) => void;
   onOpenClientModal?: () => void;
@@ -77,9 +85,13 @@ export function SaleModal({
           qty: 1,
           sellPrice: initialBatch ? Math.round(initialBatch.buyPrice + 30) : 0,
           passengerNames: "",
+          departureTime: initialBatch?.departureTime || "08:00",
+          arrivalTime: initialBatch?.arrivalTime || "11:30",
           isRoundTrip: Boolean(initialBatch?.isRoundTrip),
           returnDate: initialBatch?.returnDate || "",
           returnFlightNumber: initialBatch?.returnFlightNumber || "",
+          returnDepartureTime: initialBatch?.returnDepartureTime || "14:00",
+          returnArrivalTime: initialBatch?.returnArrivalTime || "17:30",
         },
       ]);
       setSaleDate(new Date().toISOString().split("T")[0]);
@@ -100,9 +112,13 @@ export function SaleModal({
         qty: 1,
         sellPrice: defaultBatch ? Math.round(defaultBatch.buyPrice + 30) : 0,
         passengerNames: "",
+        departureTime: defaultBatch?.departureTime || "08:00",
+        arrivalTime: defaultBatch?.arrivalTime || "11:30",
         isRoundTrip: Boolean(defaultBatch?.isRoundTrip),
         returnDate: defaultBatch?.returnDate || "",
         returnFlightNumber: defaultBatch?.returnFlightNumber || "",
+        returnDepartureTime: defaultBatch?.returnDepartureTime || "14:00",
+        returnArrivalTime: defaultBatch?.returnArrivalTime || "17:30",
       },
     ]);
   };
@@ -121,10 +137,17 @@ export function SaleModal({
         const found = batches.find((b) => String(b.id) === String(value));
         if (found) {
           next[index].sellPrice = Math.round(found.buyPrice + 30);
+          next[index].departureTime = found.departureTime || "08:00";
+          next[index].arrivalTime = found.arrivalTime || "11:30";
           next[index].isRoundTrip = Boolean(found.isRoundTrip);
           next[index].returnDate = found.returnDate || "";
           next[index].returnFlightNumber = found.returnFlightNumber || "";
+          next[index].returnDepartureTime = found.returnDepartureTime || "14:00";
+          next[index].returnArrivalTime = found.returnArrivalTime || "17:30";
         }
+      }
+      if (field === "returnDate") {
+        next[index].isRoundTrip = Boolean(value);
       }
       return next;
     });
@@ -200,11 +223,15 @@ export function SaleModal({
           qty: Number(it.qty),
           sellPrice: Number(it.sellPrice),
           passengerNames: it.passengerNames.trim(),
+          departureTime: it.departureTime,
+          arrivalTime: it.arrivalTime,
           isRoundTrip: it.isRoundTrip,
           returnDate: it.isRoundTrip ? it.returnDate : undefined,
           returnFlightNumber: it.isRoundTrip
             ? it.returnFlightNumber.trim().toUpperCase()
             : undefined,
+          returnDepartureTime: it.isRoundTrip ? it.returnDepartureTime : undefined,
+          returnArrivalTime: it.isRoundTrip ? it.returnArrivalTime : undefined,
         })),
       });
       onClose();
@@ -288,7 +315,7 @@ export function SaleModal({
             </button>
           </div>
 
-          <div className="space-y-2.5 max-h-[320px] overflow-y-auto pr-0.5">
+          <div className="space-y-2.5 max-h-[340px] overflow-y-auto pr-0.5">
             {items.map((item, index) => {
               const selectedBatch = batches.find((b) => String(b.id) === item.batchId);
               const itemTotal = (item.qty || 0) * (item.sellPrice || 0);
@@ -318,7 +345,7 @@ export function SaleModal({
                             {b.isRoundTrip
                               ? `[⇄ Obratno: ${b.flightDate} ➔ ${b.returnDate || ""}]`
                               : `(${b.flightDate})`}{" "}
-                            — Qoldiq: {b.remainingQty} ta • Tannarx: ${b.buyPrice} ({b.batchNumber})
+                            • 🛫{b.departureTime || "08:00"}➔🛬{b.arrivalTime || "11:30"} — Qoldiq: {b.remainingQty} ta (${b.buyPrice})
                           </option>
                         ))}
                       </select>
@@ -353,10 +380,38 @@ export function SaleModal({
                     </div>
                   </div>
 
-                  {/* Qator maydonlari: Soni, Narxi, Yo'lovchi */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  {/* Uchish va Qo'nish vaqtlari (Borish) */}
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                     <div>
-                      <label className="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">
+                      <label className="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 mb-0.5">
+                        🛫 Uchish vaqti
+                      </label>
+                      <input
+                        type="time"
+                        value={item.departureTime}
+                        onChange={(e) =>
+                          handleUpdateItem(index, "departureTime", e.target.value)
+                        }
+                        className="w-full px-2 py-1.5 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono font-bold"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 mb-0.5">
+                        🛬 Qo‘nish vaqti
+                      </label>
+                      <input
+                        type="time"
+                        value={item.arrivalTime}
+                        onChange={(e) =>
+                          handleUpdateItem(index, "arrivalTime", e.target.value)
+                        }
+                        className="w-full px-2 py-1.5 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono font-bold"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">
                         Chipta soni
                       </label>
                       <input
@@ -377,7 +432,7 @@ export function SaleModal({
                     </div>
 
                     <div>
-                      <label className="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">
+                      <label className="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">
                         1 ta narxi ($)
                       </label>
                       <div className="relative">
@@ -394,19 +449,19 @@ export function SaleModal({
                               parseFloat(e.target.value) || 0
                             )
                           }
-                          className="w-full pl-6 pr-2.5 py-1.5 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold"
+                          className="w-full pl-6 pr-2 py-1.5 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold"
                           required
                         />
                       </div>
                     </div>
 
-                    <div>
-                      <label className="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">
+                    <div className="col-span-2 sm:col-span-1">
+                      <label className="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">
                         Yo‘lovchi / PNR
                       </label>
                       <input
                         type="text"
-                        placeholder="Masalan: Karim A."
+                        placeholder="Karim A."
                         value={item.passengerNames}
                         onChange={(e) =>
                           handleUpdateItem(index, "passengerNames", e.target.value)
@@ -418,10 +473,10 @@ export function SaleModal({
 
                   {/* OBRATNO (QAYTISH REYSI) MAYDONLARI */}
                   {item.isRoundTrip && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-2.5 rounded-xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200/70 dark:border-blue-800/60">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-2.5 rounded-xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200/70 dark:border-blue-800/60">
                       <div>
-                        <label className="block text-[11px] font-bold text-blue-700 dark:text-blue-300 mb-0.5">
-                          ⇄ Obratno (Qaytish) sanasi *
+                        <label className="block text-[10px] font-bold text-blue-700 dark:text-blue-300 mb-0.5">
+                          ⇄ Qaytish sanasi *
                         </label>
                         <input
                           type="date"
@@ -429,14 +484,14 @@ export function SaleModal({
                           onChange={(e) =>
                             handleUpdateItem(index, "returnDate", e.target.value)
                           }
-                          className="w-full px-2.5 py-1.5 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-blue-300 dark:border-blue-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+                          className="w-full px-2 py-1.5 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-blue-300 dark:border-blue-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
                           required={item.isRoundTrip}
                         />
                       </div>
 
                       <div>
-                        <label className="block text-[11px] font-bold text-blue-700 dark:text-blue-300 mb-0.5">
-                          ⇄ Obratno reys raqami (ixtiyoriy)
+                        <label className="block text-[10px] font-bold text-blue-700 dark:text-blue-300 mb-0.5">
+                          ⇄ Qaytish reysi
                         </label>
                         <input
                           type="text"
@@ -449,7 +504,43 @@ export function SaleModal({
                               e.target.value
                             )
                           }
-                          className="w-full px-2.5 py-1.5 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 border border-blue-300 dark:border-blue-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase font-mono font-bold"
+                          className="w-full px-2 py-1.5 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 border border-blue-300 dark:border-blue-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase font-mono font-bold"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-bold text-blue-700 dark:text-blue-300 mb-0.5">
+                          🛫 Qaytish uchish
+                        </label>
+                        <input
+                          type="time"
+                          value={item.returnDepartureTime}
+                          onChange={(e) =>
+                            handleUpdateItem(
+                              index,
+                              "returnDepartureTime",
+                              e.target.value
+                            )
+                          }
+                          className="w-full px-2 py-1.5 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-blue-300 dark:border-blue-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono font-bold"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-bold text-blue-700 dark:text-blue-300 mb-0.5">
+                          🛬 Qaytish qo‘nish
+                        </label>
+                        <input
+                          type="time"
+                          value={item.returnArrivalTime}
+                          onChange={(e) =>
+                            handleUpdateItem(
+                              index,
+                              "returnArrivalTime",
+                              e.target.value
+                            )
+                          }
+                          className="w-full px-2 py-1.5 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-blue-300 dark:border-blue-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono font-bold"
                         />
                       </div>
                     </div>

@@ -137,17 +137,24 @@ export function BatchDetailView({
                   <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white mt-1.5 leading-snug">
                     {batch.route}
                   </h2>
-                  <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 mt-1 flex-wrap">
+                  <div className="flex items-center gap-2.5 text-xs text-slate-500 dark:text-slate-400 mt-1 flex-wrap">
                     <span className="inline-flex items-center gap-1 font-medium">
                       <Calendar className="w-3.5 h-3.5 text-blue-500" />
                       Borish: <b className="text-slate-700 dark:text-slate-200">{batch.flightDate}</b>
+                      {batch.departureTime
+                        ? ` (🛫 ${batch.departureTime} ➔ 🛬 ${batch.arrivalTime || ""})`
+                        : ""}
                     </span>
                     <span className="font-mono bg-slate-200/70 dark:bg-slate-800 px-2 py-0.5 rounded text-[11px] text-slate-600 dark:text-slate-300">
                       Reys: {batch.flightNumber || "-"}
                     </span>
                     {batch.isRoundTrip && batch.returnDate && (
                       <span className="text-blue-600 dark:text-blue-400 font-bold">
-                        ⇄ Qaytish: {batch.returnDate} {batch.returnFlightNumber ? `(${batch.returnFlightNumber})` : ""}
+                        ⇄ Qaytish: {batch.returnDate}{" "}
+                        {batch.returnFlightNumber ? `(${batch.returnFlightNumber})` : ""}
+                        {batch.returnDepartureTime
+                          ? ` • 🛫 ${batch.returnDepartureTime} ➔ 🛬 ${batch.returnArrivalTime || ""}`
+                          : ""}
                       </span>
                     )}
                   </div>
@@ -328,10 +335,14 @@ export function BatchDetailView({
                     </span>
                     <span>
                       Borish: <b className="text-slate-700 dark:text-slate-300">{b.flightDate}</b>
+                      {b.departureTime ? ` (🛫${b.departureTime}➔🛬${b.arrivalTime || ""})` : ""}
                     </span>
                     {b.isRoundTrip && b.returnDate && (
                       <span className="text-blue-600 dark:text-blue-400 font-semibold">
                         ⇄ Qaytish: {b.returnDate}
+                        {b.returnDepartureTime
+                          ? ` (🛫${b.returnDepartureTime}➔🛬${b.returnArrivalTime || ""})`
+                          : ""}
                       </span>
                     )}
                   </div>
@@ -444,9 +455,17 @@ export function BatchDetailView({
                     <span className="truncate max-w-[220px]">
                       Yo‘lovchi: <b className="text-slate-700 dark:text-slate-300">{s.passengerNames || "-"}</b>
                     </span>
+                    {s.departureTime && (
+                      <span className="font-mono text-[11px]">
+                        🛫{s.departureTime}➔🛬{s.arrivalTime || ""}
+                      </span>
+                    )}
                     {s.isRoundTrip && s.returnDate && (
                       <span className="text-blue-600 dark:text-blue-400 font-semibold">
                         ⇄ Qaytish: {s.returnDate}
+                        {s.returnDepartureTime
+                          ? ` (🛫${s.returnDepartureTime}➔🛬${s.returnArrivalTime || ""})`
+                          : ""}
                       </span>
                     )}
                   </div>

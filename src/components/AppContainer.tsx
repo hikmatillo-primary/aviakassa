@@ -188,9 +188,13 @@ export function AppContainer() {
       qty: number;
       sellPrice: number;
       passengerNames?: string;
+      departureTime?: string;
+      arrivalTime?: string;
       isRoundTrip?: boolean;
       returnDate?: string;
       returnFlightNumber?: string;
+      returnDepartureTime?: string;
+      returnArrivalTime?: string;
     }>;
   }) => {
     const newSales: Sale[] = [];
@@ -213,9 +217,15 @@ export function AppContainer() {
         sellPrice: item.sellPrice,
         totalAmount,
         profit,
+        departureTime: item.departureTime || targetBatch.departureTime || "",
+        arrivalTime: item.arrivalTime || targetBatch.arrivalTime || "",
         isRoundTrip: item.isRoundTrip ?? targetBatch.isRoundTrip ?? false,
         returnDate: item.returnDate || targetBatch.returnDate || "",
         returnFlightNumber: item.returnFlightNumber || targetBatch.returnFlightNumber || "",
+        returnDepartureTime:
+          item.returnDepartureTime || targetBatch.returnDepartureTime || "",
+        returnArrivalTime:
+          item.returnArrivalTime || targetBatch.returnArrivalTime || "",
         passengerNames: item.passengerNames || "",
         saleDate: saleInput.saleDate,
         notes: saleInput.notes,
@@ -268,9 +278,13 @@ export function AppContainer() {
       route: string;
       flightDate: string;
       flightNumber?: string;
+      departureTime?: string;
+      arrivalTime?: string;
       isRoundTrip?: boolean;
       returnDate?: string;
       returnFlightNumber?: string;
+      returnDepartureTime?: string;
+      returnArrivalTime?: string;
       totalQty: number;
       buyPrice: number;
       baggage?: string;
@@ -305,9 +319,13 @@ export function AppContainer() {
         route: item.route,
         flightDate: item.flightDate,
         flightNumber: item.flightNumber ? item.flightNumber.trim().toUpperCase() : "",
+        departureTime: item.departureTime,
+        arrivalTime: item.arrivalTime,
         isRoundTrip: Boolean(item.isRoundTrip),
         returnDate: item.isRoundTrip ? item.returnDate : undefined,
         returnFlightNumber: item.isRoundTrip ? item.returnFlightNumber : undefined,
+        returnDepartureTime: item.isRoundTrip ? item.returnDepartureTime : undefined,
+        returnArrivalTime: item.isRoundTrip ? item.returnArrivalTime : undefined,
         purchaseDate: batchInput.purchaseDate || new Date().toISOString().split("T")[0],
         baggage: item.baggage,
         supplierId: batchInput.supplierId,

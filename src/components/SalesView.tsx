@@ -107,11 +107,18 @@ export function SalesView({
                   )}
                 </div>
                 <div className="text-[11px] text-slate-500 dark:text-slate-400 font-mono mt-0.5">
-                  Borish: {sale.flightNumber || "-"} ({sale.flightDate})
+                  Borish: {sale.flightNumber || "-"} ({sale.flightDate}){" "}
+                  {sale.departureTime
+                    ? `• 🛫${sale.departureTime}➔🛬${sale.arrivalTime || ""}`
+                    : ""}
                 </div>
                 {sale.isRoundTrip && sale.returnDate && (
                   <div className="text-[11px] text-blue-600 dark:text-blue-400 font-semibold mt-0.5">
-                    ⇄ Qaytish: {sale.returnDate} {sale.returnFlightNumber ? `(${sale.returnFlightNumber})` : ""}
+                    ⇄ Qaytish: {sale.returnDate}{" "}
+                    {sale.returnFlightNumber ? `(${sale.returnFlightNumber})` : ""}{" "}
+                    {sale.returnDepartureTime
+                      ? `• 🛫${sale.returnDepartureTime}➔🛬${sale.returnArrivalTime || ""}`
+                      : ""}
                   </div>
                 )}
               </div>
@@ -227,12 +234,19 @@ export function SalesView({
                         </span>
                       )}
                     </div>
-                    <div className="text-[11px] text-slate-400 font-mono">
-                      Borish: {sale.flightNumber || "-"} ({sale.flightDate})
+                    <div className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                      Borish: {sale.flightNumber || "-"} ({sale.flightDate}){" "}
+                      {sale.departureTime
+                        ? `• 🛫 ${sale.departureTime} ➔ 🛬 ${sale.arrivalTime || ""}`
+                        : ""}
                     </div>
                     {sale.isRoundTrip && sale.returnDate && (
                       <div className="text-[11px] text-blue-600 dark:text-blue-400 font-semibold mt-0.5">
-                        ⇄ Qaytish: {sale.returnDate} {sale.returnFlightNumber ? `(${sale.returnFlightNumber})` : ""}
+                        ⇄ Qaytish: {sale.returnDate}{" "}
+                        {sale.returnFlightNumber ? `(${sale.returnFlightNumber})` : ""}{" "}
+                        {sale.returnDepartureTime
+                          ? `• 🛫 ${sale.returnDepartureTime} ➔ 🛬 ${sale.returnArrivalTime || ""}`
+                          : ""}
                       </div>
                     )}
                   </td>
