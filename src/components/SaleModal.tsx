@@ -315,7 +315,7 @@ export function SaleModal({
             </button>
           </div>
 
-          <div className="space-y-2.5 max-h-[340px] overflow-y-auto pr-0.5">
+          <div className="space-y-2.5 sm:max-h-[340px] sm:overflow-y-auto pr-0.5">
             {items.map((item, index) => {
               const selectedBatch = batches.find((b) => String(b.id) === item.batchId);
               const itemTotal = (item.qty || 0) * (item.sellPrice || 0);

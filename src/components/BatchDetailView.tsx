@@ -41,6 +41,7 @@ export function BatchDetailView({
 }: BatchDetailViewProps) {
   const [purchaseSearch, setPurchaseSearch] = useState("");
   const [saleSearch, setSaleSearch] = useState("");
+  const [mobileTab, setMobileTab] = useState<"PURCHASES" | "SALES">("PURCHASES");
 
   if (!batch) return null;
 
@@ -87,7 +88,7 @@ export function BatchDetailView({
   const totalProfit = productSales.reduce((sum, s) => sum + (s.profit || 0), 0);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4 sm:space-y-5">
       {/* Orqaga qaytish tugmasi */}
       <div className="flex items-center justify-between gap-3">
         <button
@@ -99,45 +100,45 @@ export function BatchDetailView({
           Omborga qaytish
         </button>
 
-        <span className="text-xs font-semibold text-slate-400 dark:text-slate-500">
+        <span className="text-[11px] sm:text-xs font-semibold text-slate-400 dark:text-slate-500 hidden sm:inline">
           Mahsulot tafsilotlari (Xarid va Sotuv tarixi)
         </span>
       </div>
 
       {/* 1. YUQORI BLOK (Chizmadagi kabi katta konteyner ichida 2 ta blok: Mahsulotning o'zi + Umumiy hisob-kitob) */}
-      <div className="bg-white dark:bg-slate-800 p-4 sm:p-5 rounded-3xl border border-slate-200/80 dark:border-slate-700 shadow-xs">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="bg-white dark:bg-slate-800 p-3.5 sm:p-5 rounded-3xl border border-slate-200/80 dark:border-slate-700 shadow-xs">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-4">
           {/* CHAP KARTA: Shu mahsulotning o'zi */}
-          <div className="bg-slate-50/90 dark:bg-slate-900/70 p-4 sm:p-5 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 flex flex-col justify-between gap-3">
+          <div className="bg-slate-50/90 dark:bg-slate-900/70 p-3.5 sm:p-5 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 flex flex-col justify-between gap-3">
             <div className="flex items-start justify-between gap-3">
-              <div className="flex items-start gap-3">
-                <div className="w-11 h-11 rounded-2xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-sm shadow-blue-500/20">
-                  <Plane className="w-5 h-5" />
+              <div className="flex items-start gap-2.5 sm:gap-3">
+                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-sm shadow-blue-500/20">
+                  <Plane className="w-4 h-4 sm:w-5 sm:h-5" />
                 </div>
                 <div>
-                  <div className="flex items-center gap-2 flex-wrap">
+                  <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
                     <span className="font-mono text-[11px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 px-2.5 py-0.5 rounded-full border border-blue-200/60 dark:border-blue-800/60">
                       {batch.batchNumber}
                     </span>
                     {batch.isRoundTrip && (
-                      <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
-                        ⇄ Obratno (Borish-qaytish)
+                      <span className="text-[10px] sm:text-[11px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
+                        ⇄ Obratno
                       </span>
                     )}
                     {batch.status === "ACTIVE" ? (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/60">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/60">
                         <CheckCircle2 className="w-3 h-3" /> Faol
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
                         <AlertCircle className="w-3 h-3" /> Tugagan
                       </span>
                     )}
                   </div>
-                  <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white mt-1.5 leading-snug">
+                  <h2 className="text-base sm:text-xl font-extrabold text-slate-900 dark:text-white mt-1.5 leading-snug">
                     {batch.route}
                   </h2>
-                  <div className="flex items-center gap-2.5 text-xs text-slate-500 dark:text-slate-400 mt-1 flex-wrap">
+                  <div className="flex items-center gap-2 text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 mt-1 flex-wrap">
                     <span className="inline-flex items-center gap-1 font-medium">
                       <Calendar className="w-3.5 h-3.5 text-blue-500" />
                       Borish: <b className="text-slate-700 dark:text-slate-200">{batch.flightDate}</b>
@@ -164,9 +165,9 @@ export function BatchDetailView({
 
             {/* Qoldiq progress bari */}
             <div className="pt-2 border-t border-slate-200/60 dark:border-slate-800">
-              <div className="flex items-center justify-between text-xs font-bold mb-1.5">
+              <div className="flex items-center justify-between text-[11px] sm:text-xs font-bold mb-1.5">
                 <span className="text-blue-600 dark:text-blue-400">
-                  Omborda qoldiq: {remainingQty} ta
+                  Qoldiq: {remainingQty} ta
                 </span>
                 <span className="text-slate-500 dark:text-slate-400">
                   Jami {totalQty} tadan ({soldQty} ta sotildi • {percentSold}%)
@@ -182,48 +183,48 @@ export function BatchDetailView({
           </div>
 
           {/* O'NG KARTA: Shu mahsulotning moliyaviy xulosasi (Xarid, Sotuv, Sof Foyda) */}
-          <div className="bg-slate-50/90 dark:bg-slate-900/70 p-4 sm:p-5 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 flex flex-col justify-between gap-3">
+          <div className="bg-slate-50/90 dark:bg-slate-900/70 p-3.5 sm:p-5 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 flex flex-col justify-between gap-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+              <span className="text-[11px] sm:text-xs font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500">
                 Shu mahsulot bo‘yicha hisob-kitob
               </span>
               <TrendingUp className="w-4 h-4 text-emerald-500" />
             </div>
 
-            <div className="grid grid-cols-3 gap-2.5 sm:gap-3 my-auto">
+            <div className="grid grid-cols-3 gap-2 sm:gap-3 my-auto">
               {/* Jami Xarid */}
-              <div className="bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-200/60 dark:border-slate-700/70">
-                <span className="text-[11px] text-slate-400 font-semibold block">
-                  Jami Xarid ({totalQty} ta)
+              <div className="bg-white dark:bg-slate-800 p-2.5 sm:p-3 rounded-xl border border-slate-200/60 dark:border-slate-700/70 min-w-0">
+                <span className="text-[10px] sm:text-[11px] text-slate-400 font-semibold block truncate">
+                  Xarid ({totalQty} ta)
                 </span>
-                <span className="text-sm sm:text-base font-black font-mono text-slate-900 dark:text-white block mt-1">
+                <span className="text-xs sm:text-base font-black font-mono text-slate-900 dark:text-white block mt-1 truncate">
                   {formatUSD(totalPurchaseCost)}
                 </span>
-                <span className="text-[10px] text-slate-400 font-mono block mt-0.5">
-                  1 dona: {formatUSD(batch.buyPrice)}
+                <span className="text-[9px] sm:text-[10px] text-slate-400 font-mono block mt-0.5 truncate">
+                  1 ta: {formatUSD(batch.buyPrice)}
                 </span>
               </div>
 
               {/* Jami Sotuv */}
-              <div className="bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-200/60 dark:border-slate-700/70">
-                <span className="text-[11px] text-slate-400 font-semibold block">
-                  Jami Sotuv ({soldQty} ta)
+              <div className="bg-white dark:bg-slate-800 p-2.5 sm:p-3 rounded-xl border border-slate-200/60 dark:border-slate-700/70 min-w-0">
+                <span className="text-[10px] sm:text-[11px] text-slate-400 font-semibold block truncate">
+                  Sotuv ({soldQty} ta)
                 </span>
-                <span className="text-sm sm:text-base font-black font-mono text-blue-600 dark:text-blue-400 block mt-1">
+                <span className="text-xs sm:text-base font-black font-mono text-blue-600 dark:text-blue-400 block mt-1 truncate">
                   {formatUSD(totalSalesAmount)}
                 </span>
-                <span className="text-[10px] text-slate-400 font-mono block mt-0.5">
+                <span className="text-[9px] sm:text-[10px] text-slate-400 font-mono block mt-0.5 truncate">
                   {productSales.length} ta sotuv
                 </span>
               </div>
 
               {/* Sof Foyda */}
-              <div className="bg-emerald-50/70 dark:bg-emerald-950/30 p-3 rounded-xl border border-emerald-200/60 dark:border-emerald-800/50">
-                <span className="text-[11px] text-emerald-700 dark:text-emerald-400 font-semibold block">
+              <div className="bg-emerald-50/70 dark:bg-emerald-950/30 p-2.5 sm:p-3 rounded-xl border border-emerald-200/60 dark:border-emerald-800/50 min-w-0">
+                <span className="text-[10px] sm:text-[11px] text-emerald-700 dark:text-emerald-400 font-semibold block truncate">
                   Sof Foyda
                 </span>
                 <span
-                  className={`text-sm sm:text-base font-black font-mono block mt-1 ${
+                  className={`text-xs sm:text-base font-black font-mono block mt-1 truncate ${
                     totalProfit >= 0
                       ? "text-emerald-600 dark:text-emerald-400"
                       : "text-rose-600 dark:text-rose-400"
@@ -233,24 +234,61 @@ export function BatchDetailView({
                     ? `+${formatUSD(totalProfit)}`
                     : `-${formatUSD(Math.abs(totalProfit))}`}
                 </span>
-                <span className="text-[10px] text-emerald-600/80 dark:text-emerald-400/80 block mt-0.5">
+                <span className="text-[9px] sm:text-[10px] text-emerald-600/80 dark:text-emerald-400/80 block mt-0.5 truncate">
                   Sotilganlardan
                 </span>
               </div>
             </div>
 
-            <div className="text-[11px] text-slate-400 dark:text-slate-500 flex items-center justify-between pt-1 border-t border-slate-200/60 dark:border-slate-800">
-              <span>Kompaniya: <b className="text-slate-700 dark:text-slate-300">{batch.supplierName}</b></span>
-              <span>Xarid sanasi: <b className="text-slate-700 dark:text-slate-300">{batch.purchaseDate}</b></span>
+            <div className="text-[11px] text-slate-400 dark:text-slate-500 flex items-center justify-between pt-1 border-t border-slate-200/60 dark:border-slate-800 gap-2">
+              <span className="truncate">Kompaniya: <b className="text-slate-700 dark:text-slate-300">{batch.supplierName}</b></span>
+              <span className="shrink-0">Xarid: <b className="text-slate-700 dark:text-slate-300">{batch.purchaseDate}</b></span>
             </div>
           </div>
         </div>
       </div>
 
+      {/* MOBIL UCHUN TEZ ALMASHUVCHI TAB: Xarid vs Sotuv (Faqat mobilda ko'rinadi, kompyuterda 2 ta ustun yonma-yon turadi) */}
+      <div className="flex lg:hidden items-center gap-1.5 bg-slate-200/70 dark:bg-slate-800 p-1 rounded-2xl">
+        <button
+          type="button"
+          onClick={() => setMobileTab("PURCHASES")}
+          className={`flex-1 py-2 px-3 rounded-xl text-xs font-extrabold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+            mobileTab === "PURCHASES"
+              ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-xs"
+              : "text-slate-600 dark:text-slate-400"
+          }`}
+        >
+          <span>Xarid (Kimdan olingan)</span>
+          <span className="px-2 py-0.5 rounded-full text-[10px] bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400">
+            {filteredPurchases.length}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setMobileTab("SALES")}
+          className={`flex-1 py-2 px-3 rounded-xl text-xs font-extrabold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+            mobileTab === "SALES"
+              ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-xs"
+              : "text-slate-600 dark:text-slate-400"
+          }`}
+        >
+          <span>Sotuv (Kimga sotilgan)</span>
+          <span className="px-2 py-0.5 rounded-full text-[10px] bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400">
+            {filteredSales.length}
+          </span>
+        </button>
+      </div>
+
       {/* 2. PASTKI BLOK: Chizmadagi kabi 2 ta ustun yonma-yon — Chapda "Xarid [+]", O'ngda "Sotuv [+]" */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* CHAP USTUN: XARID (Kimdan xarid qilingan) */}
-        <div className="bg-white dark:bg-slate-800 p-4 sm:p-5 rounded-3xl border border-slate-200/80 dark:border-slate-700 shadow-xs flex flex-col">
+        <div
+          className={`bg-white dark:bg-slate-800 p-4 sm:p-5 rounded-3xl border border-slate-200/80 dark:border-slate-700 shadow-xs flex-col ${
+            mobileTab === "PURCHASES" ? "flex" : "hidden lg:flex"
+          }`}
+        >
           {/* Ustun sarlavhasi va [+] tugmasi */}
           <div className="flex items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-700">
             <div>
@@ -288,7 +326,7 @@ export function BatchDetailView({
           </div>
 
           {/* Xarid kartalari ro'yxati (Scroll bilan, chizmadagi kabi o'ng tomoni ajratilgan) */}
-          <div className="space-y-3 max-h-[460px] overflow-y-auto pr-1">
+          <div className="space-y-3 lg:max-h-[460px] lg:overflow-y-auto pr-0.5 lg:pr-1">
             {filteredPurchases.map((b) => (
               <div
                 key={b.id}
@@ -379,7 +417,11 @@ export function BatchDetailView({
         </div>
 
         {/* O'NG USTUN: SOTUV (Kimga sotilgan) */}
-        <div className="bg-white dark:bg-slate-800 p-4 sm:p-5 rounded-3xl border border-slate-200/80 dark:border-slate-700 shadow-xs flex flex-col">
+        <div
+          className={`bg-white dark:bg-slate-800 p-4 sm:p-5 rounded-3xl border border-slate-200/80 dark:border-slate-700 shadow-xs flex-col ${
+            mobileTab === "SALES" ? "flex" : "hidden lg:flex"
+          }`}
+        >
           {/* Ustun sarlavhasi va [+] tugmasi */}
           <div className="flex items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-700">
             <div>
@@ -417,7 +459,7 @@ export function BatchDetailView({
           </div>
 
           {/* Sotuv kartalari ro'yxati */}
-          <div className="space-y-3 max-h-[460px] overflow-y-auto pr-1">
+          <div className="space-y-3 lg:max-h-[460px] lg:overflow-y-auto pr-0.5 lg:pr-1">
             {filteredSales.map((s) => (
               <div
                 key={s.id}

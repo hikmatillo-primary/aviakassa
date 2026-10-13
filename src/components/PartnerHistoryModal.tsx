@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { Modal } from "./Modal";
 import { ArrowDownLeft, ArrowUpRight, ArrowRightLeft, Pencil } from "lucide-react";
 import { formatUSD } from "@/lib/format";
@@ -34,6 +34,8 @@ export function PartnerHistoryModal({
   onEditBatch,
   onEditSale,
 }: PartnerHistoryModalProps) {
+  const [mobileTab, setMobileTab] = useState<"DEALS" | "PAYMENTS">("DEALS");
+
   if (!isOpen || !partnerId) return null;
 
   const partner = partners.find((p) => p.id === partnerId);
@@ -87,28 +89,32 @@ export function PartnerHistoryModal({
       }
       maxWidth="max-w-4xl"
     >
-      <div className="space-y-5">
-        {/* Top Balance Summary Card */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 bg-slate-50/60 dark:bg-slate-800/40 border border-slate-200/70 dark:border-slate-800 rounded-3xl">
-          <div className="bg-white dark:bg-slate-800/80 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-xs">
-            <span className="text-xs text-slate-400 dark:text-slate-400 block font-medium">
-              {isSupplier ? "Jami partiyalar (Olingan)" : "Jami chiptalar (Sotilgan)"}:
+      <div className="space-y-4">
+        {/* Top Balance Summary Card (Compact 2-col on mobile, 3-col on desktop) */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-3 p-3 sm:p-4 bg-slate-50/60 dark:bg-slate-800/40 border border-slate-200/70 dark:border-slate-800 rounded-3xl">
+          <div className="bg-white dark:bg-slate-800/80 p-3 sm:p-4 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-xs">
+            <span className="text-[11px] sm:text-xs text-slate-400 dark:text-slate-400 block font-medium">
+              {isSupplier ? "Jami olingan:" : "Jami sotilgan:"}
             </span>
-            <strong className="text-base font-bold text-slate-900 dark:text-white">{formatUSD(totalDeals)}</strong>
+            <strong className="text-sm sm:text-base font-bold text-slate-900 dark:text-white font-mono">
+              {formatUSD(totalDeals)}
+            </strong>
           </div>
-          <div className="bg-white dark:bg-slate-800/80 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-xs">
-            <span className="text-xs text-slate-400 dark:text-slate-400 block font-medium">
-              {isSupplier ? "Biz to'lagan summa:" : "Mijoz to'lagan summa:"}
+          <div className="bg-white dark:bg-slate-800/80 p-3 sm:p-4 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-xs">
+            <span className="text-[11px] sm:text-xs text-slate-400 dark:text-slate-400 block font-medium">
+              {isSupplier ? "Biz to'lagan:" : "Mijoz to'lagan:"}
             </span>
-            <strong className="text-base font-bold text-slate-900 dark:text-white">{formatUSD(totalPaid)}</strong>
+            <strong className="text-sm sm:text-base font-bold text-slate-900 dark:text-white font-mono">
+              {formatUSD(totalPaid)}
+            </strong>
             {partnerOffsets.length > 0 && (
               <span className="text-[10px] text-blue-600 dark:text-blue-400 block mt-0.5">
-                (O&apos;zaro surishlar hisobga olingan)
+                (Surishlar bilan)
               </span>
             )}
           </div>
           <div
-            className={`p-4 rounded-2xl border shadow-xs ${
+            className={`col-span-2 sm:col-span-1 p-3 sm:p-4 rounded-2xl border shadow-xs flex sm:block items-center justify-between ${
               balance > 0
                 ? isSupplier
                   ? "bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800 text-rose-950 dark:text-rose-200"
@@ -120,19 +126,19 @@ export function PartnerHistoryModal({
               {isSupplier
                 ? balance > 0
                   ? "Bizning qarzimiz:"
-                  : "Haqdorlik (Ortiqcha to'langan):"
+                  : "Haqdorlik (Ortiqcha):"
                 : balance > 0
-                ? "Mijozning qarzi (Bizning haq):"
-                : "Ortiqcha to'langan (Depozit):"}
+                ? "Mijozning qarzi:"
+                : "Ortiqcha to'langan:"}
             </span>
-            <strong className="text-lg font-bold font-mono">
+            <strong className="text-base sm:text-lg font-bold font-mono">
               {formatUSD(Math.abs(balance))}
             </strong>
           </div>
         </div>
 
         {/* Quick Actions in Modal */}
-        <div className="flex items-center justify-end gap-2.5 flex-wrap">
+        <div className="grid grid-cols-2 sm:flex items-center justify-end gap-2">
           {onOpenDebtOffsetModal && (
             <button
               onClick={() => {
@@ -143,7 +149,7 @@ export function PartnerHistoryModal({
                   onOpenDebtOffsetModal(partner.id, undefined);
                 }
               }}
-              className="px-4 py-2 text-xs font-bold rounded-full text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 border border-blue-200 dark:border-blue-800 transition-all cursor-pointer flex items-center gap-1.5"
+              className="px-3 sm:px-4 py-2 text-xs font-bold rounded-full text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 border border-blue-200 dark:border-blue-800 transition-all cursor-pointer flex items-center justify-center gap-1.5"
             >
               <ArrowRightLeft className="w-3.5 h-3.5" /> ⇄ Qarzni surish
             </button>
@@ -155,7 +161,7 @@ export function PartnerHistoryModal({
                 onClose();
                 onOpenPaymentModal(isSupplier ? "EXPENSE" : "INCOME", partner.id);
               }}
-              className={`px-4 py-2 text-xs font-bold rounded-full text-white shadow-xs cursor-pointer ${
+              className={`px-3 sm:px-4 py-2 text-xs font-bold rounded-full text-white shadow-xs cursor-pointer text-center ${
                 isSupplier ? "bg-rose-600 hover:bg-rose-700" : "bg-emerald-600 hover:bg-emerald-700"
               }`}
             >
@@ -164,14 +170,44 @@ export function PartnerHistoryModal({
           )}
         </div>
 
+        {/* Mobile Tab Switch for Deals vs Payments */}
+        <div className="flex md:hidden items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl">
+          <button
+            type="button"
+            onClick={() => setMobileTab("DEALS")}
+            className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              mobileTab === "DEALS"
+                ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-xs"
+                : "text-slate-500 dark:text-slate-400"
+            }`}
+          >
+            {isSupplier ? `Partiyalar (${deals.length})` : `Chiptalar (${deals.length})`}
+          </button>
+          <button
+            type="button"
+            onClick={() => setMobileTab("PAYMENTS")}
+            className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              mobileTab === "PAYMENTS"
+                ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-xs"
+                : "text-slate-500 dark:text-slate-400"
+            }`}
+          >
+            To&apos;lovlar ({partnerPayments.length + partnerOffsets.length})
+          </button>
+        </div>
+
         {/* Lists: Deals, Payments, and Offsets */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Column 1: Deals (Batches / Sales) */}
-          <div className="border border-slate-200/70 dark:border-slate-800 rounded-3xl overflow-hidden bg-white dark:bg-slate-900 shadow-xs">
+          <div
+            className={`border border-slate-200/70 dark:border-slate-800 rounded-3xl overflow-hidden bg-white dark:bg-slate-900 shadow-xs ${
+              mobileTab === "DEALS" ? "block" : "hidden md:block"
+            }`}
+          >
             <div className="bg-slate-50/70 dark:bg-slate-800/60 px-4 py-3 border-b border-slate-100 dark:border-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
               {isSupplier ? "Olingan partiyalar" : "Sotilgan chiptalar"}
             </div>
-            <div className="divide-y divide-slate-100 dark:divide-slate-800 max-h-64 overflow-y-auto">
+            <div className="divide-y divide-slate-100 dark:divide-slate-800 md:max-h-64 md:overflow-y-auto">
               {deals.length === 0 ? (
                 <p className="p-4 text-xs text-slate-400 dark:text-slate-500 text-center">Bitimlar yo&apos;q</p>
               ) : (
@@ -218,11 +254,15 @@ export function PartnerHistoryModal({
           </div>
 
           {/* Column 2: Payments & Offsets */}
-          <div className="border border-slate-200/70 dark:border-slate-800 rounded-3xl overflow-hidden bg-white dark:bg-slate-900 shadow-xs">
+          <div
+            className={`border border-slate-200/70 dark:border-slate-800 rounded-3xl overflow-hidden bg-white dark:bg-slate-900 shadow-xs ${
+              mobileTab === "PAYMENTS" ? "block" : "hidden md:block"
+            }`}
+          >
             <div className="bg-slate-50/70 dark:bg-slate-800/60 px-4 py-3 border-b border-slate-100 dark:border-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
               To&apos;lovlar & O‘zaro hisoblar
             </div>
-            <div className="divide-y divide-slate-100 dark:divide-slate-800 max-h-64 overflow-y-auto">
+            <div className="divide-y divide-slate-100 dark:divide-slate-800 md:max-h-64 md:overflow-y-auto">
               {partnerPayments.length === 0 && partnerOffsets.length === 0 ? (
                 <p className="p-4 text-xs text-slate-400 dark:text-slate-500 text-center">To&apos;lovlar va o&apos;zaro hisoblar yo&apos;q</p>
               ) : (

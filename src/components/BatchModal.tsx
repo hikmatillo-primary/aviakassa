@@ -318,7 +318,7 @@ export function BatchModal({
             </button>
           </div>
 
-          <div className="space-y-3 max-h-[360px] overflow-y-auto pr-0.5">
+          <div className="space-y-3 sm:max-h-[360px] sm:overflow-y-auto pr-0.5">
             {items.map((item, index) => {
               const itemTotal = (item.totalQty || 0) * (item.buyPrice || 0);
               const autoBatchNumber = getAutoBatchCode(item.toCity, index);

@@ -53,28 +53,28 @@ export function BatchesView({
   return (
     <div className="space-y-5">
       {/* Top Header & Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
             Ombor
           </h1>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Mahsulot ustiga bosib, kimdan xarid qilingani va kimga sotilganini ko‘ring
+          <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5">
+            Mahsulot ustiga bosib, xarid va sotuv tarixini ko‘ring
           </p>
         </div>
         {onOpenBatchModal && (
           <button
             onClick={onOpenBatchModal}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-full shadow-sm shadow-blue-500/25 transition-all cursor-pointer self-start sm:self-auto"
+            className="inline-flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-full shadow-sm shadow-blue-500/25 transition-all cursor-pointer shrink-0"
           >
             <PackagePlus className="w-4 h-4" />
-            Yangi Partiya
+            <span>Yangi Partiya</span>
           </button>
         )}
       </div>
 
       {/* Filters & Search Bar */}
-      <div className="flex flex-col sm:flex-row gap-3 items-center justify-between bg-white dark:bg-slate-800 p-3 rounded-3xl border border-slate-200/70 dark:border-slate-700 shadow-xs">
+      <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3 items-center justify-between bg-white dark:bg-slate-800 p-3 rounded-3xl border border-slate-200/70 dark:border-slate-700 shadow-xs">
         {/* Search */}
         <div className="relative w-full sm:w-80">
           <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3.5 top-2.5" />
@@ -91,7 +91,7 @@ export function BatchesView({
         <div className="flex items-center gap-1 bg-slate-100/70 dark:bg-slate-700/60 p-1 rounded-full w-full sm:w-auto">
           <button
             onClick={() => setFilter("ALL")}
-            className={`px-4 py-1.5 text-xs font-semibold rounded-full transition-all cursor-pointer ${
+            className={`flex-1 sm:flex-initial text-center px-3 sm:px-4 py-1.5 text-xs font-semibold rounded-full transition-all cursor-pointer ${
               filter === "ALL"
                 ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs"
                 : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
@@ -101,7 +101,7 @@ export function BatchesView({
           </button>
           <button
             onClick={() => setFilter("ACTIVE")}
-            className={`px-4 py-1.5 text-xs font-semibold rounded-full transition-all cursor-pointer ${
+            className={`flex-1 sm:flex-initial text-center px-3 sm:px-4 py-1.5 text-xs font-semibold rounded-full transition-all cursor-pointer ${
               filter === "ACTIVE"
                 ? "bg-white dark:bg-slate-800 text-blue-700 dark:text-blue-400 shadow-xs"
                 : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
@@ -111,7 +111,7 @@ export function BatchesView({
           </button>
           <button
             onClick={() => setFilter("COMPLETED")}
-            className={`px-4 py-1.5 text-xs font-semibold rounded-full transition-all cursor-pointer ${
+            className={`flex-1 sm:flex-initial text-center px-3 sm:px-4 py-1.5 text-xs font-semibold rounded-full transition-all cursor-pointer ${
               filter === "COMPLETED"
                 ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs"
                 : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
