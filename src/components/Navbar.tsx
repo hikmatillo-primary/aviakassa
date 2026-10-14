@@ -8,15 +8,11 @@ import {
   Settings,
   Download,
   Upload,
-  RotateCcw,
   LayoutDashboard,
   PackagePlus,
   Layers,
   ShoppingBag,
   Wallet,
-  Plus,
-  ArrowDownLeft,
-  ArrowUpRight,
   LogOut,
 } from "lucide-react";
 
@@ -50,9 +46,7 @@ export function Navbar({
   onResetDemo,
 }: NavbarProps) {
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
-  const [showQuickMenu, setShowQuickMenu] = useState(false);
   const settingsRef = useRef<HTMLDivElement>(null);
-  const quickMenuRef = useRef<HTMLDivElement>(null);
 
   // Close dropdowns on outside click or Escape key
   useEffect(() => {
@@ -60,14 +54,10 @@ export function Navbar({
       if (settingsRef.current && !settingsRef.current.contains(e.target as Node)) {
         setShowSettingsMenu(false);
       }
-      if (quickMenuRef.current && !quickMenuRef.current.contains(e.target as Node)) {
-        setShowQuickMenu(false);
-      }
     };
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         setShowSettingsMenu(false);
-        setShowQuickMenu(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -128,61 +118,6 @@ export function Navbar({
 
             {/* Right: Quick Action, Theme Toggle & User Profile with Settings Dropdown */}
             <div className="flex items-center gap-2">
-              {/* Global Quick Action Dropdown */}
-              <div className="relative" ref={quickMenuRef}>
-                <button
-                  onClick={() => setShowQuickMenu((prev) => !prev)}
-                  title="Tezkor amal qo'shish"
-                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs shadow-blue-500/20 transition-all cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Tezkor amal</span>
-                </button>
-
-                {showQuickMenu && (
-                  <div
-                    className="absolute right-0 mt-2 w-52 bg-white dark:bg-[#111726] rounded-2xl shadow-xl border border-slate-200/80 dark:border-white/[0.08] py-1.5 z-50 text-xs font-medium animate-in fade-in zoom-in-95 duration-100"
-                    onClick={() => setShowQuickMenu(false)}
-                  >
-                    <div className="px-3.5 py-1.5 text-[11px] font-semibold text-slate-400 dark:text-slate-500">
-                      Tezkor amallar
-                    </div>
-                    <button
-                      onClick={onOpenSaleModal}
-                      className="w-full px-3.5 py-2 text-left hover:bg-slate-50 dark:hover:bg-white/[0.05] flex items-center gap-2.5 text-slate-700 dark:text-slate-200 cursor-pointer"
-                    >
-                      <ShoppingBag className="w-4 h-4 text-blue-500" />
-                      Chipta sotish
-                    </button>
-                    <button
-                      onClick={onOpenBatchModal}
-                      className="w-full px-3.5 py-2 text-left hover:bg-slate-50 dark:hover:bg-white/[0.05] flex items-center gap-2.5 text-slate-700 dark:text-slate-200 cursor-pointer"
-                    >
-                      <PackagePlus className="w-4 h-4 text-indigo-500" />
-                      Yangi partiya xaridi
-                    </button>
-                    {onOpenPaymentModal && (
-                      <>
-                        <div className="my-1 border-t border-slate-100 dark:border-white/[0.06]" />
-                        <button
-                          onClick={() => onOpenPaymentModal("INCOME")}
-                          className="w-full px-3.5 py-2 text-left hover:bg-slate-50 dark:hover:bg-white/[0.05] flex items-center gap-2.5 text-slate-700 dark:text-slate-200 cursor-pointer"
-                        >
-                          <ArrowDownLeft className="w-4 h-4 text-emerald-500" />
-                          Kassa kirimi (+ Pul olish)
-                        </button>
-                        <button
-                          onClick={() => onOpenPaymentModal("EXPENSE")}
-                          className="w-full px-3.5 py-2 text-left hover:bg-slate-50 dark:hover:bg-white/[0.05] flex items-center gap-2.5 text-slate-700 dark:text-slate-200 cursor-pointer"
-                        >
-                          <ArrowUpRight className="w-4 h-4 text-rose-500" />
-                          Kassa chiqimi (- Pul berish)
-                        </button>
-                      </>
-                    )}
-                  </div>
-                )}
-              </div>
 
               {/* Dark Mode Toggle */}
               <button
