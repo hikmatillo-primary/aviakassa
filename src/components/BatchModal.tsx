@@ -54,23 +54,7 @@ interface BatchModalProps {
   onOpenSupplierModal?: () => void;
 }
 
-const POPULAR_CITIES = [
-  "Toshkent",
-  "Samarqand",
-  "Farg'ona",
-  "Namangan",
-  "Buxoro",
-  "Urganch",
-  "Dubay",
-  "Jidda",
-  "Madina",
-  "Sharja",
-  "Istanbul",
-  "Antaliya",
-  "Sharm-el-Sheyx",
-  "Moskva",
-  "Sankt-Peterburg",
-];
+import { AirportPicker } from "./AirportPicker";
 
 function getAutoBatchCode(toCity: string, index: number): string {
   const clean = (toCity || "BLK").trim();
@@ -100,8 +84,8 @@ export function BatchModal({
       setItems([
         {
           id: Math.random().toString(),
-          fromCity: "Toshkent",
-          toCity: "Dubay",
+          fromCity: "TAS",
+          toCity: "DXB",
           flightDate: today,
           flightNumber: "FZ-780",
           departureTime: "08:30",
@@ -129,8 +113,8 @@ export function BatchModal({
       ...prev,
       {
         id: Math.random().toString(),
-        fromCity: "Toshkent",
-        toCity: "Jidda",
+        fromCity: "TAS",
+        toCity: "JED",
         flightDate: today,
         flightNumber: "",
         departureTime: "09:00",
@@ -251,12 +235,6 @@ export function BatchModal({
           </div>
         )}
 
-        <datalist id="popular-cities-list">
-          {POPULAR_CITIES.map((c) => (
-            <option key={c} value={c} />
-          ))}
-        </datalist>
-
         {/* 1. Ta'minotchi va Xarid Sanasi */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
@@ -318,7 +296,7 @@ export function BatchModal({
             </button>
           </div>
 
-          <div className="space-y-3 sm:max-h-[360px] sm:overflow-y-auto pr-0.5">
+          <div className="space-y-3 sm:max-h-[460px] sm:overflow-y-auto pr-0.5 pb-24">
             {items.map((item, index) => {
               const itemTotal = (item.totalQty || 0) * (item.buyPrice || 0);
               const autoBatchNumber = getAutoBatchCode(item.toCity, index);
@@ -330,42 +308,20 @@ export function BatchModal({
                 >
                   {/* AVIASALES USLUBIDAGI 1-QATOR: [Qayerdan] | [Qayerga] | [Qachon] | [Qaytish (Obratno)] */}
                   <div className="flex items-stretch gap-1.5 flex-col sm:flex-row">
-                    <div className="grid grid-cols-2 sm:grid-cols-4 flex-1 bg-white dark:bg-slate-900 rounded-xl border border-slate-300 dark:border-slate-700 overflow-hidden divide-y sm:divide-y-0 divide-x divide-slate-200 dark:divide-slate-700/80 shadow-2xs">
-                      {/* Qayerdan */}
-                      <div className="p-2">
-                        <label className="block text-[10px] font-bold text-slate-400 uppercase">
-                          Qayerdan:
-                        </label>
-                        <input
-                          list="popular-cities-list"
-                          type="text"
-                          placeholder="Toshkent"
-                          value={item.fromCity}
-                          onChange={(e) =>
-                            handleUpdateItem(index, "fromCity", e.target.value)
-                          }
-                          className="w-full text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white bg-transparent focus:outline-none mt-0.5"
-                          required
-                        />
-                      </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 flex-1 bg-white dark:bg-slate-900 rounded-xl border border-slate-300 dark:border-slate-700 divide-y sm:divide-y-0 divide-x divide-slate-200 dark:divide-slate-700/80 shadow-2xs">
+                      {/* Qayerdan (Ticker katta, shahar kichik) */}
+                      <AirportPicker
+                        label="Qayerdan:"
+                        value={item.fromCity}
+                        onChange={(code) => handleUpdateItem(index, "fromCity", code)}
+                      />
 
-                      {/* Qayerga */}
-                      <div className="p-2">
-                        <label className="block text-[10px] font-bold text-slate-400 uppercase">
-                          Qayerga:
-                        </label>
-                        <input
-                          list="popular-cities-list"
-                          type="text"
-                          placeholder="Dubay"
-                          value={item.toCity}
-                          onChange={(e) =>
-                            handleUpdateItem(index, "toCity", e.target.value)
-                          }
-                          className="w-full text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white bg-transparent focus:outline-none mt-0.5"
-                          required
-                        />
-                      </div>
+                      {/* Qayerga (Ticker katta, shahar kichik) */}
+                      <AirportPicker
+                        label="Qayerga:"
+                        value={item.toCity}
+                        onChange={(code) => handleUpdateItem(index, "toCity", code)}
+                      />
 
                       {/* Qachon (Borish sanasi) */}
                       <div className="p-2">
