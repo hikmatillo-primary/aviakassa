@@ -22,7 +22,7 @@ class SaleSerializer(serializers.ModelSerializer):
     buyPrice = serializers.FloatField(source='buy_price', required=False)
     sellPrice = serializers.FloatField(source='sell_price')
     totalAmount = serializers.FloatField(source='total_amount', required=False)
-    profit = serializers.FloatField(source='profit', read_only=True)
+    profit = serializers.FloatField(read_only=True)
     passengerNames = serializers.CharField(source='passenger_names', required=False, allow_blank=True)
     saleDate = serializers.DateField(source='sale_date')
     createdAt = serializers.DateTimeField(source='created_at', read_only=True)
