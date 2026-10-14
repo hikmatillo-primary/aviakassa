@@ -14,7 +14,9 @@ import {
   ShoppingBag,
   Wallet,
   LogOut,
+  Smartphone,
 } from "lucide-react";
+import { PwaInstallModal } from "./PwaInstallModal";
 
 interface NavbarProps {
   activeTab: string;
@@ -46,7 +48,58 @@ export function Navbar({
   onResetDemo,
 }: NavbarProps) {
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isStandalone, setIsStandalone] = useState(false);
+  const [showInstallModal, setShowInstallModal] = useState(false);
   const settingsRef = useRef<HTMLDivElement>(null);
+
+  // Check standalone mode and listen for PWA install prompt
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const checkStandalone = () => {
+      const isStandaloneMode =
+        window.matchMedia("(display-mode: standalone)").matches ||
+        (window.navigator as any).standalone === true ||
+        document.referrer.includes("android-app://");
+      setIsStandalone(isStandaloneMode);
+    };
+
+    checkStandalone();
+
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+
+    const handleAppInstalled = () => {
+      setDeferredPrompt(null);
+      setIsStandalone(true);
+      setShowInstallModal(false);
+    };
+
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    window.addEventListener("appinstalled", handleAppInstalled);
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+      window.removeEventListener("appinstalled", handleAppInstalled);
+    };
+  }, []);
+
+  const handleInstallClick = () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then((choice: any) => {
+        if (choice.outcome === "accepted") {
+          setDeferredPrompt(null);
+          setIsStandalone(true);
+        }
+      });
+    } else {
+      setShowInstallModal(true);
+    }
+  };
 
   // Close dropdowns on outside click or Escape key
   useEffect(() => {
@@ -118,6 +171,17 @@ export function Navbar({
 
             {/* Right: Quick Action, Theme Toggle & User Profile with Settings Dropdown */}
             <div className="flex items-center gap-2">
+              {!isStandalone && (
+                <button
+                  onClick={handleInstallClick}
+                  title="Ilovani o‘rnatish"
+                  className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-xs font-semibold shadow-xs shadow-blue-500/20 cursor-pointer transition-all"
+                >
+                  <Smartphone className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Ilovani o‘rnatish</span>
+                  <span className="sm:hidden text-[11px]">O‘rnatish</span>
+                </button>
+              )}
 
               {/* Dark Mode Toggle */}
               <button
@@ -167,6 +231,19 @@ export function Navbar({
                       <Settings className="w-3.5 h-3.5 text-slate-400" />
                       Tizim sozlamalari
                     </div>
+
+                    {!isStandalone && (
+                      <button
+                        onClick={() => {
+                          setShowSettingsMenu(false);
+                          handleInstallClick();
+                        }}
+                        className="w-full px-3.5 py-2 text-left hover:bg-blue-50/70 dark:hover:bg-blue-500/10 flex items-center gap-2.5 text-blue-600 dark:text-blue-400 font-semibold cursor-pointer"
+                      >
+                        <Smartphone className="w-4 h-4 text-blue-500" />
+                        Ilovani o‘rnatish (PWA)
+                      </button>
+                    )}
 
                     {onExportData && (
                       <button
@@ -238,6 +315,14 @@ export function Navbar({
           })}
         </div>
       </nav>
+
+      {/* PWA Installation Modal */}
+      <PwaInstallModal
+        isOpen={showInstallModal}
+        onClose={() => setShowInstallModal(false)}
+        deferredPrompt={deferredPrompt}
+        onInstalled={() => setIsStandalone(true)}
+      />
     </>
   );
 }
