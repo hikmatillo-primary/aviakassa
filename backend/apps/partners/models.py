@@ -71,9 +71,9 @@ class Partner(models.Model):
         > 0 bo'lsa: Hamkor bizdan qarzdor.
         < 0 bo'lsa: Biz hamkordan qarzdormiz.
         """
-        client_debt = self.total_bought_from_us - self.total_paid_to_us - self.total_offset_from + self.total_offset_to
-        supplier_debt = self.total_sold_to_us - self.total_paid_by_us - self.total_offset_to + self.total_offset_from
-        return client_debt - supplier_debt
+        client_debt = self.total_bought_from_us - self.total_paid_to_us
+        supplier_debt = self.total_sold_to_us - self.total_paid_by_us
+        return (client_debt - supplier_debt) - self.total_offset_from + self.total_offset_to
 
     @property
     def they_owe_us(self) -> float:
