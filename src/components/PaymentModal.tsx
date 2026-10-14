@@ -5,6 +5,7 @@ import { Modal } from "./Modal";
 import { ArrowDownLeft, ArrowUpRight } from "lucide-react";
 import { formatUSD } from "@/lib/format";
 import { DatePicker } from "./DatePicker";
+import { PartnerSelect } from "./PartnerSelect";
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -82,8 +83,30 @@ export function PaymentModal({
       onClose={onClose}
       title={type === "INCOME" ? "Kassa kirimi" : "Kassa chiqimi"}
       maxWidth="max-w-md"
+      footer={
+        <div className="flex items-center justify-end w-full gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/[0.06] rounded-xl transition-colors cursor-pointer"
+          >
+            Bekor qilish
+          </button>
+          <button
+            type="submit"
+            form="payment-form"
+            className={`px-5 py-2 text-xs font-bold text-white rounded-xl shadow-sm transition-all cursor-pointer ${
+              type === "INCOME"
+                ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20"
+                : "bg-rose-600 hover:bg-rose-700 shadow-rose-500/20"
+            }`}
+          >
+            To&apos;lovni saqlash
+          </button>
+        </div>
+      }
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form id="payment-form" onSubmit={handleSubmit} className="space-y-4">
         {error && (
           <div className="p-3 text-xs bg-red-50 dark:bg-red-950/50 text-red-600 dark:text-red-400 rounded-xl border border-red-200 dark:border-red-800">
             {error}
@@ -124,32 +147,14 @@ export function PaymentModal({
 
         {/* Hamkor */}
         <div>
-          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-            Qaysi hamkor bilan hisob-kitob? *
-          </label>
-          <select
+          <PartnerSelect
+            label="Qaysi hamkor bilan hisob-kitob?"
             value={partnerId}
-            onChange={(e) => setPartnerId(e.target.value)}
-            className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+            onChange={(val) => setPartnerId(val)}
+            partners={partners}
+            placeholder="-- Hamkorni tanlang --"
             required
-          >
-            <option value="">-- Hamkorni tanlang --</option>
-            {partners.map((p) => {
-              const b = p.balance || 0;
-              const statusText =
-                b > 0
-                  ? `(Qarzi: ${formatUSD(b)})`
-                  : b < 0
-                  ? `(Bizning qarz: ${formatUSD(Math.abs(b))})`
-                  : "(Balans: $0)";
-              const tagsText = p.tags && p.tags.length > 0 ? `• [${p.tags.join(", ")}]` : "";
-              return (
-                <option key={p.id} value={p.id}>
-                  {p.name} {tagsText} {statusText}
-                </option>
-              );
-            })}
-          </select>
+          />
           {selectedPartner && (
             <div className="mt-1.5 text-xs text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-between tabular-nums">
               <span>Hozirgi hisob-kitob holati:</span>
@@ -254,27 +259,6 @@ export function PaymentModal({
             onChange={(e) => setNotes(e.target.value)}
             className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
-        </div>
-
-        {/* Sticky Buttons */}
-        <div className="sticky bottom-0 -mx-4 sm:-mx-5 -mb-6 sm:-mb-5 px-4 sm:px-5 py-3 bg-white/95 dark:bg-[#111726]/95 backdrop-blur-md border-t border-slate-100 dark:border-white/[0.07] flex items-center justify-end gap-2 z-10">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/[0.06] rounded-xl transition-colors cursor-pointer"
-          >
-            Bekor qilish
-          </button>
-          <button
-            type="submit"
-            className={`px-5 py-2 text-xs font-bold text-white rounded-xl shadow-sm transition-all cursor-pointer ${
-              type === "INCOME"
-                ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20"
-                : "bg-rose-600 hover:bg-rose-700 shadow-rose-500/20"
-            }`}
-          >
-            To&apos;lovni saqlash
-          </button>
         </div>
       </form>
     </Modal>

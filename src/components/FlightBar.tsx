@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { Copy, Check } from "lucide-react";
 import { getBatchFlightSchedule } from "@/lib/format";
+import { copyToClipboard } from "@/lib/clipboard";
 
 interface FlightBarProps {
   batch: any;
@@ -21,12 +22,14 @@ export function FlightBar({
 
   const schedule = getBatchFlightSchedule(batch);
 
-  const handleCopy = (e: React.MouseEvent) => {
+  const handleCopy = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!schedule.clipboardText) return;
-    navigator.clipboard.writeText(schedule.clipboardText);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    const ok = await copyToClipboard(schedule.clipboardText);
+    if (ok) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
 
   return (
@@ -82,27 +85,22 @@ export function FlightBar({
           )}
         </div>
 
-        {/* Copy to Clipboard Button */}
+        {/* Copy to Clipboard Icon Button */}
         <button
           type="button"
           onClick={handleCopy}
-          title={copied ? "Nusxalandi!" : "Reys jadvalini nusxalash (Telegram / GDS format)"}
-          className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 sm:py-2 rounded-xl text-xs font-semibold transition-all border shadow-2xs cursor-pointer active:scale-95 ${
+          title={copied ? "Nusxalandi!" : "Reys jadvalini nusxalash"}
+          aria-label="Reys jadvalini nusxalash"
+          className={`shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-xl transition-all border shadow-2xs cursor-pointer active:scale-95 ${
             copied
-              ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border-emerald-300 dark:border-emerald-800"
-              : "bg-white dark:bg-[#131b2e] hover:bg-blue-50 dark:hover:bg-blue-900/30 text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 border-slate-200/80 dark:border-white/[0.08] hover:border-blue-300 dark:hover:border-blue-700"
+              ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border-emerald-300 dark:border-emerald-800 ring-2 ring-emerald-500/20"
+              : "bg-white dark:bg-[#131b2e] hover:bg-blue-50 dark:hover:bg-blue-900/30 text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 border-slate-200/80 dark:border-white/[0.08] hover:border-blue-300 dark:hover:border-blue-700"
           }`}
         >
           {copied ? (
-            <>
-              <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-              <span className="font-sans text-[11px]">Nusxalandi</span>
-            </>
+            <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
           ) : (
-            <>
-              <Copy className="w-3.5 h-3.5" />
-              <span className="font-sans text-[11px]">Copy</span>
-            </>
+            <Copy className="w-4 h-4" />
           )}
         </button>
       </div>

@@ -56,6 +56,7 @@ interface BatchModalProps {
 
 import { AirportPicker } from "./AirportPicker";
 import { DatePicker } from "./DatePicker";
+import { PartnerSelect } from "./PartnerSelect";
 
 function getAutoBatchCode(toCity: string, index: number): string {
   const clean = (toCity || "BLK").trim();
@@ -228,8 +229,32 @@ export function BatchModal({
       onClose={onClose}
       title="Yangi xarid (Chipta bloki olish)"
       maxWidth="max-w-3xl"
+      footer={
+        <div className="flex items-center justify-between w-full gap-3">
+          <div className="text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-300">
+            Jami: <strong className="text-sm sm:text-base font-bold text-amber-500 font-mono">{formatUSD(totalCost)}</strong>{" "}
+            <span className="text-slate-400 font-normal">({totalTickets} ta chipta)</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/[0.06] rounded-xl transition-colors cursor-pointer"
+            >
+              Bekor qilish
+            </button>
+            <button
+              type="submit"
+              form="batch-form"
+              className="px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm shadow-blue-500/20 transition-all cursor-pointer"
+            >
+              Xaridni qabul qilish
+            </button>
+          </div>
+        </div>
+      }
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form id="batch-form" onSubmit={handleSubmit} className="space-y-4">
         {error && (
           <div className="p-2.5 text-xs bg-red-50 dark:bg-red-950/50 text-red-600 dark:text-red-400 rounded-xl border border-red-200 dark:border-red-800 font-medium">
             {error}
@@ -239,33 +264,14 @@ export function BatchModal({
         {/* 1. Ta'minotchi va Xarid Sanasi */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Hamkor (Ta&apos;minotchi / Vendor) *
-              </label>
-              {onOpenSupplierModal && (
-                <button
-                  type="button"
-                  onClick={onOpenSupplierModal}
-                  className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline font-semibold cursor-pointer"
-                >
-                  + Yangi hamkor
-                </button>
-              )}
-            </div>
-            <select
+            <PartnerSelect
+              label="Hamkor (Ta'minotchi / Vendor)"
               value={supplierId}
-              onChange={(e) => setSupplierId(e.target.value)}
-              className="w-full px-3 py-2 text-xs sm:text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+              onChange={(val) => setSupplierId(val)}
+              partners={suppliers}
+              onAddNew={onOpenSupplierModal}
               required
-            >
-              <option value="">-- Hamkorni tanlang --</option>
-              {suppliers.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name} {s.tags && s.tags.length > 0 ? `• [${s.tags.join(", ")}]` : ""} {s.phone ? `(${s.phone})` : ""}
-                </option>
-              ))}
-            </select>
+            />
           </div>
 
           <div>
@@ -286,7 +292,7 @@ export function BatchModal({
             </span>
           </div>
 
-          <div className="space-y-3 sm:max-h-[460px] sm:overflow-y-auto pr-0.5 pb-2">
+          <div className="space-y-3 pb-2">
             {items.map((item, index) => {
               const itemTotal = (item.totalQty || 0) * (item.buyPrice || 0);
               const autoBatchNumber = getAutoBatchCode(item.toCity, index);
@@ -337,6 +343,7 @@ export function BatchModal({
                           placeholder="Tanlanmagan"
                           compact
                           clearable
+                          align="right"
                         />
                       </div>
                     </div>
@@ -472,21 +479,33 @@ export function BatchModal({
 
                     <div>
                       <label className="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">
-                        Bagaj
+                        Bagaj (kg)
                       </label>
-                      <select
-                        value={item.baggage}
-                        onChange={(e) =>
-                          handleUpdateItem(index, "baggage", e.target.value)
-                        }
-                        className="w-full px-2 py-1.5 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
-                      >
-                        <option value="20 kg">20 kg</option>
-                        <option value="25 kg">25 kg</option>
-                        <option value="30 kg">30 kg</option>
-                        <option value="Qo'l yuki (7 kg)">7 kg</option>
-                        <option value="Bagajsiz">Bagajsiz</option>
-                      </select>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          min="0"
+                          max="99"
+                          value={
+                            item.baggage === "Bagajsiz"
+                              ? "0"
+                              : (item.baggage ? item.baggage.replace(/[^0-9]/g, "") : "20")
+                          }
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === "" || val === "0") {
+                              handleUpdateItem(index, "baggage", val === "0" ? "0 kg" : "");
+                            } else {
+                              handleUpdateItem(index, "baggage", `${val} kg`);
+                            }
+                          }}
+                          placeholder="20"
+                          className="w-full pl-2.5 pr-7 py-1.5 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono font-bold tabular-nums"
+                        />
+                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[11px] font-semibold text-slate-400 pointer-events-none">
+                          kg
+                        </span>
+                      </div>
                     </div>
                   </div>
 
@@ -657,23 +676,6 @@ export function BatchModal({
             onChange={(e) => setNotes(e.target.value)}
             className="w-full px-3 py-1.5 text-xs sm:text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
-        </div>
-
-        {/* Action Buttons */}
-        <div className="pt-4 mt-3 border-t border-slate-200/80 dark:border-white/[0.08] flex items-center justify-end gap-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/[0.06] rounded-xl transition-colors cursor-pointer"
-          >
-            Bekor qilish
-          </button>
-          <button
-            type="submit"
-            className="px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm shadow-blue-500/20 transition-all cursor-pointer"
-          >
-            Xaridni qabul qilish
-          </button>
         </div>
       </form>
     </Modal>

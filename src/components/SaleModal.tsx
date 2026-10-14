@@ -6,6 +6,7 @@ import { Plus, Trash2, ArrowRightLeft } from "lucide-react";
 import { formatUSD, formatDate } from "@/lib/format";
 import { FlightBar } from "./FlightBar";
 import { DatePicker } from "./DatePicker";
+import { PartnerSelect } from "./PartnerSelect";
 
 export interface SaleItemInput {
   id: string;
@@ -248,8 +249,32 @@ export function SaleModal({
       onClose={onClose}
       title="Chipta sotish"
       maxWidth="max-w-2xl"
+      footer={
+        <div className="flex items-center justify-between w-full gap-3">
+          <div className="text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-300">
+            Jami: <strong className="text-sm sm:text-base font-bold text-emerald-500 font-mono">{formatUSD(totalAmount)}</strong>{" "}
+            <span className="text-slate-400 font-normal">({totalQty} ta chipta)</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/[0.06] rounded-xl transition-colors cursor-pointer"
+            >
+              Bekor qilish
+            </button>
+            <button
+              type="submit"
+              form="sale-form"
+              className="px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm shadow-blue-500/20 transition-all cursor-pointer"
+            >
+              Sotuvni tasdiqlash
+            </button>
+          </div>
+        </div>
+      }
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form id="sale-form" onSubmit={handleSubmit} className="space-y-4">
         {error && (
           <div className="p-2.5 text-xs bg-red-50 dark:bg-red-950/50 text-red-600 dark:text-red-400 rounded-xl border border-red-200 dark:border-red-800 font-medium">
             {error}
@@ -259,33 +284,15 @@ export function SaleModal({
         {/* 1. Mijoz va Sana */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Mijoz / Hamkor *
-              </label>
-              {onOpenClientModal && (
-                <button
-                  type="button"
-                  onClick={onOpenClientModal}
-                  className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline font-semibold cursor-pointer"
-                >
-                  + Yangi hamkor
-                </button>
-              )}
-            </div>
-            <select
+            <PartnerSelect
+              label="Mijoz / Hamkor"
               value={clientId}
-              onChange={(e) => setClientId(e.target.value)}
-              className="w-full px-3 py-2 text-xs sm:text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+              onChange={(val) => setClientId(val)}
+              partners={clients}
+              onAddNew={onOpenClientModal}
+              placeholder="-- Mijoz yoki Hamkorni tanlang --"
               required
-            >
-              <option value="">-- Mijoz yoki Hamkorni tanlang --</option>
-              {clients.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name} {c.tags && c.tags.length > 0 ? `• [${c.tags.join(", ")}]` : ""} {c.phone ? `(${c.phone})` : ""}
-                </option>
-              ))}
-            </select>
+            />
           </div>
 
           <div>
@@ -718,23 +725,6 @@ export function SaleModal({
             onChange={(e) => setNotes(e.target.value)}
             className="w-full px-3 py-1.5 text-xs sm:text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
-        </div>
-
-        {/* Action Buttons */}
-        <div className="pt-4 mt-3 border-t border-slate-200/80 dark:border-white/[0.08] flex items-center justify-end gap-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/[0.06] rounded-xl transition-colors cursor-pointer"
-          >
-            Bekor qilish
-          </button>
-          <button
-            type="submit"
-            className="px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm shadow-blue-500/20 transition-all cursor-pointer"
-          >
-            Sotuvni tasdiqlash
-          </button>
         </div>
       </form>
     </Modal>

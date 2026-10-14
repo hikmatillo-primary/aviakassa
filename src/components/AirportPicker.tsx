@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { Search, ChevronDown, Check, Plane } from "lucide-react";
 
 export interface AirportOption {
@@ -131,21 +132,67 @@ export function AirportPicker({
   const displayCode = matched ? matched.code : value?.toUpperCase() || "";
   const displayCity = matched ? matched.city : "";
 
+  const [mounted, setMounted] = useState(false);
+  const popoverRef = useRef<HTMLDivElement>(null);
+  const [coords, setCoords] = useState<{
+    top: number;
+    left: number;
+  } | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const updatePosition = useCallback(() => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const width = 320;
+    const height = 360;
+    const margin = 8;
+
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const openUp = spaceBelow < height && rect.top > spaceBelow;
+
+    const top = openUp
+      ? Math.max(margin, rect.top - height - margin)
+      : Math.min(window.innerHeight - height - margin, rect.bottom + margin);
+
+    let left = rect.left;
+    if (left + width > window.innerWidth - margin) {
+      left = Math.max(margin, rect.right - width);
+    }
+    if (left < margin) left = margin;
+
+    setCoords({ top, left });
+  }, []);
+
   // Dropdown tashqarisiga bosilganda yopish
   useEffect(() => {
+    if (!isOpen) return;
+    updatePosition();
+    setTimeout(() => searchInputRef.current?.focus(), 50);
+
     const handleOutsideClick = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
-      }
+      const target = e.target as Node;
+      if (containerRef.current?.contains(target)) return;
+      if (popoverRef.current?.contains(target)) return;
+      setIsOpen(false);
     };
-    if (isOpen) {
-      document.addEventListener("mousedown", handleOutsideClick);
-      setTimeout(() => searchInputRef.current?.focus(), 50);
-    }
+
+    const handleScrollOrResize = () => {
+      updatePosition();
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    window.addEventListener("resize", handleScrollOrResize);
+    window.addEventListener("scroll", handleScrollOrResize, true);
+
     return () => {
       document.removeEventListener("mousedown", handleOutsideClick);
+      window.removeEventListener("resize", handleScrollOrResize);
+      window.removeEventListener("scroll", handleScrollOrResize, true);
     };
-  }, [isOpen]);
+  }, [isOpen, updatePosition]);
 
   // Qidiruv va filtr
   const filteredAirports = AIRPORTS.filter((a) => {
@@ -213,97 +260,111 @@ export function AirportPicker({
         </div>
       </button>
 
-      {/* Dropdown Menu */}
-      {isOpen && (
-        <div className="absolute left-0 top-full mt-1.5 w-72 sm:w-84 bg-white dark:bg-[#111726] rounded-2xl shadow-2xl border border-slate-200/90 dark:border-white/[0.1] z-50 p-2.5 animate-in fade-in zoom-in-95 duration-100">
-          {/* Search Input */}
-          <form onSubmit={handleCustomSubmit} className="relative mb-2">
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-            <input
-              ref={searchInputRef}
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Ticker yoki shahar (TAS, JED, Dubay...)"
-              className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 dark:bg-[#0c121e] border border-slate-200 dark:border-white/[0.08] rounded-xl text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
-            />
-          </form>
+      {/* Dropdown Menu rendered via React Portal */}
+      {isOpen &&
+        mounted &&
+        coords &&
+        createPortal(
+          <div
+            ref={popoverRef}
+            style={{
+              position: "fixed",
+              top: `${coords.top}px`,
+              left: `${coords.left}px`,
+              width: "320px",
+              zIndex: 99999,
+            }}
+            className="bg-white dark:bg-[#0f1523] rounded-2xl shadow-2xl border border-slate-200/90 dark:border-white/[0.1] p-2.5 animate-in fade-in zoom-in-95 duration-100 select-none text-slate-900 dark:text-white"
+          >
+            {/* Search Input */}
+            <form onSubmit={handleCustomSubmit} className="relative mb-2">
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+              <input
+                ref={searchInputRef}
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Ticker yoki shahar (TAS, JED, Dubay...)"
+                className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 dark:bg-[#0c121e] border border-slate-200 dark:border-white/[0.08] rounded-xl text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+              />
+            </form>
 
-          {/* Region Tabs */}
-          <div className="flex items-center gap-1 overflow-x-auto pb-1.5 mb-1.5 border-b border-slate-100 dark:border-white/[0.06] text-[10px] font-semibold scrollbar-none">
-            {[
-              { id: "all", label: "Barchasi" },
-              { id: "uz", label: "O‘zbekiston" },
-              { id: "mideast", label: "Umra / BAA" },
-              { id: "tr_eu", label: "Turkiya / Misr" },
-              { id: "cis", label: "Rossiya / MDH" },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setRegionFilter(tab.id)}
-                className={`px-2 py-0.5 rounded-lg whitespace-nowrap cursor-pointer transition-colors ${
-                  regionFilter === tab.id
-                    ? "bg-blue-600 text-white"
-                    : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/[0.05]"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Airports List */}
-          <div className="max-h-56 overflow-y-auto space-y-0.5 pr-0.5 text-xs">
-            {filteredAirports.map((item) => {
-              const isSelected = displayCode === item.code;
-              return (
+            {/* Region Tabs */}
+            <div className="flex items-center gap-1 overflow-x-auto pb-1.5 mb-1.5 border-b border-slate-100 dark:border-white/[0.06] text-[10px] font-semibold scrollbar-none">
+              {[
+                { id: "all", label: "Barchasi" },
+                { id: "uz", label: "O‘zbekiston" },
+                { id: "mideast", label: "Umra / BAA" },
+                { id: "tr_eu", label: "Turkiya / Misr" },
+                { id: "cis", label: "Rossiya / MDH" },
+              ].map((tab) => (
                 <button
-                  key={item.code}
+                  key={tab.id}
                   type="button"
-                  onClick={() => handleSelect(item.code)}
-                  className={`w-full text-left px-2.5 py-1.5 rounded-xl flex items-center justify-between transition-colors cursor-pointer group ${
-                    isSelected
-                      ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-semibold"
-                      : "hover:bg-slate-100/80 dark:hover:bg-white/[0.04] text-slate-700 dark:text-slate-200"
+                  onClick={() => setRegionFilter(tab.id)}
+                  className={`px-2 py-0.5 rounded-lg whitespace-nowrap cursor-pointer transition-colors ${
+                    regionFilter === tab.id
+                      ? "bg-blue-600 text-white"
+                      : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/[0.05]"
                   }`}
                 >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="font-mono font-bold text-xs bg-slate-100 dark:bg-[#1a233a] px-1.5 py-0.5 rounded text-blue-600 dark:text-blue-400 tracking-wider">
-                      {item.code}
-                    </span>
-                    <div className="min-w-0">
-                      <span className="block font-semibold text-xs text-slate-900 dark:text-white truncate">
-                        {item.city}
-                      </span>
-                      <span className="block text-[10px] text-slate-400 truncate">
-                        {item.country}
-                      </span>
-                    </div>
-                  </div>
-
-                  {isSelected && <Check className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />}
+                  {tab.label}
                 </button>
-              );
-            })}
+              ))}
+            </div>
 
-            {filteredAirports.length === 0 && (
-              <div className="py-3 text-center">
-                <p className="text-[11px] text-slate-400 mb-1.5">Ro‘yxatdan topilmadi</p>
-                {search.trim() && (
+            {/* Airports List */}
+            <div className="max-h-56 overflow-y-auto space-y-0.5 pr-0.5 text-xs">
+              {filteredAirports.map((item) => {
+                const isSelected = displayCode === item.code;
+                return (
                   <button
+                    key={item.code}
                     type="button"
-                    onClick={() => handleSelect(search.trim().toUpperCase())}
-                    className="px-2.5 py-1 bg-blue-600 text-white text-[11px] font-semibold rounded-lg hover:bg-blue-700 cursor-pointer"
+                    onClick={() => handleSelect(item.code)}
+                    className={`w-full text-left px-2.5 py-1.5 rounded-xl flex items-center justify-between transition-colors cursor-pointer group ${
+                      isSelected
+                        ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-semibold"
+                        : "hover:bg-slate-100/80 dark:hover:bg-white/[0.04] text-slate-700 dark:text-slate-200"
+                    }`}
                   >
-                    Ticker sifatida ishlatish: &ldquo;{search.trim().toUpperCase()}&rdquo;
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="font-mono font-bold text-xs bg-slate-100 dark:bg-[#1a233a] px-1.5 py-0.5 rounded text-blue-600 dark:text-blue-400 tracking-wider">
+                        {item.code}
+                      </span>
+                      <div className="min-w-0">
+                        <span className="block font-semibold text-xs text-slate-900 dark:text-white truncate">
+                          {item.city}
+                        </span>
+                        <span className="block text-[10px] text-slate-400 truncate">
+                          {item.country}
+                        </span>
+                      </div>
+                    </div>
+
+                    {isSelected && <Check className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />}
                   </button>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+                );
+              })}
+
+              {filteredAirports.length === 0 && (
+                <div className="py-3 text-center">
+                  <p className="text-[11px] text-slate-400 mb-1.5">Ro‘yxatdan topilmadi</p>
+                  {search.trim() && (
+                    <button
+                      type="button"
+                      onClick={() => handleSelect(search.trim().toUpperCase())}
+                      className="px-2.5 py-1 bg-blue-600 text-white text-[11px] font-semibold rounded-lg hover:bg-blue-700 cursor-pointer"
+                    >
+                      Ticker sifatida ishlatish: &ldquo;{search.trim().toUpperCase()}&rdquo;
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 }

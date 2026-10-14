@@ -9,10 +9,11 @@ interface ModalProps {
   title: string;
   description?: string;
   children: React.ReactNode;
+  footer?: React.ReactNode;
   maxWidth?: string;
 }
 
-export function Modal({ isOpen, onClose, title, description, children, maxWidth = "max-w-lg" }: ModalProps) {
+export function Modal({ isOpen, onClose, title, description, children, footer, maxWidth = "max-w-lg" }: ModalProps) {
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -59,7 +60,14 @@ export function Modal({ isOpen, onClose, title, description, children, maxWidth 
         </div>
 
         {/* Content */}
-        <div className="p-4 sm:p-5 overflow-y-auto flex-1 text-slate-800 dark:text-slate-200 pb-6 sm:pb-5">{children}</div>
+        <div className="p-4 sm:p-5 overflow-y-auto flex-1 text-slate-800 dark:text-slate-200">{children}</div>
+
+        {/* Pinned Footer (Always visible) */}
+        {footer && (
+          <div className="px-4 sm:px-6 py-3 border-t border-slate-200/80 dark:border-white/[0.08] bg-slate-50/95 dark:bg-[#0c121e]/95 backdrop-blur-xs shrink-0">
+            {footer}
+          </div>
+        )}
       </div>
     </div>
   );

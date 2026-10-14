@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, X } from "lucide-react";
 
 interface DatePickerProps {
@@ -13,6 +14,7 @@ interface DatePickerProps {
   className?: string;
   labelClassName?: string;
   compact?: boolean;
+  align?: "left" | "right" | "auto";
 }
 
 const MONTH_NAMES = [
@@ -31,7 +33,6 @@ const MONTH_NAMES = [
 ];
 
 const SHORT_MONTHS = [
-  "Okt",
   "Yan",
   "Fev",
   "Mar",
@@ -66,7 +67,6 @@ function formatDateDisplay(dateStr: string): string {
   const weekday = WEEKDAYS_FULL[d.getDay()];
   const monthName = MONTH_NAMES[monthIdx];
 
-  // Bugun yoki ertaga ekanini tekshirish
   const today = new Date();
   const todayStr = `${today.getFullYear()}-${padZero(today.getMonth() + 1)}-${padZero(today.getDate())}`;
 
@@ -90,11 +90,8 @@ function formatCompactDisplay(dateStr: string): string {
   const day = parseInt(parts[2], 10);
   if (isNaN(year) || isNaN(monthIdx) || isNaN(day)) return dateStr;
 
-  const d = new Date(year, monthIdx, day);
-  const weekday = WEEKDAYS_FULL[d.getDay()];
-  const monthName = MONTH_NAMES[monthIdx].slice(0, 3);
-
-  return `${day}-${monthName}, ${year} (${weekday})`;
+  const monthName = SHORT_MONTHS[monthIdx] || MONTH_NAMES[monthIdx].slice(0, 3);
+  return `${day}-${monthName}, ${year}`;
 }
 
 export function DatePicker({
@@ -107,11 +104,14 @@ export function DatePicker({
   className = "",
   labelClassName = "",
   compact = false,
+  align = "auto",
 }: DatePickerProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
 
-  // Kalendar hozir qaysi oyda turgani
+  // Initial month / year to view
   const initialDate = value ? new Date(value) : new Date();
   const [viewYear, setViewYear] = useState<number>(
     isNaN(initialDate.getTime()) ? new Date().getFullYear() : initialDate.getFullYear()
@@ -120,7 +120,18 @@ export function DatePicker({
     isNaN(initialDate.getTime()) ? new Date().getMonth() : initialDate.getMonth()
   );
 
-  // Qiymat o'zgarganda kalendarni o'sha oyga sinxronlash
+  // Position state for portal
+  const [coords, setCoords] = useState<{
+    top: number;
+    left: number;
+    placement: "bottom" | "top";
+  } | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Sync viewed month when value changes
   useEffect(() => {
     if (value) {
       const parts = value.split("-");
@@ -135,16 +146,91 @@ export function DatePicker({
     }
   }, [value]);
 
+  // Compute smart portal position
+  const updatePosition = useCallback(() => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const popoverWidth = 320;
+    const popoverHeight = 350;
+    const margin = 8;
+
+    // Vertical placement
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceAbove = rect.top;
+    const openUp = spaceBelow < popoverHeight && spaceAbove > spaceBelow;
+
+    const top = openUp
+      ? Math.max(margin, rect.top - popoverHeight - margin)
+      : Math.min(window.innerHeight - popoverHeight - margin, rect.bottom + margin);
+
+    // Horizontal placement
+    let left = rect.left;
+    if (align === "right") {
+      left = rect.right - popoverWidth;
+    } else if (align === "left") {
+      left = rect.left;
+    } else {
+      // auto: if overflowing to the right, align to right side
+      if (left + popoverWidth > window.innerWidth - margin) {
+        left = rect.right - popoverWidth;
+      }
+    }
+
+    // Keep within window bounds
+    if (left + popoverWidth > window.innerWidth - margin) {
+      left = window.innerWidth - popoverWidth - margin;
+    }
+    if (left < margin) {
+      left = margin;
+    }
+
+    setCoords({
+      top,
+      left,
+      placement: openUp ? "top" : "bottom",
+    });
+  }, [align]);
+
+  // Update position on open, scroll, resize
+  useEffect(() => {
+    if (!isOpen) return;
+    updatePosition();
+
+    const handleScrollOrResize = () => {
+      updatePosition();
+    };
+
+    window.addEventListener("resize", handleScrollOrResize);
+    window.addEventListener("scroll", handleScrollOrResize, true);
+
+    return () => {
+      window.removeEventListener("resize", handleScrollOrResize);
+      window.removeEventListener("scroll", handleScrollOrResize, true);
+    };
+  }, [isOpen, updatePosition]);
+
   // Click outside listener
   useEffect(() => {
+    if (!isOpen) return;
+
     const handleOutsideClick = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
+      const target = e.target as Node;
+      if (
+        containerRef.current &&
+        containerRef.current.contains(target)
+      ) {
+        return;
       }
+      if (
+        popoverRef.current &&
+        popoverRef.current.contains(target)
+      ) {
+        return;
+      }
+      setIsOpen(false);
     };
-    if (isOpen) {
-      document.addEventListener("mousedown", handleOutsideClick);
-    }
+
+    document.addEventListener("mousedown", handleOutsideClick);
     return () => {
       document.removeEventListener("mousedown", handleOutsideClick);
     };
@@ -191,17 +277,15 @@ export function DatePicker({
     onChange("");
   };
 
-  // Oydagi kunlar soni
+  // Month day calculation
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
-  // Oyning 1-kuni haftaning qaysi kuniga to'g'ri keladi (Dushanba = 0 ... Yakshanba = 6)
-  const firstDayOfWeek = (new Date(viewYear, viewMonth, 1).getDay() + 6) % 7;
+  const firstDayOfWeek = (new Date(viewYear, viewMonth, 1).getDay() + 6) % 7; // Monday = 0
 
-  // Bugungi sana
   const today = new Date();
   const todayStr = `${today.getFullYear()}-${padZero(today.getMonth() + 1)}-${padZero(today.getDate())}`;
 
   return (
-    <div className={`relative ${isOpen ? "z-50" : ""} ${className}`} ref={containerRef}>
+    <div className={`relative ${className}`} ref={containerRef}>
       {label && (
         <div className="flex items-center justify-between mb-1">
           <label className={labelClassName || "block text-xs font-semibold text-slate-700 dark:text-slate-300"}>
@@ -219,24 +303,30 @@ export function DatePicker({
         </div>
       )}
 
-      {/* Trigger Button */}
+      {/* Trigger Input Button */}
       <div
-        onClick={() => setIsOpen((prev) => !prev)}
-        className={`w-full flex items-center justify-between gap-2 px-3 py-2 bg-white dark:bg-[#111726] border rounded-xl cursor-pointer transition-all select-none ${
+        onClick={() => {
+          setIsOpen((prev) => !prev);
+        }}
+        className={`w-full flex items-center justify-between gap-1.5 px-2.5 sm:px-3 py-2 bg-white dark:bg-[#111726] border rounded-xl cursor-pointer transition-all select-none ${
           isOpen
             ? "border-blue-500 ring-2 ring-blue-500/20 shadow-sm"
             : "border-slate-300 dark:border-slate-700/80 hover:border-slate-400 dark:hover:border-slate-600"
-        } ${compact ? "min-h-[46px] py-1.5" : ""}`}
+        } ${compact ? "min-h-[42px] py-1.5 px-2" : ""}`}
       >
-        <div className="flex items-center gap-2 min-w-0 flex-1">
-          <CalendarIcon className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+        <div className="flex items-center gap-1.5 min-w-0 flex-1">
+          <CalendarIcon className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
           <div className="min-w-0 flex-1">
             {value ? (
-              <span className="block text-xs sm:text-sm font-bold text-slate-900 dark:text-white truncate">
+              <span
+                className={`block font-bold text-slate-900 dark:text-white truncate ${
+                  compact ? "text-[12px] sm:text-xs" : "text-xs sm:text-sm"
+                }`}
+              >
                 {compact ? formatCompactDisplay(value) : formatDateDisplay(value)}
               </span>
             ) : (
-              <span className="block text-xs sm:text-sm text-slate-400 italic font-medium truncate">
+              <span className="block text-xs text-slate-400 italic font-medium truncate">
                 {placeholder}
               </span>
             )}
@@ -248,149 +338,165 @@ export function DatePicker({
             type="button"
             onClick={handleClear}
             title="Sanani o'chirish"
-            className="p-1 rounded-md text-slate-400 hover:text-rose-500 hover:bg-slate-100 dark:hover:bg-white/[0.05] transition-colors cursor-pointer"
+            className="p-1 rounded-md text-slate-400 hover:text-rose-500 hover:bg-slate-100 dark:hover:bg-white/[0.05] transition-colors cursor-pointer shrink-0"
           >
             <X className="w-3.5 h-3.5" />
           </button>
         )}
       </div>
 
-      {/* Popover Calendar Dropdown */}
-      {isOpen && (
-        <div className="absolute left-0 top-full mt-1.5 w-76 sm:w-80 bg-white dark:bg-[#111726] rounded-2xl shadow-2xl border border-slate-200 dark:border-white/[0.1] z-50 p-3 animate-in fade-in zoom-in-95 duration-100">
-          {/* Quick Buttons Bar */}
-          <div className="flex items-center gap-1 overflow-x-auto pb-2 mb-2 border-b border-slate-100 dark:border-white/[0.06] scrollbar-none text-[11px] font-semibold">
-            <button
-              type="button"
-              onClick={() => handleQuickAddDays(0)}
-              className="px-2.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 cursor-pointer whitespace-nowrap"
-            >
-              Bugun
-            </button>
-            <button
-              type="button"
-              onClick={() => handleQuickAddDays(1)}
-              className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer whitespace-nowrap"
-            >
-              Ertaga
-            </button>
-            <button
-              type="button"
-              onClick={() => handleQuickAddDays(7)}
-              className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer whitespace-nowrap"
-            >
-              +1 hafta
-            </button>
-            <button
-              type="button"
-              onClick={() => handleQuickAddDays(14)}
-              className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer whitespace-nowrap"
-            >
-              +2 hafta
-            </button>
-            <button
-              type="button"
-              onClick={() => handleQuickAddDays(30)}
-              className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer whitespace-nowrap"
-            >
-              +1 oy
-            </button>
-          </div>
-
-          {/* Month & Year Navigation Header */}
-          <div className="flex items-center justify-between px-1 mb-2">
-            <button
-              type="button"
-              onClick={handlePrevMonth}
-              className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 cursor-pointer transition-colors"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <div className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
-              {MONTH_NAMES[viewMonth]} {viewYear}
-            </div>
-            <button
-              type="button"
-              onClick={handleNextMonth}
-              className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 cursor-pointer transition-colors"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
-
-          {/* Weekday Labels (Dushanba -> Yakshanba) */}
-          <div className="grid grid-cols-7 gap-1 text-center mb-1">
-            {WEEKDAY_NAMES.map((name, i) => (
-              <span
-                key={name}
-                className={`text-[10px] font-bold py-1 ${
-                  i >= 5 ? "text-amber-600 dark:text-amber-400" : "text-slate-400"
-                }`}
-              >
-                {name}
-              </span>
-            ))}
-          </div>
-
-          {/* Days Grid */}
-          <div className="grid grid-cols-7 gap-1">
-            {/* Blank padding cells before day 1 */}
-            {Array.from({ length: firstDayOfWeek }).map((_, i) => (
-              <div key={`blank-${i}`} className="w-8 h-8 sm:w-9 sm:h-9" />
-            ))}
-
-            {/* Days 1 to daysInMonth */}
-            {Array.from({ length: daysInMonth }).map((_, i) => {
-              const day = i + 1;
-              const dateKey = `${viewYear}-${padZero(viewMonth + 1)}-${padZero(day)}`;
-              const isSelected = value === dateKey;
-              const isToday = todayStr === dateKey;
-
-              return (
-                <button
-                  key={day}
-                  type="button"
-                  onClick={() => handleSelectDay(day)}
-                  className={`w-8 h-8 sm:w-9 sm:h-9 rounded-xl text-xs font-semibold flex items-center justify-center transition-all cursor-pointer ${
-                    isSelected
-                      ? "bg-blue-600 text-white font-bold shadow-sm shadow-blue-500/40"
-                      : isToday
-                      ? "border border-blue-500 text-blue-600 dark:text-blue-400 font-bold hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                      : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-                  }`}
-                >
-                  {day}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Footer Clear / Today Action */}
-          <div className="flex items-center justify-between pt-2.5 mt-2 border-t border-slate-100 dark:border-white/[0.06] text-xs">
-            {clearable ? (
+      {/* Popover Calendar rendered via React Portal */}
+      {isOpen &&
+        mounted &&
+        coords &&
+        createPortal(
+          <div
+            ref={popoverRef}
+            style={{
+              position: "fixed",
+              top: `${coords.top}px`,
+              left: `${coords.left}px`,
+              width: "320px",
+              zIndex: 99999,
+            }}
+            className="bg-white dark:bg-[#0f1523] rounded-2xl shadow-2xl border border-slate-200 dark:border-white/[0.1] p-3 text-slate-900 dark:text-white animate-in fade-in zoom-in-95 duration-100 select-none"
+          >
+            {/* Quick Presets Bar */}
+            <div className="flex items-center gap-1 overflow-x-auto pb-2 mb-2 border-b border-slate-100 dark:border-white/[0.06] scrollbar-none text-[11px] font-semibold">
               <button
                 type="button"
-                onClick={() => {
-                  onChange("");
-                  setIsOpen(false);
-                }}
-                className="text-[11px] font-semibold text-rose-500 hover:underline cursor-pointer"
+                onClick={() => handleQuickAddDays(0)}
+                className="px-2.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 cursor-pointer whitespace-nowrap"
               >
-                Sanani tozalash
+                Bugun
               </button>
-            ) : (
-              <span className="text-[10px] text-slate-400">Aviakassa kalendari</span>
-            )}
-            <button
-              type="button"
-              onClick={() => handleQuickAddDays(0)}
-              className="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
-            >
-              Bugungi sana
-            </button>
-          </div>
-        </div>
-      )}
+              <button
+                type="button"
+                onClick={() => handleQuickAddDays(1)}
+                className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer whitespace-nowrap"
+              >
+                Ertaga
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickAddDays(7)}
+                className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer whitespace-nowrap"
+              >
+                +1 hafta
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickAddDays(14)}
+                className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer whitespace-nowrap"
+              >
+                +2 hafta
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickAddDays(30)}
+                className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer whitespace-nowrap"
+              >
+                +1 oy
+              </button>
+            </div>
+
+            {/* Month & Year Navigation Header */}
+            <div className="flex items-center justify-between px-1 mb-2">
+              <button
+                type="button"
+                onClick={handlePrevMonth}
+                className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 cursor-pointer transition-colors"
+                title="Oldingi oy"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <div className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
+                {MONTH_NAMES[viewMonth]} {viewYear}
+              </div>
+              <button
+                type="button"
+                onClick={handleNextMonth}
+                className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 cursor-pointer transition-colors"
+                title="Keyingi oy"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Weekday Labels (Dushanba -> Yakshanba) */}
+            <div className="grid grid-cols-7 gap-1 text-center mb-1">
+              {WEEKDAY_NAMES.map((name, i) => (
+                <span
+                  key={name}
+                  className={`text-[11px] font-bold py-0.5 ${
+                    i >= 5 ? "text-amber-500 dark:text-amber-400" : "text-slate-400"
+                  }`}
+                >
+                  {name}
+                </span>
+              ))}
+            </div>
+
+            {/* Days Grid - All 31 days clearly displayed */}
+            <div className="grid grid-cols-7 gap-1">
+              {/* Blank leading cells */}
+              {Array.from({ length: firstDayOfWeek }).map((_, i) => (
+                <div key={`blank-${i}`} className="w-9 h-9" />
+              ))}
+
+              {/* Days 1 to daysInMonth */}
+              {Array.from({ length: daysInMonth }).map((_, i) => {
+                const day = i + 1;
+                const dateKey = `${viewYear}-${padZero(viewMonth + 1)}-${padZero(day)}`;
+                const isSelected = value === dateKey;
+                const isToday = todayStr === dateKey;
+
+                return (
+                  <button
+                    key={day}
+                    type="button"
+                    onClick={() => handleSelectDay(day)}
+                    className={`w-9 h-9 rounded-xl text-xs font-semibold flex items-center justify-center transition-all cursor-pointer ${
+                      isSelected
+                        ? "bg-blue-600 text-white font-bold shadow-md shadow-blue-500/30 scale-105"
+                        : isToday
+                        ? "border border-blue-500 text-blue-600 dark:text-blue-400 font-bold bg-blue-50 dark:bg-blue-900/20"
+                        : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                    }`}
+                  >
+                    {day}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Footer Bar */}
+            <div className="flex items-center justify-between pt-2.5 mt-2 border-t border-slate-100 dark:border-white/[0.06] text-xs">
+              {clearable ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onChange("");
+                    setIsOpen(false);
+                  }}
+                  className="text-[11px] font-semibold text-rose-500 hover:underline cursor-pointer"
+                >
+                  Sanani tozalash
+                </button>
+              ) : (
+                <span className="text-[10px] text-slate-400">Aviakassa kalendari</span>
+              )}
+              <button
+                type="button"
+                onClick={() => handleQuickAddDays(0)}
+                className="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+              >
+                Bugungi sana
+              </button>
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 }
