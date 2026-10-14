@@ -28,6 +28,17 @@ import {
   Partner,
   DebtOffset,
 } from "@/lib/storage";
+import {
+  apiFetchAll,
+  apiCreateBatch,
+  apiUpdateBatch,
+  apiCreateSale,
+  apiUpdateSale,
+  apiCreatePayment,
+  apiCreatePartner,
+  apiCreateDebtOffset,
+} from "@/lib/api";
+
 
 export function AppContainer() {
   const [data, setData] = useState<AviakassaData>(INITIAL_DEMO_DATA);
@@ -78,10 +89,26 @@ export function AppContainer() {
     });
   };
 
-  // Initialize data from localStorage on mount
+  // Initialize data from localStorage on mount & sync with Django backend
   useEffect(() => {
     const saved = loadData();
     setData(saved);
+
+    // Backend bilan sinxronlash
+    apiFetchAll()
+      .then((backendData) => {
+        if (
+          backendData.partners.length > 0 ||
+          backendData.batches.length > 0 ||
+          backendData.sales.length > 0
+        ) {
+          setData(backendData);
+          saveData(backendData);
+        }
+      })
+      .catch((err) => {
+        console.warn("Backend bilan ulanib bo'lmadi, lokal ma'lumotlar ishlatilmoqda:", err);
+      });
   }, []);
 
   const updateData = (newData: AviakassaData) => {
@@ -191,6 +218,22 @@ export function AppContainer() {
       debtOffsets: [newOffset, ...(data.debtOffsets || [])],
     });
     showToast("O‘zaro qarz muvaffaqiyatli surildi! 🔄");
+
+    (async () => {
+      try {
+        await apiCreateDebtOffset({
+          fromPartnerId: offsetInput.fromPartnerId,
+          toPartnerId: offsetInput.toPartnerId,
+          amount: offsetInput.amount,
+          date: offsetInput.date,
+          notes: offsetInput.notes,
+        });
+        const synced = await apiFetchAll();
+        updateData(synced);
+      } catch (e) {
+        console.warn("Backendga o'zaro qarz saqlashda xato:", e);
+      }
+    })();
   };
 
   // CRUD Operations
@@ -284,6 +327,43 @@ export function AppContainer() {
       payments: newPayments,
     });
     showToast("Chipta sotuvi muvaffaqiyatli saqlandi! 🎉");
+
+    (async () => {
+      try {
+        for (const item of saleInput.items) {
+          await apiCreateSale({
+            batchId: item.batchId,
+            clientId: saleInput.clientId,
+            qty: item.qty,
+            sellPrice: item.sellPrice,
+            passengerNames: item.passengerNames || "",
+            saleDate: saleInput.saleDate,
+            departureTime: item.departureTime,
+            arrivalTime: item.arrivalTime,
+            isRoundTrip: item.isRoundTrip,
+            returnDate: item.returnDate,
+            returnFlightNumber: item.returnFlightNumber,
+            returnDepartureTime: item.returnDepartureTime,
+            returnArrivalTime: item.returnArrivalTime,
+            notes: saleInput.notes,
+          });
+        }
+        if (saleInput.paidNow > 0) {
+          await apiCreatePayment({
+            partnerId: saleInput.clientId,
+            type: "INCOME",
+            amount: saleInput.paidNow,
+            paymentDate: saleInput.saleDate,
+            paymentMethod: saleInput.paymentMethod,
+            notes: `Chiptalar sotuvi uchun to'lov (${routeNames.join(", ")})`,
+          });
+        }
+        const synced = await apiFetchAll();
+        updateData(synced);
+      } catch (e) {
+        console.warn("Backendga sotuv saqlashda xato:", e);
+      }
+    })();
   };
 
   const handleAddBatch = (batchInput: {
@@ -382,6 +462,51 @@ export function AppContainer() {
       payments: newPayments,
     });
     showToast("Yangi partiya omborga kiritildi! ✈️");
+
+    (async () => {
+      try {
+        for (const item of batchInput.items) {
+          await apiCreateBatch({
+            supplierId: batchInput.supplierId,
+            route: item.route,
+            flightDate: item.flightDate,
+            flightNumber: item.flightNumber ? item.flightNumber.trim().toUpperCase() : "",
+            departureTime: item.departureTime,
+            arrivalTime: item.arrivalTime,
+            isRoundTrip: Boolean(item.isRoundTrip),
+            returnDate: item.isRoundTrip ? item.returnDate : undefined,
+            returnFlightNumber: item.isRoundTrip ? item.returnFlightNumber : undefined,
+            returnDepartureTime: item.isRoundTrip ? item.returnDepartureTime : undefined,
+            returnArrivalTime: item.isRoundTrip ? item.returnArrivalTime : undefined,
+            purchaseDate: batchInput.purchaseDate || new Date().toISOString().split("T")[0],
+            baggage: item.baggage,
+            totalQty: item.totalQty,
+            remainingQty: item.totalQty,
+            buyPrice: item.buyPrice,
+            status: "ACTIVE",
+            notes: item.notes,
+            batchNumber: item.batchNumber,
+          });
+        }
+        if (batchInput.paidNow && batchInput.paidNow > 0) {
+          await apiCreatePayment({
+            partnerId: batchInput.supplierId,
+            type: "EXPENSE",
+            amount: batchInput.paidNow,
+            paymentDate:
+              batchInput.purchaseDate ||
+              newBatches[0]?.flightDate ||
+              new Date().toISOString().split("T")[0],
+            paymentMethod: batchInput.paymentMethod || "CASH",
+            notes: `Partiyalar xaridi uchun to'lov (${routeNames.join(", ")})`,
+          });
+        }
+        const synced = await apiFetchAll();
+        updateData(synced);
+      } catch (e) {
+        console.warn("Backendga partiya saqlashda xato:", e);
+      }
+    })();
   };
 
   const handleAddPayment = (paymentInput: {
@@ -412,6 +537,23 @@ export function AppContainer() {
         ? "Kassa kirimi muvaffaqiyatli saqlandi! 💵"
         : "Kassa chiqimi muvaffaqiyatli saqlandi! 💸"
     );
+
+    (async () => {
+      try {
+        await apiCreatePayment({
+          partnerId: paymentInput.partnerId,
+          type: paymentInput.type,
+          amount: paymentInput.amount,
+          paymentDate: paymentInput.paymentDate,
+          paymentMethod: paymentInput.paymentMethod,
+          notes: paymentInput.notes,
+        });
+        const synced = await apiFetchAll();
+        updateData(synced);
+      } catch (e) {
+        console.warn("Backendga to'lov saqlashda xato:", e);
+      }
+    })();
   };
 
   const handleAddPartner = (partnerInput: {
@@ -436,14 +578,32 @@ export function AppContainer() {
       partners: [...data.partners, newPartner],
     });
     showToast("Yangi hamkor muvaffaqiyatli qo‘shildi! 🤝");
+
+    (async () => {
+      try {
+        await apiCreatePartner({
+          name: partnerInput.name,
+          type: partnerInput.type || "CLIENT",
+          tags: partnerInput.tags || [],
+          phone: partnerInput.phone,
+          notes: partnerInput.notes,
+        });
+        const synced = await apiFetchAll();
+        updateData(synced);
+      } catch (e) {
+        console.warn("Backendga hamkor saqlashda xato:", e);
+      }
+    })();
   };
 
   const handleToggleBatchStatus = (id: number) => {
+    let nextStatus: "ACTIVE" | "COMPLETED" = "ACTIVE";
     const updatedBatches = data.batches.map((b) => {
       if (b.id === id) {
+        nextStatus = b.status === "ACTIVE" ? "COMPLETED" : "ACTIVE";
         return {
           ...b,
-          status: (b.status === "ACTIVE" ? "COMPLETED" : "ACTIVE") as "ACTIVE" | "COMPLETED",
+          status: nextStatus,
         };
       }
       return b;
@@ -454,6 +614,16 @@ export function AppContainer() {
       batches: updatedBatches,
     });
     showToast("Partiya holati yangilandi!");
+
+    (async () => {
+      try {
+        await apiUpdateBatch(id, { status: nextStatus });
+        const synced = await apiFetchAll();
+        updateData(synced);
+      } catch (e) {
+        console.warn("Backendga partiya holati yangilashda xato:", e);
+      }
+    })();
   };
 
   // Xarid narxi va sonini tahrirlash (Kompaniya hisob-kitobi va sof foydani qayta hisoblaydi)
@@ -487,6 +657,20 @@ export function AppContainer() {
       sales: updatedSales,
     });
     showToast("Partiya ma'lumotlari yangilandi!");
+
+    (async () => {
+      try {
+        await apiUpdateBatch(batchId, {
+          buyPrice: newBuyPrice,
+          totalQty: newTotalQty,
+          totalCost: newTotalQty * newBuyPrice,
+        });
+        const synced = await apiFetchAll();
+        updateData(synced);
+      } catch (e) {
+        console.warn("Backendga partiya narxi yangilashda xato:", e);
+      }
+    })();
   };
 
   // Sotuv narxi va sonini tahrirlash (Mijoz hisob-kitobi va sof foydani qayta hisoblaydi)
@@ -519,6 +703,20 @@ export function AppContainer() {
       sales: updatedSales,
     });
     showToast("Sotuv ma'lumotlari yangilandi!");
+
+    (async () => {
+      try {
+        await apiUpdateSale(saleId, {
+          sellPrice: newSellPrice,
+          qty: newQty,
+          passengerNames: newPassengerNames,
+        });
+        const synced = await apiFetchAll();
+        updateData(synced);
+      } catch (e) {
+        console.warn("Backendga sotuv narxi yangilashda xato:", e);
+      }
+    })();
   };
 
   // Backup & Restore

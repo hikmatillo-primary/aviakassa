@@ -28,7 +28,7 @@ services:
     restart: unless-stopped
     command: >
       sh -c "python manage.py migrate &&
-             python manage.py runserver 0.0.0.0:8000"
+             gunicorn core.wsgi:application --bind 0.0.0.0:8000 --workers 3"
     volumes:
       - ./backend:/app
     ports:
@@ -36,7 +36,7 @@ services:
     environment:
       - DEBUG=True
       - SECRET_KEY=django-insecure-aviakassa-pro-super-secret-key-change-in-production
-      - ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0,185.241.151.30
+      - ALLOWED_HOSTS=*
       - DB_ENGINE=django.db.backends.postgresql
       - DB_NAME=aviakassa_db
       - DB_USER=aviakassa_user
