@@ -98,10 +98,6 @@ export function BatchDetailView({
           <ArrowLeft className="w-4 h-4 text-slate-500" />
           Omborga qaytish
         </button>
-
-        <span className="text-xs font-medium text-slate-400 dark:text-slate-500 hidden sm:inline">
-          Mahsulot tafsilotlari (Xarid va sotuv tarixi)
-        </span>
       </div>
 
       {/* 1. YUQORI BLOK */}
