@@ -318,6 +318,43 @@ export function getFlightDisplayData(batch: any): FlightDisplayData {
   };
 }
 
+export interface StructuredFlightLeg {
+  date: string;
+  flightNumber: string;
+  originIata: string;
+  destIata: string;
+  depTime: string;
+  arrTime: string;
+  plainText: string;
+}
+
+export function buildFlightLeg(data: {
+  date?: string;
+  flightNumber?: string;
+  origin?: string;
+  destination?: string;
+  depTime?: string;
+  arrTime?: string;
+}): StructuredFlightLeg {
+  const dateIata = formatIataDate(data.date);
+  const flightNum = (data.flightNumber || "---").replace(/\s+/g, "").toUpperCase();
+  const orig = getCityIataCode(data.origin) || "---";
+  const dest = getCityIataCode(data.destination) || "---";
+  const dep = data.depTime || "--:--";
+  const arr = data.arrTime || "--:--";
+  const plainText = `${dateIata} ${flightNum} ${orig}  ${dest}   ${dep}    ${arr}`;
+
+  return {
+    date: dateIata,
+    flightNumber: flightNum,
+    originIata: orig,
+    destIata: dest,
+    depTime: dep,
+    arrTime: arr,
+    plainText,
+  };
+}
+
 export function formatFlightLeg(data: {
   date?: string;
   flightNumber?: string;
@@ -326,24 +363,39 @@ export function formatFlightLeg(data: {
   depTime?: string;
   arrTime?: string;
 }): string {
-  const dateIata = formatIataDate(data.date);
-  const flightNum = (data.flightNumber || "---").replace(/[-\s]/g, "").toUpperCase();
-  const orig = getCityIataCode(data.origin);
-  const dest = getCityIataCode(data.destination);
-  const dep = data.depTime || "--:--";
-  const arr = data.arrTime || "--:--";
-  return `${dateIata} ${flightNum} ${orig}  ${dest}  ${dep}  ${arr}`;
+  return buildFlightLeg(data).plainText;
+}
+
+export interface BatchFlightSchedule {
+  outbound: StructuredFlightLeg;
+  inbound: StructuredFlightLeg | null;
+  clipboardText: string;
+  routeFull: string;
 }
 
 /**
- * Aviakassalar Telegram formatidagi reys jadvali:
- * 20OCT 7Q2703 FEG  JED  15:30  20:30
- * 02NOV 7Q2702 JED  FEG  23:10  06:20
+ * Aviakassalar standart reys jadvali:
+ * 20OCT 7Q2703 FEG  JED   15:30    20:30
+ * 02NOV 7Q2702 JED  FEG   23:10  06:20
  */
-export function getBatchFlightSchedule(batch: any): { outbound: string; inbound: string | null } {
-  if (!batch) return { outbound: "---", inbound: null };
-  const { originIata, destIata } = parseRouteCities(batch.route);
-  const outbound = formatFlightLeg({
+export function getBatchFlightSchedule(batch: any): BatchFlightSchedule {
+  const emptyLeg: StructuredFlightLeg = {
+    date: "---",
+    flightNumber: "---",
+    originIata: "---",
+    destIata: "---",
+    depTime: "--:--",
+    arrTime: "--:--",
+    plainText: "---",
+  };
+
+  if (!batch) {
+    return { outbound: emptyLeg, inbound: null, clipboardText: "", routeFull: "" };
+  }
+
+  const { origin, destination, originIata, destIata } = parseRouteCities(batch.route);
+
+  const outbound = buildFlightLeg({
     date: batch.flightDate,
     flightNumber: batch.flightNumber || batch.batchNumber,
     origin: originIata,
@@ -352,9 +404,11 @@ export function getBatchFlightSchedule(batch: any): { outbound: string; inbound:
     arrTime: batch.arrivalTime,
   });
 
-  let inbound: string | null = null;
-  if (batch.isRoundTrip && batch.returnDate) {
-    inbound = formatFlightLeg({
+  let inbound: StructuredFlightLeg | null = null;
+  const isRoundTrip = Boolean(batch.isRoundTrip && batch.returnDate);
+
+  if (isRoundTrip) {
+    inbound = buildFlightLeg({
       date: batch.returnDate,
       flightNumber: batch.returnFlightNumber || batch.flightNumber || batch.batchNumber,
       origin: destIata,
@@ -364,6 +418,18 @@ export function getBatchFlightSchedule(batch: any): { outbound: string; inbound:
     });
   }
 
-  return { outbound, inbound };
+  const clipboardText = inbound
+    ? `${outbound.plainText}\n${inbound.plainText}`
+    : outbound.plainText;
+
+  const routeFull = origin && destination ? `${origin} — ${destination}` : batch.route || "";
+
+  return {
+    outbound,
+    inbound,
+    clipboardText,
+    routeFull,
+  };
 }
+
 

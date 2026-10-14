@@ -1,6 +1,8 @@
-import React from "react";
-import { Plane, Calendar } from "lucide-react";
-import { getFlightDisplayData } from "@/lib/format";
+"use client";
+
+import React, { useState } from "react";
+import { Copy, Check } from "lucide-react";
+import { getBatchFlightSchedule } from "@/lib/format";
 
 interface FlightBarProps {
   batch: any;
@@ -13,121 +15,113 @@ export function FlightBar({
   showSubtitle = true,
   className = "",
 }: FlightBarProps) {
+  const [copied, setCopied] = useState(false);
+
   if (!batch) return null;
 
-  const data = getFlightDisplayData(batch);
-  const isRoundTripWithReturn = Boolean(data.isRoundTrip && data.returnDate);
+  const schedule = getBatchFlightSchedule(batch);
+
+  const handleCopy = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!schedule.clipboardText) return;
+    navigator.clipboard.writeText(schedule.clipboardText);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
-    <div className={`space-y-1.5 max-w-full ${className}`}>
-      {/* Aviasales style Flight Bar container */}
-      <div className="inline-flex flex-col max-w-full bg-slate-100/90 dark:bg-[#1a2234] border border-slate-200/90 dark:border-white/[0.08] rounded-xl overflow-hidden shadow-2xs divide-y divide-slate-200/80 dark:divide-white/[0.08]">
-        {/* Row 1: Outbound Leg (Borish) */}
-        <div className="flex items-center flex-nowrap whitespace-nowrap divide-x divide-slate-200/80 dark:divide-white/[0.08]">
-          {/* Segment 1: Route (Origin ➔ Destination) */}
-          <div className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 shrink-0">
-            <div className="flex items-center gap-1 sm:gap-1.5">
-              <span className="font-semibold text-slate-900 dark:text-white text-xs sm:text-[13px]">
-                {data.origin}
-              </span>
-              <span className="text-[10px] font-mono font-medium text-slate-500 dark:text-slate-400 bg-white/80 dark:bg-white/[0.06] px-1.5 py-0.5 rounded border border-slate-200/50 dark:border-white/[0.04]">
-                {data.originIata}
-              </span>
-            </div>
-
-            <span className="text-slate-400 dark:text-slate-500 text-xs px-0.5">➔</span>
-
-            <div className="flex items-center gap-1 sm:gap-1.5">
-              <span className="font-semibold text-slate-900 dark:text-white text-xs sm:text-[13px]">
-                {data.destination}
-              </span>
-              <span className="text-[10px] font-mono font-medium text-slate-500 dark:text-slate-400 bg-white/80 dark:bg-white/[0.06] px-1.5 py-0.5 rounded border border-slate-200/50 dark:border-white/[0.04]">
-                {data.destIata}
-              </span>
-            </div>
+    <div className={`space-y-1 max-w-full ${className}`}>
+      {/* Flight Row with GDS format + Copy to Clipboard button */}
+      <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap sm:flex-nowrap">
+        {/* Monospace GDS Ticket Container */}
+        <div className="inline-flex flex-col bg-slate-100/95 dark:bg-[#131b2e] border border-slate-200/90 dark:border-white/[0.08] rounded-xl px-2.5 sm:px-3 py-1.5 font-mono text-xs sm:text-[13px] leading-snug shadow-2xs divide-y divide-slate-200/70 dark:divide-white/[0.06]">
+          {/* Outbound Leg (Borish) */}
+          <div className="flex items-center gap-2 sm:gap-2.5 whitespace-nowrap pb-0.5">
+            <span className="font-bold text-blue-600 dark:text-blue-400">
+              {schedule.outbound.date}
+            </span>
+            <span className="font-semibold text-slate-700 dark:text-slate-200">
+              {schedule.outbound.flightNumber}
+            </span>
+            <span className="font-bold text-slate-900 dark:text-white">
+              {schedule.outbound.originIata}
+            </span>
+            <span className="font-bold text-slate-900 dark:text-white">
+              {schedule.outbound.destIata}
+            </span>
+            <span className="text-slate-700 dark:text-slate-300 font-medium">
+              {schedule.outbound.depTime}
+            </span>
+            <span className="text-slate-700 dark:text-slate-300 font-medium">
+              {schedule.outbound.arrTime}
+            </span>
           </div>
 
-          {/* Segment 2: Outbound Date & Time */}
-          <div className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 bg-slate-50/60 dark:bg-white/[0.02] shrink-0">
-            <div className="flex items-center gap-1.5 text-xs sm:text-[13px] font-medium text-slate-800 dark:text-slate-200">
-              <Calendar className="w-3.5 h-3.5 text-blue-500 shrink-0" />
-              <span>{data.outboundDate}</span>
-            </div>
-            {data.outboundTime && (
-              <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400">
-                ({data.outboundTime})
+          {/* Inbound / Return Leg (Qaytish) - Agar obratno bo'lsa pastiga tushadi */}
+          {schedule.inbound && (
+            <div className="flex items-center gap-2 sm:gap-2.5 whitespace-nowrap pt-1">
+              <span className="font-bold text-indigo-600 dark:text-indigo-400">
+                {schedule.inbound.date}
               </span>
-            )}
-          </div>
-
-          {/* Segment 3: Outbound Flight Number */}
-          {data.outboundFlightNumber && (
-            <div className="flex items-center justify-center gap-1.5 px-2 sm:px-2.5 py-1.5 text-xs font-mono font-semibold text-blue-600 dark:text-blue-400 bg-blue-50/40 dark:bg-blue-500/[0.04] shrink-0">
-              <Plane className="w-3 h-3 shrink-0" />
-              <span>{data.outboundFlightNumber}</span>
+              <span className="font-semibold text-slate-700 dark:text-slate-200">
+                {schedule.inbound.flightNumber}
+              </span>
+              <span className="font-bold text-slate-900 dark:text-white">
+                {schedule.inbound.originIata}
+              </span>
+              <span className="font-bold text-slate-900 dark:text-white">
+                {schedule.inbound.destIata}
+              </span>
+              <span className="text-slate-700 dark:text-slate-300 font-medium">
+                {schedule.inbound.depTime}
+              </span>
+              <span className="text-slate-700 dark:text-slate-300 font-medium">
+                {schedule.inbound.arrTime}
+              </span>
             </div>
           )}
         </div>
 
-        {/* Row 2: Return Leg (Qaytish / Obratno) - Agar obratno bo'lsa pastiga tushadi */}
-        {isRoundTripWithReturn && (
-          <div className="flex items-center flex-nowrap whitespace-nowrap divide-x divide-slate-200/80 dark:divide-white/[0.08] bg-slate-50/30 dark:bg-white/[0.01]">
-            {/* Segment 1: Return Route (Destination ➔ Origin) */}
-            <div className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 shrink-0">
-              <div className="flex items-center gap-1 sm:gap-1.5">
-                <span className="font-semibold text-slate-900 dark:text-white text-xs sm:text-[13px]">
-                  {data.destination}
-                </span>
-                <span className="text-[10px] font-mono font-medium text-slate-500 dark:text-slate-400 bg-white/80 dark:bg-white/[0.06] px-1.5 py-0.5 rounded border border-slate-200/50 dark:border-white/[0.04]">
-                  {data.destIata}
-                </span>
-              </div>
-
-              <span className="text-slate-400 dark:text-slate-500 text-xs px-0.5">➔</span>
-
-              <div className="flex items-center gap-1 sm:gap-1.5">
-                <span className="font-semibold text-slate-900 dark:text-white text-xs sm:text-[13px]">
-                  {data.origin}
-                </span>
-                <span className="text-[10px] font-mono font-medium text-slate-500 dark:text-slate-400 bg-white/80 dark:bg-white/[0.06] px-1.5 py-0.5 rounded border border-slate-200/50 dark:border-white/[0.04]">
-                  {data.originIata}
-                </span>
-              </div>
-            </div>
-
-            {/* Segment 2: Return Date & Time */}
-            <div className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 bg-slate-50/60 dark:bg-white/[0.02] shrink-0">
-              <div className="flex items-center gap-1.5 text-xs sm:text-[13px] font-medium text-indigo-600 dark:text-indigo-300">
-                <span className="text-xs font-bold text-indigo-500 dark:text-indigo-400">⇄</span>
-                <span>{data.returnDate}</span>
-              </div>
-              {data.returnTime && (
-                <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400">
-                  ({data.returnTime})
-                </span>
-              )}
-            </div>
-
-            {/* Segment 3: Return Flight Number */}
-            {(data.returnFlightNumber || data.outboundFlightNumber) && (
-              <div className="flex items-center justify-center gap-1.5 px-2 sm:px-2.5 py-1.5 text-xs font-mono font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50/40 dark:bg-indigo-500/[0.04] shrink-0">
-                <Plane className="w-3 h-3 shrink-0" />
-                <span>{data.returnFlightNumber || data.outboundFlightNumber}</span>
-              </div>
-            )}
-          </div>
-        )}
+        {/* Copy to Clipboard Button */}
+        <button
+          type="button"
+          onClick={handleCopy}
+          title={copied ? "Nusxalandi!" : "Reys jadvalini nusxalash (Telegram / GDS format)"}
+          className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 sm:py-2 rounded-xl text-xs font-semibold transition-all border shadow-2xs cursor-pointer active:scale-95 ${
+            copied
+              ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border-emerald-300 dark:border-emerald-800"
+              : "bg-white dark:bg-[#131b2e] hover:bg-blue-50 dark:hover:bg-blue-900/30 text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 border-slate-200/80 dark:border-white/[0.08] hover:border-blue-300 dark:hover:border-blue-700"
+          }`}
+        >
+          {copied ? (
+            <>
+              <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              <span className="font-sans text-[11px]">Nusxalandi</span>
+            </>
+          ) : (
+            <>
+              <Copy className="w-3.5 h-3.5" />
+              <span className="font-sans text-[11px]">Copy</span>
+            </>
+          )}
+        </button>
       </div>
 
-      {/* Subtitle / Administrative context */}
+      {/* Subtitle / Context */}
       {showSubtitle && (
-        <div className="flex items-center gap-2 text-[11px] text-slate-400 dark:text-slate-500 px-0.5">
-          <span className="font-mono text-slate-600 dark:text-slate-400 font-semibold bg-slate-100 dark:bg-white/[0.05] px-1.5 py-0.5 rounded">
-            {data.batchNumber}
+        <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400 px-0.5">
+          <span className="font-mono text-slate-700 dark:text-slate-300 font-semibold bg-slate-100 dark:bg-white/[0.05] px-1.5 py-0.5 rounded">
+            {batch.batchNumber || "---"}
           </span>
-          <span>•</span>
-          <span>Partiya raqami</span>
-          {isRoundTripWithReturn && (
+          {schedule.routeFull && (
+            <>
+              <span>•</span>
+              <span className="font-medium text-slate-700 dark:text-slate-300">
+                {schedule.routeFull}
+              </span>
+            </>
+          )}
+          {schedule.inbound && (
             <>
               <span>•</span>
               <span className="text-indigo-600 dark:text-indigo-400 font-medium">Borish-qaytish</span>
@@ -136,7 +130,7 @@ export function FlightBar({
           {batch.baggage && (
             <>
               <span>•</span>
-              <span className="text-slate-500 dark:text-slate-400">{batch.baggage} bagaj</span>
+              <span>{batch.baggage} bagaj</span>
             </>
           )}
         </div>
