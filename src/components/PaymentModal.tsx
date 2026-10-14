@@ -127,7 +127,7 @@ export function PaymentModal({
             }`}
           >
             <ArrowDownLeft className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-            + Kirim (Pul olish)
+            Kirim (Pul olish)
           </button>
           <button
             type="button"
@@ -141,7 +141,7 @@ export function PaymentModal({
             }`}
           >
             <ArrowUpRight className="w-4 h-4 text-rose-600 dark:text-rose-400" />
-            - Chiqim (Pul berish)
+            Chiqim (Pul berish)
           </button>
         </div>
 

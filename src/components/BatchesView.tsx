@@ -51,15 +51,6 @@ export function BatchesView({
             Ombor
           </h1>
         </div>
-        {onOpenBatchModal && (
-          <button
-            onClick={onOpenBatchModal}
-            className="inline-flex items-center gap-1.5 sm:gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-sm shadow-blue-500/20 transition-all cursor-pointer shrink-0"
-          >
-            <PackagePlus className="w-4 h-4" />
-            <span>Yangi partiya</span>
-          </button>
-        )}
       </div>
 
       {/* Search Bar */}

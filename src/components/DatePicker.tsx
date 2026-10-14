@@ -150,18 +150,21 @@ export function DatePicker({
   const updatePosition = useCallback(() => {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
-    const popoverWidth = 320;
-    const popoverHeight = 350;
+    const popoverWidth = 295;
+    const popoverHeight = 315;
     const margin = 8;
 
-    // Vertical placement
+    // Vertical placement: open up if space below is too small and space above is bigger
     const spaceBelow = window.innerHeight - rect.bottom;
     const spaceAbove = rect.top;
     const openUp = spaceBelow < popoverHeight && spaceAbove > spaceBelow;
 
-    const top = openUp
-      ? Math.max(margin, rect.top - popoverHeight - margin)
-      : Math.min(window.innerHeight - popoverHeight - margin, rect.bottom + margin);
+    let top: number;
+    if (openUp) {
+      top = Math.max(margin, rect.top - popoverHeight - 4);
+    } else {
+      top = rect.bottom + 4;
+    }
 
     // Horizontal placement
     let left = rect.left;
@@ -170,7 +173,6 @@ export function DatePicker({
     } else if (align === "left") {
       left = rect.left;
     } else {
-      // auto: if overflowing to the right, align to right side
       if (left + popoverWidth > window.innerWidth - margin) {
         left = rect.right - popoverWidth;
       }
@@ -356,56 +358,56 @@ export function DatePicker({
               position: "fixed",
               top: `${coords.top}px`,
               left: `${coords.left}px`,
-              width: "320px",
+              width: "295px",
               zIndex: 99999,
             }}
-            className="bg-white dark:bg-[#0f1523] rounded-2xl shadow-2xl border border-slate-200 dark:border-white/[0.1] p-3 text-slate-900 dark:text-white animate-in fade-in zoom-in-95 duration-100 select-none"
+            className="bg-white dark:bg-[#0f1523] rounded-2xl shadow-2xl border border-slate-200 dark:border-white/[0.1] p-2.5 text-slate-900 dark:text-white animate-in fade-in zoom-in-95 duration-100 select-none max-h-[85vh] overflow-y-auto"
           >
             {/* Quick Presets Bar */}
-            <div className="flex items-center gap-1 overflow-x-auto pb-2 mb-2 border-b border-slate-100 dark:border-white/[0.06] scrollbar-none text-[11px] font-semibold">
+            <div className="flex items-center gap-1 overflow-x-auto pb-1.5 mb-1.5 border-b border-slate-100 dark:border-white/[0.06] scrollbar-none text-[10px] font-semibold">
               <button
                 type="button"
                 onClick={() => handleQuickAddDays(0)}
-                className="px-2.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 cursor-pointer whitespace-nowrap"
+                className="px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 cursor-pointer whitespace-nowrap"
               >
                 Bugun
               </button>
               <button
                 type="button"
                 onClick={() => handleQuickAddDays(1)}
-                className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer whitespace-nowrap"
+                className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer whitespace-nowrap"
               >
                 Ertaga
               </button>
               <button
                 type="button"
                 onClick={() => handleQuickAddDays(7)}
-                className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer whitespace-nowrap"
+                className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer whitespace-nowrap"
               >
                 +1 hafta
               </button>
               <button
                 type="button"
                 onClick={() => handleQuickAddDays(14)}
-                className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer whitespace-nowrap"
+                className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer whitespace-nowrap"
               >
                 +2 hafta
               </button>
               <button
                 type="button"
                 onClick={() => handleQuickAddDays(30)}
-                className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer whitespace-nowrap"
+                className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer whitespace-nowrap"
               >
                 +1 oy
               </button>
             </div>
 
             {/* Month & Year Navigation Header */}
-            <div className="flex items-center justify-between px-1 mb-2">
+            <div className="flex items-center justify-between px-1 mb-1.5">
               <button
                 type="button"
                 onClick={handlePrevMonth}
-                className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 cursor-pointer transition-colors"
+                className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 cursor-pointer transition-colors"
                 title="Oldingi oy"
               >
                 <ChevronLeft className="w-4 h-4" />
@@ -416,7 +418,7 @@ export function DatePicker({
               <button
                 type="button"
                 onClick={handleNextMonth}
-                className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 cursor-pointer transition-colors"
+                className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 cursor-pointer transition-colors"
                 title="Keyingi oy"
               >
                 <ChevronRight className="w-4 h-4" />
@@ -428,7 +430,7 @@ export function DatePicker({
               {WEEKDAY_NAMES.map((name, i) => (
                 <span
                   key={name}
-                  className={`text-[11px] font-bold py-0.5 ${
+                  className={`text-[10px] font-bold py-0.5 ${
                     i >= 5 ? "text-amber-500 dark:text-amber-400" : "text-slate-400"
                   }`}
                 >
@@ -441,7 +443,7 @@ export function DatePicker({
             <div className="grid grid-cols-7 gap-1">
               {/* Blank leading cells */}
               {Array.from({ length: firstDayOfWeek }).map((_, i) => (
-                <div key={`blank-${i}`} className="w-9 h-9" />
+                <div key={`blank-${i}`} className="w-8 h-8" />
               ))}
 
               {/* Days 1 to daysInMonth */}
@@ -456,7 +458,7 @@ export function DatePicker({
                     key={day}
                     type="button"
                     onClick={() => handleSelectDay(day)}
-                    className={`w-9 h-9 rounded-xl text-xs font-semibold flex items-center justify-center transition-all cursor-pointer ${
+                    className={`w-8 h-8 rounded-lg text-xs font-semibold flex items-center justify-center transition-all cursor-pointer ${
                       isSelected
                         ? "bg-blue-600 text-white font-bold shadow-md shadow-blue-500/30 scale-105"
                         : isToday
@@ -471,7 +473,7 @@ export function DatePicker({
             </div>
 
             {/* Footer Bar */}
-            <div className="flex items-center justify-between pt-2.5 mt-2 border-t border-slate-100 dark:border-white/[0.06] text-xs">
+            <div className="flex items-center justify-between pt-2 mt-1.5 border-t border-slate-100 dark:border-white/[0.06] text-xs">
               {clearable ? (
                 <button
                   type="button"
@@ -484,7 +486,7 @@ export function DatePicker({
                   Sanani tozalash
                 </button>
               ) : (
-                <span className="text-[10px] text-slate-400">Aviakassa kalendari</span>
+                <span className="text-[10px] text-slate-400">Kalendar</span>
               )}
               <button
                 type="button"

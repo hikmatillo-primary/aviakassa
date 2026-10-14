@@ -129,7 +129,7 @@ export function PaymentsView({
             className="inline-flex items-center justify-center gap-1.5 px-2.5 sm:px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-[11px] sm:text-xs font-semibold rounded-xl shadow-sm shadow-rose-500/20 transition-all cursor-pointer"
           >
             <ArrowUpRight className="w-3.5 h-3.5 shrink-0" />
-            <span>- Chiqim</span>
+            <span>Chiqim</span>
           </button>
 
           <button
@@ -137,7 +137,7 @@ export function PaymentsView({
             className="inline-flex items-center justify-center gap-1.5 px-2.5 sm:px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] sm:text-xs font-semibold rounded-xl shadow-sm shadow-emerald-500/20 transition-all cursor-pointer"
           >
             <ArrowDownLeft className="w-3.5 h-3.5 shrink-0" />
-            <span>+ Kirim</span>
+            <span>Kirim</span>
           </button>
         </div>
       </div>
