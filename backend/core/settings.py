@@ -1,0 +1,139 @@
+import os
+import sys
+from pathlib import Path
+from dotenv import load_dotenv
+
+# Base directory
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Apps papkasini Python pathiga qo'shish
+sys.path.insert(0, str(BASE_DIR))
+sys.path.insert(0, str(BASE_DIR / "apps"))
+
+# .env yuklash
+load_dotenv(BASE_DIR / ".env")
+
+# Xavfsizlik sozlamalari
+SECRET_KEY = os.environ.get(
+    "SECRET_KEY",
+    "django-insecure-aviakassa-pro-super-secret-key-change-in-production"
+)
+
+DEBUG = os.environ.get("DEBUG", "True").lower() in ("true", "1", "yes")
+
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1,0.0.0.0,*").split(",")
+    if host.strip()
+]
+
+# Ilovalar
+INSTALLED_APPS = [
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+    # Tashqi kutubxonalar
+    "corsheaders",
+    "rest_framework",
+    # Loyiha modullari (Apps)
+    "apps.partners.apps.PartnersConfig",
+    "apps.flights.apps.FlightsConfig",
+    "apps.sales.apps.SalesConfig",
+    "apps.cash.apps.CashConfig",
+]
+
+MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",  # CORS birinchi bo'lishi shart
+    "django.middleware.security.SecurityMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
+]
+
+ROOT_URLCONF = "core.urls"
+
+TEMPLATES = [
+    {
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [BASE_DIR / "templates"],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.debug",
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
+            ],
+        },
+    },
+]
+
+WSGI_APPLICATION = "core.wsgi.application"
+ASGI_APPLICATION = "core.asgi.application"
+
+# Ma'lumotlar bazasi (PostgreSQL yoki SQLite fallback)
+DB_ENGINE = os.environ.get("DB_ENGINE", "")
+
+if DB_ENGINE == "django.db.backends.postgresql":
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.environ.get("DB_NAME", "aviakassa_db"),
+            "USER": os.environ.get("DB_USER", "aviakassa_user"),
+            "PASSWORD": os.environ.get("DB_PASSWORD", "aviakassa_secure_password_2026"),
+            "HOST": os.environ.get("DB_HOST", "db"),
+            "PORT": os.environ.get("DB_PORT", "5432"),
+        }
+    }
+else:
+    # Lokalda yoki sinovda PostgreSQL bo'lmasa SQLite fallback
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
+    }
+
+# Parol tekshiruvchilari
+AUTH_PASSWORD_VALIDATORS = [
+    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
+    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
+    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
+    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
+]
+
+# Hududiy sozlamalar (O'zbekiston)
+LANGUAGE_CODE = "uz"
+TIME_ZONE = "Asia/Tashkent"
+USE_I18N = True
+USE_TZ = True
+
+# Statik fayllar
+STATIC_URL = "static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
+MEDIA_URL = "media/"
+MEDIA_ROOT = BASE_DIR / "media"
+
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# Django REST Framework sozlamalari
+REST_FRAMEWORK = {
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.AllowAny",
+    ],
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 100,
+    "DATETIME_FORMAT": "%Y-%m-%d %H:%M:%S",
+    "DATE_FORMAT": "%Y-%m-%d",
+}
+
+# CORS sozlamalari
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True

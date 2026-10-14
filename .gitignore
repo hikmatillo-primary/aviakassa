@@ -32,6 +32,8 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
+
 
 # vercel
 .vercel
@@ -45,3 +47,12 @@ next-env.d.ts
 .wrangler/
 *.db
 *.db-journal
+
+# python / django
+__pycache__/
+*.py[cod]
+*$py.class
+*.sqlite3
+backend/db.sqlite3
+.env
+

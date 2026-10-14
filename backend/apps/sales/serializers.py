@@ -1,0 +1,57 @@
+from rest_framework import serializers
+from .models import Sale
+from apps.flights.models import Batch
+from apps.partners.models import Partner
+
+class SaleSerializer(serializers.ModelSerializer):
+    batchId = serializers.PrimaryKeyRelatedField(source='batch', queryset=Batch.objects.all())
+    clientId = serializers.PrimaryKeyRelatedField(source='client', queryset=Partner.objects.all())
+    clientName = serializers.CharField(source='client.name', read_only=True)
+    batchNumber = serializers.CharField(source='batch.batch_number', read_only=True)
+
+    flightDate = serializers.DateField(source='flight_date', required=False, allow_null=True)
+    flightNumber = serializers.CharField(source='flight_number', required=False, allow_blank=True)
+    departureTime = serializers.CharField(source='departure_time', required=False, allow_blank=True)
+    arrivalTime = serializers.CharField(source='arrival_time', required=False, allow_blank=True)
+    isRoundTrip = serializers.BooleanField(source='is_round_trip', required=False)
+    returnDate = serializers.DateField(source='return_date', required=False, allow_null=True)
+    returnFlightNumber = serializers.CharField(source='return_flight_number', required=False, allow_blank=True)
+    returnDepartureTime = serializers.CharField(source='return_departure_time', required=False, allow_blank=True)
+    returnArrivalTime = serializers.CharField(source='return_arrival_time', required=False, allow_blank=True)
+
+    buyPrice = serializers.FloatField(source='buy_price', required=False)
+    sellPrice = serializers.FloatField(source='sell_price')
+    totalAmount = serializers.FloatField(source='total_amount', required=False)
+    profit = serializers.FloatField(source='profit', read_only=True)
+    passengerNames = serializers.CharField(source='passenger_names', required=False, allow_blank=True)
+    saleDate = serializers.DateField(source='sale_date')
+    createdAt = serializers.DateTimeField(source='created_at', read_only=True)
+
+    class Meta:
+        model = Sale
+        fields = [
+            'id',
+            'batchId',
+            'batchNumber',
+            'clientId',
+            'clientName',
+            'route',
+            'flightDate',
+            'flightNumber',
+            'departureTime',
+            'arrivalTime',
+            'isRoundTrip',
+            'returnDate',
+            'returnFlightNumber',
+            'returnDepartureTime',
+            'returnArrivalTime',
+            'buyPrice',
+            'qty',
+            'sellPrice',
+            'totalAmount',
+            'profit',
+            'passengerNames',
+            'saleDate',
+            'notes',
+            'createdAt',
+        ]

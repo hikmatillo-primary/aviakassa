@@ -1,0 +1,59 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: aviakassa_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: aviakassa_db
+      POSTGRES_USER: aviakassa_user
+      POSTGRES_PASSWORD: aviakassa_secure_password_2026
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      # Host port 5433 ga yo'naltirilgan (serverdagi 5432 porti bilan to'qnashmasligi uchun)
+      - "5433:5432"
+    networks:
+      - aviakassa_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aviakassa_user -d aviakassa_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: aviakassa_backend
+    restart: unless-stopped
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=True
+      - SECRET_KEY=django-insecure-aviakassa-pro-super-secret-key-change-in-production
+      - ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0,185.241.151.30
+      - DB_ENGINE=django.db.backends.postgresql
+      - DB_NAME=aviakassa_db
+      - DB_USER=aviakassa_user
+      - DB_PASSWORD=aviakassa_secure_password_2026
+      - DB_HOST=db
+      - DB_PORT=5432
+      - CORS_ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,http://185.241.151.30:3000
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - aviakassa_net
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  aviakassa_net:
+    driver: bridge

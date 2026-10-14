@@ -1,0 +1,1 @@
+# Aviakassa Core Project Package
