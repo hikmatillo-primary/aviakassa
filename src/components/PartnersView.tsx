@@ -254,7 +254,7 @@ export function PartnersView({
               {filteredBatches.length === 0 && (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={6}
                     className="py-12 text-center text-xs text-slate-400 dark:text-slate-500 space-y-2"
                   >
                     <div>Mos keladigan xaridlar topilmadi</div>
@@ -274,7 +274,7 @@ export function PartnersView({
             {filteredBatches.length > 0 && (
               <tfoot>
                 <tr className="border-t-2 border-slate-200/80 dark:border-white/[0.08] bg-slate-50/70 dark:bg-white/[0.02] text-xs font-semibold text-slate-700 dark:text-slate-200 tabular-nums">
-                  <td colSpan={3} className="py-3.5 px-5 text-slate-500 dark:text-slate-400">
+                  <td colSpan={2} className="py-3.5 px-5 text-slate-500 dark:text-slate-400">
                     Jami ({filteredBatches.length} ta partiya):
                   </td>
                   <td className="py-3.5 px-5 text-center font-bold text-slate-900 dark:text-white">

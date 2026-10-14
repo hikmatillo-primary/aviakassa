@@ -313,9 +313,8 @@ export function SalesView({
                   <td className="py-3.5 px-5 text-center font-bold text-slate-900 dark:text-white">
                     {filteredSales.reduce((sum, s) => sum + (s.qty || 0), 0)} ta
                   </td>
-                  <td colSpan={2} className="py-3.5 px-5 text-right text-slate-400">
-                    —
-                  </td>
+                  <td className="py-3.5 px-5 text-right text-slate-400">—</td>
+                  <td className="py-3.5 px-5 text-right text-slate-400">—</td>
                   <td className="py-3.5 px-5 text-right font-bold text-slate-900 dark:text-white text-sm">
                     {formatUSD(filteredSales.reduce((sum, s) => sum + (s.totalAmount || 0), 0))}
                   </td>

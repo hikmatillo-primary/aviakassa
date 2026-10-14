@@ -676,6 +676,24 @@ export function DashboardView({
                 </tr>
               )}
             </tbody>
+            {filteredSales.length > 0 && (
+              <tfoot>
+                <tr className="border-t-2 border-slate-100 dark:border-white/[0.08] bg-slate-50/60 dark:bg-white/[0.02] text-xs font-semibold text-slate-700 dark:text-slate-200 tabular-nums">
+                  <td colSpan={3} className="py-3 px-3 text-slate-500 dark:text-slate-400">
+                    Jami ({filteredSales.length} ta sotuv):
+                  </td>
+                  <td className="py-3 px-3 text-center font-bold text-slate-900 dark:text-white">
+                    {filteredSales.reduce((sum, s) => sum + (s.qty || 0), 0)} ta
+                  </td>
+                  <td className="py-3 px-3 text-right font-bold text-slate-900 dark:text-white">
+                    {formatUSD(filteredSales.reduce((sum, s) => sum + (s.totalAmount || 0), 0))}
+                  </td>
+                  <td className="py-3 px-3 text-right font-bold text-emerald-600 dark:text-emerald-400">
+                    +{formatUSD(filteredSales.reduce((sum, s) => sum + (s.profit || 0), 0))}
+                  </td>
+                </tr>
+              </tfoot>
+            )}
           </table>
         </div>
       </div>
