@@ -171,18 +171,6 @@ export function Navbar({
 
             {/* Right: Quick Action, Theme Toggle & User Profile with Settings Dropdown */}
             <div className="flex items-center gap-2">
-              {!isStandalone && (
-                <button
-                  onClick={handleInstallClick}
-                  title="Ilovani o‘rnatish"
-                  className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-xs font-semibold shadow-xs shadow-blue-500/20 cursor-pointer transition-all"
-                >
-                  <Smartphone className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Ilovani o‘rnatish</span>
-                  <span className="sm:hidden text-[11px]">O‘rnatish</span>
-                </button>
-              )}
-
               {/* Dark Mode Toggle */}
               <button
                 onClick={onToggleTheme}

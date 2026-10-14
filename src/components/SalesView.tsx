@@ -93,18 +93,18 @@ export function SalesView({
         {filteredSales.map((sale) => (
           <div
             key={sale.id}
-            className="bg-white dark:bg-[#111726] p-4 rounded-2xl border border-slate-200/70 dark:border-white/[0.07] shadow-2xs space-y-3.5"
+            className="bg-white dark:bg-[#111726] p-3.5 sm:p-4 rounded-2xl border border-slate-200/70 dark:border-white/[0.07] shadow-2xs space-y-3.5"
           >
-            <div className="flex items-start justify-between gap-3">
-              <div className="w-full">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex-1 min-w-0">
                 <FlightBar batch={sale} showSubtitle={false} />
               </div>
-              <div className="text-right shrink-0">
-                <span className="text-lg font-bold text-slate-900 dark:text-white tabular-nums block">
+              <div className="text-right shrink-0 pl-1.5">
+                <span className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tabular-nums block leading-tight">
                   {formatUSD(sale.totalAmount)}
                 </span>
                 <span
-                  className={`text-[11px] font-semibold tabular-nums block ${
+                  className={`text-[10px] sm:text-[11px] font-semibold tabular-nums block leading-tight mt-0.5 whitespace-nowrap ${
                     (sale.profit || 0) >= 0
                       ? "text-emerald-600 dark:text-emerald-400"
                       : "text-rose-600 dark:text-rose-400"

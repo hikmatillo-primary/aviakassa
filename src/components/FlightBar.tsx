@@ -37,9 +37,9 @@ export function FlightBar({
       {/* Flight Row with GDS format + Copy to Clipboard button */}
       <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap sm:flex-nowrap">
         {/* Monospace GDS Ticket Container */}
-        <div className="inline-flex flex-col bg-slate-100/95 dark:bg-[#131b2e] border border-slate-200/90 dark:border-white/[0.08] rounded-xl px-2.5 sm:px-3 py-1.5 font-mono text-xs sm:text-[13px] leading-snug shadow-2xs divide-y divide-slate-200/70 dark:divide-white/[0.06]">
+        <div className="inline-flex flex-col bg-slate-100/95 dark:bg-[#131b2e] border border-slate-200/90 dark:border-white/[0.08] rounded-xl px-2 sm:px-3 py-1 sm:py-1.5 font-mono text-[11px] sm:text-[13px] leading-snug shadow-2xs divide-y divide-slate-200/70 dark:divide-white/[0.06] shrink-0">
           {/* Outbound Leg (Borish) */}
-          <div className="flex items-center gap-2 sm:gap-2.5 whitespace-nowrap pb-0.5">
+          <div className="flex items-center gap-1.5 sm:gap-2.5 whitespace-nowrap pb-0.5">
             <span className="font-bold text-blue-600 dark:text-blue-400">
               {schedule.outbound.date}
             </span>
@@ -62,7 +62,7 @@ export function FlightBar({
 
           {/* Inbound / Return Leg (Qaytish) - Agar obratno bo'lsa pastiga tushadi */}
           {schedule.inbound && (
-            <div className="flex items-center gap-2 sm:gap-2.5 whitespace-nowrap pt-1">
+            <div className="flex items-center gap-1.5 sm:gap-2.5 whitespace-nowrap pt-1">
               <span className="font-bold text-indigo-600 dark:text-indigo-400">
                 {schedule.inbound.date}
               </span>
@@ -91,7 +91,7 @@ export function FlightBar({
           onClick={handleCopy}
           title={copied ? "Nusxalandi!" : "Reys jadvalini nusxalash"}
           aria-label="Reys jadvalini nusxalash"
-          className={`shrink-0 inline-flex items-center justify-center w-8 h-8 rounded-xl transition-all border shadow-2xs cursor-pointer active:scale-95 ${
+          className={`shrink-0 inline-flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl transition-all border shadow-2xs cursor-pointer active:scale-95 ${
             copied
               ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border-emerald-300 dark:border-emerald-800 ring-2 ring-emerald-500/20"
               : "bg-white dark:bg-[#131b2e] hover:bg-blue-50 dark:hover:bg-blue-900/30 text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 border-slate-200/80 dark:border-white/[0.08] hover:border-blue-300 dark:hover:border-blue-700"
