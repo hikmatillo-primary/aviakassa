@@ -5,6 +5,7 @@ import { Modal } from "./Modal";
 import { Plus, Trash2, ArrowRightLeft } from "lucide-react";
 import { formatUSD, formatDate } from "@/lib/format";
 import { FlightBar } from "./FlightBar";
+import { DatePicker } from "./DatePicker";
 
 export interface SaleItemInput {
   id: string;
@@ -288,14 +289,10 @@ export function SaleModal({
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-              Sotuv sanasi *
-            </label>
-            <input
-              type="date"
+            <DatePicker
+              label="Sotuv sanasi"
               value={saleDate}
-              onChange={(e) => setSaleDate(e.target.value)}
-              className="w-full px-3 py-2 text-xs sm:text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+              onChange={(val) => setSaleDate(val)}
               required
             />
           </div>
@@ -515,17 +512,14 @@ export function SaleModal({
                   {item.isRoundTrip && (
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-2.5 rounded-xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200/70 dark:border-blue-800/60">
                       <div>
-                        <label className="block text-[10px] font-bold text-blue-700 dark:text-blue-300 mb-0.5">
-                          ⇄ Qaytish sanasi *
-                        </label>
-                        <input
-                          type="date"
-                          value={item.returnDate}
-                          onChange={(e) =>
-                            handleUpdateItem(index, "returnDate", e.target.value)
-                          }
-                          className="w-full px-2 py-1.5 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-blue-300 dark:border-blue-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+                        <DatePicker
+                          label="⇄ Qaytish sanasi"
+                          value={item.returnDate || ""}
+                          onChange={(val) => handleUpdateItem(index, "returnDate", val)}
+                          labelClassName="block text-[10px] font-bold text-blue-700 dark:text-blue-300 mb-0.5"
+                          compact
                           required={item.isRoundTrip}
+                          clearable
                         />
                       </div>
 
@@ -726,8 +720,8 @@ export function SaleModal({
           />
         </div>
 
-        {/* Sticky Action Buttons */}
-        <div className="sticky bottom-0 -mx-4 sm:-mx-5 -mb-6 sm:-mb-5 px-4 sm:px-5 py-3 bg-white/95 dark:bg-[#111726]/95 backdrop-blur-md border-t border-slate-100 dark:border-white/[0.07] flex items-center justify-end gap-2 z-10">
+        {/* Action Buttons */}
+        <div className="pt-4 mt-3 border-t border-slate-200/80 dark:border-white/[0.08] flex items-center justify-end gap-2">
           <button
             type="button"
             onClick={onClose}

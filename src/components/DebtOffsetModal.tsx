@@ -5,6 +5,7 @@ import { Modal } from "./Modal";
 import { ArrowRightLeft, Users, CheckCircle, AlertCircle } from "lucide-react";
 import { Partner } from "@/lib/storage";
 import { formatUSD } from "@/lib/format";
+import { DatePicker } from "./DatePicker";
 
 interface DebtOffsetModalProps {
   isOpen: boolean;
@@ -235,14 +236,11 @@ export function DebtOffsetModal({
         {/* Date & Reason/Notes */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">
-              Operatsiya sanasi
-            </label>
-            <input
-              type="date"
+            <DatePicker
+              label="Operatsiya sanasi"
               value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="w-full px-3 py-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white"
+              onChange={(val) => setDate(val)}
+              required
             />
           </div>
 

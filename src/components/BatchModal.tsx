@@ -55,6 +55,7 @@ interface BatchModalProps {
 }
 
 import { AirportPicker } from "./AirportPicker";
+import { DatePicker } from "./DatePicker";
 
 function getAutoBatchCode(toCity: string, index: number): string {
   const clean = (toCity || "BLK").trim();
@@ -268,14 +269,10 @@ export function BatchModal({
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-              Xarid sanasi *
-            </label>
-            <input
-              type="date"
+            <DatePicker
+              label="Xarid sanasi"
               value={purchaseDate}
-              onChange={(e) => setPurchaseDate(e.target.value)}
-              className="w-full px-3 py-2 text-xs sm:text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+              onChange={(val) => setPurchaseDate(val)}
               required
             />
           </div>
@@ -287,16 +284,9 @@ export function BatchModal({
             <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
               Xarid qilinayotgan reyslar ({items.length} ta)
             </span>
-            <button
-              type="button"
-              onClick={handleAddItem}
-              className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 cursor-pointer"
-            >
-              <Plus className="w-3.5 h-3.5" /> Reys qo‘shish
-            </button>
           </div>
 
-          <div className="space-y-3 sm:max-h-[460px] sm:overflow-y-auto pr-0.5 pb-24">
+          <div className="space-y-3 sm:max-h-[460px] sm:overflow-y-auto pr-0.5 pb-2">
             {items.map((item, index) => {
               const itemTotal = (item.totalQty || 0) * (item.buyPrice || 0);
               const autoBatchNumber = getAutoBatchCode(item.toCity, index);
@@ -324,45 +314,29 @@ export function BatchModal({
                       />
 
                       {/* Qachon (Borish sanasi) */}
-                      <div className="p-2">
-                        <label className="block text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase">
+                      <div className="p-1.5 flex flex-col justify-between">
+                        <label className="block text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase mb-0.5">
                           Qachon (Borish):
                         </label>
-                        <input
-                          type="date"
+                        <DatePicker
                           value={item.flightDate}
-                          onChange={(e) =>
-                            handleUpdateItem(index, "flightDate", e.target.value)
-                          }
-                          className="w-full text-xs font-bold text-slate-900 dark:text-white bg-transparent focus:outline-none mt-0.5"
+                          onChange={(val) => handleUpdateItem(index, "flightDate", val)}
+                          compact
                           required
                         />
                       </div>
 
                       {/* Qaytish (Obratno sanasi) */}
-                      <div className="p-2 relative bg-blue-50/30 dark:bg-blue-950/20">
-                        <div className="flex items-center justify-between">
-                          <label className="block text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase">
-                            ⇄ Qaytish (Obratno):
-                          </label>
-                          {item.returnDate && (
-                            <button
-                              type="button"
-                              onClick={() => handleUpdateItem(index, "returnDate", "")}
-                              title="Obratnoni olib tashlash"
-                              className="text-slate-400 hover:text-rose-500 cursor-pointer"
-                            >
-                              <X className="w-3 h-3" />
-                            </button>
-                          )}
-                        </div>
-                        <input
-                          type="date"
-                          value={item.returnDate}
-                          onChange={(e) =>
-                            handleUpdateItem(index, "returnDate", e.target.value)
-                          }
-                          className="w-full text-xs font-bold text-slate-900 dark:text-white bg-transparent focus:outline-none mt-0.5"
+                      <div className="p-1.5 flex flex-col justify-between bg-blue-50/30 dark:bg-blue-950/20">
+                        <label className="block text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase mb-0.5">
+                          ⇄ Qaytish (Obratno):
+                        </label>
+                        <DatePicker
+                          value={item.returnDate || ""}
+                          onChange={(val) => handleUpdateItem(index, "returnDate", val)}
+                          placeholder="Tanlanmagan"
+                          compact
+                          clearable
                         />
                       </div>
                     </div>
@@ -685,8 +659,8 @@ export function BatchModal({
           />
         </div>
 
-        {/* Sticky Action Buttons */}
-        <div className="sticky bottom-0 -mx-4 sm:-mx-5 -mb-6 sm:-mb-5 px-4 sm:px-5 py-3 bg-white/95 dark:bg-[#111726]/95 backdrop-blur-md border-t border-slate-100 dark:border-white/[0.07] flex items-center justify-end gap-2 z-10">
+        {/* Action Buttons */}
+        <div className="pt-4 mt-3 border-t border-slate-200/80 dark:border-white/[0.08] flex items-center justify-end gap-2">
           <button
             type="button"
             onClick={onClose}

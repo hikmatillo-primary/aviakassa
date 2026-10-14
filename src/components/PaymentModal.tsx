@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { Modal } from "./Modal";
 import { ArrowDownLeft, ArrowUpRight } from "lucide-react";
 import { formatUSD } from "@/lib/format";
+import { DatePicker } from "./DatePicker";
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -218,14 +219,10 @@ export function PaymentModal({
         {/* Sana va Usuli */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-              To&apos;lov sanasi
-            </label>
-            <input
-              type="date"
+            <DatePicker
+              label="To'lov sanasi"
               value={paymentDate}
-              onChange={(e) => setPaymentDate(e.target.value)}
-              className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onChange={(val) => setPaymentDate(val)}
               required
             />
           </div>
