@@ -3,13 +3,20 @@
 export interface Partner {
   id: number;
   name: string;
-  type: "SUPPLIER" | "CLIENT";
+  type?: "SUPPLIER" | "CLIENT" | "BOTH";
+  tags?: string[];
   phone?: string;
   notes?: string;
   createdAt: string;
   balance?: number;
   totalDeal?: number;
   totalPaid?: number;
+  totalBoughtFromUs?: number;
+  totalPaidToUs?: number;
+  totalSoldToUs?: number;
+  totalPaidByUs?: number;
+  theyOweUs?: number;
+  weOweThem?: number;
 }
 
 export interface Batch {
@@ -105,6 +112,7 @@ export const INITIAL_DEMO_DATA: AviakassaData = {
       id: 1,
       name: "FlyDubai Bosh Diler",
       type: "SUPPLIER",
+      tags: ["Birinchi qo'l", "Konsolidator"],
       phone: "+998 90 111-22-33",
       notes: "Dubay yo'nalishlari asosiy ta'minotchisi",
       createdAt: "2026-10-10",
@@ -113,6 +121,7 @@ export const INITIAL_DEMO_DATA: AviakassaData = {
       id: 2,
       name: "Air Arabia Blok Hamkor",
       type: "SUPPLIER",
+      tags: ["Birinchi qo'l", "Charter"],
       phone: "+998 93 444-55-66",
       notes: "Sharja va Jidda yo'nalishlari",
       createdAt: "2026-10-10",
@@ -121,6 +130,7 @@ export const INITIAL_DEMO_DATA: AviakassaData = {
       id: 3,
       name: "Samarqand Turizm Agentligi",
       type: "CLIENT",
+      tags: ["Sub-agent", "Turfirma"],
       phone: "+998 97 777-88-99",
       notes: "Sub-agent (Har partiyadan 10-15 talab oladi)",
       createdAt: "2026-10-10",
@@ -129,6 +139,7 @@ export const INITIAL_DEMO_DATA: AviakassaData = {
       id: 4,
       name: "Aliyev Sherzod",
       type: "CLIENT",
+      tags: ["Doimiy mijoz"],
       phone: "+998 99 123-45-67",
       notes: "Chakana mijoz (Oilaviy sayohat)",
       createdAt: "2026-10-10",
@@ -345,51 +356,70 @@ export function calculateEnrichedData(data: AviakassaData) {
     };
   });
 
-  // Enrich partners with balances (including debt offsets)
+  // Enrich partners with balances (including dual role: vendor + buyer)
   const enrichedPartners = partners.map((partner) => {
-    let totalDeal = 0;
-    let totalPaid = 0;
+    // 1. Sales sold to this partner (Partner is buyer)
+    const partnerSales = enrichedSales.filter((s) => s.clientId === partner.id);
+    const totalBoughtFromUs = partnerSales.reduce((sum, s) => sum + (s.totalAmount || 0), 0);
 
-    if (partner.type === "SUPPLIER") {
-      totalDeal = enrichedBatches
-        .filter((b) => b.supplierId === partner.id)
-        .reduce((sum, b) => sum + (b.totalCost || 0), 0);
-      const paidDirect = payments
-        .filter((p) => p.partnerId === partner.id && p.type === "EXPENSE")
-        .reduce((sum, p) => sum + (p.amount || 0), 0);
-      // If someone offset their debt to cover this supplier's debt:
-      const offsetTo = debtOffsets
-        .filter((o) => o.toPartnerId === partner.id)
-        .reduce((sum, o) => sum + (o.amount || 0), 0);
-      // If this supplier offset to someone else:
-      const offsetFrom = debtOffsets
-        .filter((o) => o.fromPartnerId === partner.id)
-        .reduce((sum, o) => sum + (o.amount || 0), 0);
+    // 2. Batches bought from this partner (Partner is supplier/vendor)
+    const partnerBatches = enrichedBatches.filter((b) => b.supplierId === partner.id);
+    const totalSoldToUs = partnerBatches.reduce((sum, b) => sum + (b.totalCost || 0), 0);
 
-      totalPaid = paidDirect + offsetTo - offsetFrom;
+    // 3. Payments received from this partner (Income)
+    const totalPaidToUs = payments
+      .filter((p) => p.partnerId === partner.id && p.type === "INCOME")
+      .reduce((sum, p) => sum + (p.amount || 0), 0);
+
+    // 4. Payments paid by us to this partner (Expense)
+    const totalPaidByUs = payments
+      .filter((p) => p.partnerId === partner.id && p.type === "EXPENSE")
+      .reduce((sum, p) => sum + (p.amount || 0), 0);
+
+    // 5. Debt offsets
+    const offsetFrom = debtOffsets
+      .filter((o) => o.fromPartnerId === partner.id)
+      .reduce((sum, o) => sum + (o.amount || 0), 0);
+    const offsetTo = debtOffsets
+      .filter((o) => o.toPartnerId === partner.id)
+      .reduce((sum, o) => sum + (o.amount || 0), 0);
+
+    // Net calculations:
+    // What partner owes us for tickets they bought:
+    const theyOweUs = totalBoughtFromUs - totalPaidToUs - offsetFrom + offsetTo;
+    // What we owe partner for batches we bought:
+    const weOweThem = totalSoldToUs - totalPaidByUs - offsetTo + offsetFrom;
+
+    // Net balance:
+    // balance > 0: Partner owes us (Biz haqdormiz / Mijoz qarzdor)
+    // balance < 0: We owe partner (Biz qarzdormiz / Ta'minotchi haqdor)
+    // balance === 0: Closed / 0
+    const balance = theyOweUs - weOweThem;
+
+    const totalDeal = totalBoughtFromUs + totalSoldToUs;
+    const totalPaid = totalPaidToUs + totalPaidByUs;
+
+    // Infer tags if not set
+    const defaultTags: string[] = [];
+    if (partner.tags && partner.tags.length > 0) {
+      defaultTags.push(...partner.tags);
     } else {
-      totalDeal = enrichedSales
-        .filter((s) => s.clientId === partner.id)
-        .reduce((sum, s) => sum + (s.totalAmount || 0), 0);
-      const paidDirect = payments
-        .filter((p) => p.partnerId === partner.id && p.type === "INCOME")
-        .reduce((sum, p) => sum + (p.amount || 0), 0);
-      // If this client paid/transferred debt away (from their account):
-      const offsetFrom = debtOffsets
-        .filter((o) => o.fromPartnerId === partner.id)
-        .reduce((sum, o) => sum + (o.amount || 0), 0);
-      // If debt was transferred to this client:
-      const offsetTo = debtOffsets
-        .filter((o) => o.toPartnerId === partner.id)
-        .reduce((sum, o) => sum + (o.amount || 0), 0);
-
-      totalPaid = paidDirect + offsetFrom - offsetTo;
+      if (totalSoldToUs > 0) defaultTags.push("Birinchi qo'l");
+      if (totalBoughtFromUs > 0) defaultTags.push("Sub-agent");
+      if (defaultTags.length === 0) {
+        defaultTags.push(partner.type === "SUPPLIER" ? "Birinchi qo'l" : "Mijoz");
+      }
     }
-
-    const balance = totalDeal - totalPaid;
 
     return {
       ...partner,
+      tags: Array.from(new Set(defaultTags)),
+      totalBoughtFromUs,
+      totalPaidToUs,
+      totalSoldToUs,
+      totalPaidByUs,
+      theyOweUs,
+      weOweThem,
       totalDeal,
       totalPaid,
       balance,
@@ -405,13 +435,13 @@ export function calculateEnrichedData(data: AviakassaData) {
   const activeBatchesCount = batches.filter((b) => b.status === "ACTIVE").length;
 
   let ourDebtToSuppliers = 0;
-  for (const sup of enrichedPartners.filter((p) => p.type === "SUPPLIER")) {
-    if ((sup.balance || 0) > 0) ourDebtToSuppliers += sup.balance || 0;
-  }
-
   let clientDebtToUs = 0;
-  for (const client of enrichedPartners.filter((p) => p.type === "CLIENT")) {
-    if ((client.balance || 0) > 0) clientDebtToUs += client.balance || 0;
+  for (const p of enrichedPartners) {
+    if ((p.balance || 0) < 0) {
+      ourDebtToSuppliers += Math.abs(p.balance || 0);
+    } else if ((p.balance || 0) > 0) {
+      clientDebtToUs += p.balance || 0;
+    }
   }
 
   const totalIncome = payments

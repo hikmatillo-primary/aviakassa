@@ -49,10 +49,6 @@ export function PaymentModal({
     if (defaultPartnerId) setPartnerId(String(defaultPartnerId));
   }, [defaultType, defaultPartnerId]);
 
-  // Filter partners based on selected payment type
-  const targetType = type === "INCOME" ? "CLIENT" : "SUPPLIER";
-  const filteredPartners = partners.filter((p) => p.type === targetType);
-
   const selectedPartner = partners.find((p) => String(p.id) === partnerId);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -83,12 +79,7 @@ export function PaymentModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={type === "INCOME" ? "Kassa kirimi (To'lov qabul qilish)" : "Kassa chiqimi (To'lov berish)"}
-      description={
-        type === "INCOME"
-          ? "Mijoz yoki agentdan qarz to'lovini qabul qilib, uning qarzini kamaytiring"
-          : "Ta'minotchiga qarz to'lovini amalga oshirib, o'z qarzingizni kamaytiring"
-      }
+      title={type === "INCOME" ? "Kassa kirimi" : "Kassa chiqimi"}
       maxWidth="max-w-md"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -104,7 +95,6 @@ export function PaymentModal({
             type="button"
             onClick={() => {
               setType("INCOME");
-              setPartnerId("");
             }}
             className={`flex items-center justify-center gap-1.5 py-2 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
               type === "INCOME"
@@ -113,13 +103,12 @@ export function PaymentModal({
             }`}
           >
             <ArrowDownLeft className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-            Kirim (Mijoz to&apos;lovi)
+            + Kirim (Pul olish)
           </button>
           <button
             type="button"
             onClick={() => {
               setType("EXPENSE");
-              setPartnerId("");
             }}
             className={`flex items-center justify-center gap-1.5 py-2 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
               type === "EXPENSE"
@@ -128,14 +117,14 @@ export function PaymentModal({
             }`}
           >
             <ArrowUpRight className="w-4 h-4 text-rose-600 dark:text-rose-400" />
-            Chiqim (Ta&apos;minotchiga)
+            - Chiqim (Pul berish)
           </button>
         </div>
 
         {/* Hamkor */}
         <div>
           <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-            {type === "INCOME" ? "Qaysi mijoz to'ladi? *" : "Qaysi ta'minotchiga to'landi? *"}
+            Qaysi hamkor bilan hisob-kitob? *
           </label>
           <select
             value={partnerId}
@@ -144,17 +133,39 @@ export function PaymentModal({
             required
           >
             <option value="">-- Hamkorni tanlang --</option>
-            {filteredPartners.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name} (Hozirgi qarz: {formatUSD(Math.max(0, p.balance || 0))})
-              </option>
-            ))}
+            {partners.map((p) => {
+              const b = p.balance || 0;
+              const statusText =
+                b > 0
+                  ? `(Qarzi: ${formatUSD(b)})`
+                  : b < 0
+                  ? `(Bizning qarz: ${formatUSD(Math.abs(b))})`
+                  : "(Balans: $0)";
+              const tagsText = p.tags && p.tags.length > 0 ? `• [${p.tags.join(", ")}]` : "";
+              return (
+                <option key={p.id} value={p.id}>
+                  {p.name} {tagsText} {statusText}
+                </option>
+              );
+            })}
           </select>
           {selectedPartner && (
-            <div className="mt-1.5 text-xs text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/60 p-2 rounded-lg border border-slate-200 dark:border-slate-700">
-              Hozirgi hisob-kitob balansi:{" "}
-              <strong className={selectedPartner.balance > 0 ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"}>
-                {formatUSD(selectedPartner.balance)}
+            <div className="mt-1.5 text-xs text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-between tabular-nums">
+              <span>Hozirgi hisob-kitob holati:</span>
+              <strong
+                className={
+                  (selectedPartner.balance || 0) > 0
+                    ? "text-amber-600 dark:text-amber-400 font-bold"
+                    : (selectedPartner.balance || 0) < 0
+                    ? "text-rose-600 dark:text-rose-400 font-bold"
+                    : "text-emerald-600 dark:text-emerald-400 font-bold"
+                }
+              >
+                {(selectedPartner.balance || 0) > 0
+                  ? `Mijoz qarzdor: +${formatUSD(selectedPartner.balance)}`
+                  : (selectedPartner.balance || 0) < 0
+                  ? `Biz qarzdormiz: -${formatUSD(Math.abs(selectedPartner.balance))}`
+                  : "Qarz yo‘q ($0)"}
               </strong>
             </div>
           )}
@@ -162,9 +173,33 @@ export function PaymentModal({
 
         {/* Summa ($) */}
         <div>
-          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-            To&apos;lov summasi ($) *
-          </label>
+          <div className="flex items-center justify-between mb-1 gap-1 flex-wrap">
+            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+              To&apos;lov summasi ($) *
+            </label>
+            {selectedPartner && (
+              <>
+                {type === "INCOME" && (selectedPartner.balance || 0) > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setAmount(selectedPartner.balance || 0)}
+                    className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500/20 transition-colors cursor-pointer"
+                  >
+                    Qarzni yopish: {formatUSD(selectedPartner.balance || 0)}
+                  </button>
+                )}
+                {type === "EXPENSE" && (selectedPartner.balance || 0) < 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setAmount(Math.abs(selectedPartner.balance || 0))}
+                    className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500/20 transition-colors cursor-pointer"
+                  >
+                    Qarzni to‘lash: {formatUSD(Math.abs(selectedPartner.balance || 0))}
+                  </button>
+                )}
+              </>
+            )}
+          </div>
           <div className="relative">
             <span className="absolute left-3 top-2 text-slate-400 dark:text-slate-500 text-sm">$</span>
             <input
@@ -174,7 +209,7 @@ export function PaymentModal({
               value={amount || ""}
               onChange={(e) => setAmount(parseFloat(e.target.value) || 0)}
               placeholder="Masalan: 1500"
-              className="w-full pl-7 pr-3 py-2 text-base bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold"
+              className="w-full pl-7 pr-3 py-2 text-base bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold tabular-nums"
               required
             />
           </div>
@@ -224,21 +259,21 @@ export function PaymentModal({
           />
         </div>
 
-        {/* Buttons */}
-        <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-2">
+        {/* Sticky Buttons */}
+        <div className="sticky bottom-0 -mx-4 sm:-mx-5 -mb-6 sm:-mb-5 px-4 sm:px-5 py-3 bg-white/95 dark:bg-[#111726]/95 backdrop-blur-md border-t border-slate-100 dark:border-white/[0.07] flex items-center justify-end gap-2 z-10">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors cursor-pointer"
+            className="px-4 py-2 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/[0.06] rounded-xl transition-colors cursor-pointer"
           >
             Bekor qilish
           </button>
           <button
             type="submit"
-            className={`px-5 py-2.5 text-xs font-bold text-white rounded-full shadow-sm transition-all cursor-pointer ${
+            className={`px-5 py-2 text-xs font-bold text-white rounded-xl shadow-sm transition-all cursor-pointer ${
               type === "INCOME"
-                ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/25"
-                : "bg-rose-600 hover:bg-rose-700 shadow-rose-500/25"
+                ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20"
+                : "bg-rose-600 hover:bg-rose-700 shadow-rose-500/20"
             }`}
           >
             To&apos;lovni saqlash

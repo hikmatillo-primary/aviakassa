@@ -8,13 +8,12 @@ import {
   Calendar,
   Pencil,
   Search,
-  CheckCircle2,
-  AlertCircle,
   Building2,
   UserCheck,
   TrendingUp,
 } from "lucide-react";
-import { formatUSD } from "@/lib/format";
+import { formatUSD, formatDate } from "@/lib/format";
+import { FlightBar } from "@/components/FlightBar";
 
 interface BatchDetailViewProps {
   batch: any;
@@ -94,78 +93,31 @@ export function BatchDetailView({
         <button
           type="button"
           onClick={onBack}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold rounded-full border border-slate-200/80 dark:border-slate-700 shadow-xs transition-all cursor-pointer"
+          className="inline-flex items-center gap-2 px-3.5 py-2 bg-white dark:bg-[#111726] hover:bg-slate-50 dark:hover:bg-white/[0.06] text-slate-700 dark:text-slate-200 text-xs font-semibold rounded-xl border border-slate-200/80 dark:border-white/[0.08] shadow-xs transition-all cursor-pointer"
         >
-          <ArrowLeft className="w-4 h-4" />
+          <ArrowLeft className="w-4 h-4 text-slate-500" />
           Omborga qaytish
         </button>
 
-        <span className="text-[11px] sm:text-xs font-semibold text-slate-400 dark:text-slate-500 hidden sm:inline">
-          Mahsulot tafsilotlari (Xarid va Sotuv tarixi)
+        <span className="text-xs font-medium text-slate-400 dark:text-slate-500 hidden sm:inline">
+          Mahsulot tafsilotlari (Xarid va sotuv tarixi)
         </span>
       </div>
 
-      {/* 1. YUQORI BLOK (Chizmadagi kabi katta konteyner ichida 2 ta blok: Mahsulotning o'zi + Umumiy hisob-kitob) */}
-      <div className="bg-white dark:bg-slate-800 p-3.5 sm:p-5 rounded-3xl border border-slate-200/80 dark:border-slate-700 shadow-xs">
+      {/* 1. YUQORI BLOK */}
+      <div className="bg-white dark:bg-[#111726] p-3.5 sm:p-5 rounded-2xl border border-slate-200/70 dark:border-white/[0.07] shadow-xs">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-4">
           {/* CHAP KARTA: Shu mahsulotning o'zi */}
-          <div className="bg-slate-50/90 dark:bg-slate-900/70 p-3.5 sm:p-5 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 flex flex-col justify-between gap-3">
+          <div className="bg-slate-50/80 dark:bg-white/[0.03] p-3.5 sm:p-5 rounded-xl border border-slate-200/70 dark:border-white/[0.06] flex flex-col justify-between gap-3">
             <div className="flex items-start justify-between gap-3">
-              <div className="flex items-start gap-2.5 sm:gap-3">
-                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-sm shadow-blue-500/20">
-                  <Plane className="w-4 h-4 sm:w-5 sm:h-5" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-                    <span className="font-mono text-[11px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 px-2.5 py-0.5 rounded-full border border-blue-200/60 dark:border-blue-800/60">
-                      {batch.batchNumber}
-                    </span>
-                    {batch.isRoundTrip && (
-                      <span className="text-[10px] sm:text-[11px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
-                        ⇄ Obratno
-                      </span>
-                    )}
-                    {batch.status === "ACTIVE" ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/60">
-                        <CheckCircle2 className="w-3 h-3" /> Faol
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
-                        <AlertCircle className="w-3 h-3" /> Tugagan
-                      </span>
-                    )}
-                  </div>
-                  <h2 className="text-base sm:text-xl font-extrabold text-slate-900 dark:text-white mt-1.5 leading-snug">
-                    {batch.route}
-                  </h2>
-                  <div className="flex items-center gap-2 text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 mt-1 flex-wrap">
-                    <span className="inline-flex items-center gap-1 font-medium">
-                      <Calendar className="w-3.5 h-3.5 text-blue-500" />
-                      Borish: <b className="text-slate-700 dark:text-slate-200">{batch.flightDate}</b>
-                      {batch.departureTime
-                        ? ` (🛫 ${batch.departureTime} ➔ 🛬 ${batch.arrivalTime || ""})`
-                        : ""}
-                    </span>
-                    <span className="font-mono bg-slate-200/70 dark:bg-slate-800 px-2 py-0.5 rounded text-[11px] text-slate-600 dark:text-slate-300">
-                      Reys: {batch.flightNumber || "-"}
-                    </span>
-                    {batch.isRoundTrip && batch.returnDate && (
-                      <span className="text-blue-600 dark:text-blue-400 font-bold">
-                        ⇄ Qaytish: {batch.returnDate}{" "}
-                        {batch.returnFlightNumber ? `(${batch.returnFlightNumber})` : ""}
-                        {batch.returnDepartureTime
-                          ? ` • 🛫 ${batch.returnDepartureTime} ➔ 🛬 ${batch.returnArrivalTime || ""}`
-                          : ""}
-                      </span>
-                    )}
-                  </div>
-                </div>
+              <div className="flex-1 min-w-0">
+                <FlightBar batch={batch} />
               </div>
             </div>
 
             {/* Qoldiq progress bari */}
-            <div className="pt-2 border-t border-slate-200/60 dark:border-slate-800">
-              <div className="flex items-center justify-between text-[11px] sm:text-xs font-bold mb-1.5">
+            <div className="pt-2 border-t border-slate-200/60 dark:border-white/[0.06] tabular-nums">
+              <div className="flex items-center justify-between text-[11px] sm:text-xs font-semibold mb-1.5">
                 <span className="text-blue-600 dark:text-blue-400">
                   Qoldiq: {remainingQty} ta
                 </span>
@@ -173,7 +125,7 @@ export function BatchDetailView({
                   Jami {totalQty} tadan ({soldQty} ta sotildi • {percentSold}%)
                 </span>
               </div>
-              <div className="w-full bg-slate-200 dark:bg-slate-700 h-2.5 rounded-full overflow-hidden">
+              <div className="w-full bg-slate-200 dark:bg-white/[0.08] h-2 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-blue-600 rounded-full transition-all duration-300"
                   style={{ width: `${percentSold}%` }}
@@ -183,48 +135,48 @@ export function BatchDetailView({
           </div>
 
           {/* O'NG KARTA: Shu mahsulotning moliyaviy xulosasi (Xarid, Sotuv, Sof Foyda) */}
-          <div className="bg-slate-50/90 dark:bg-slate-900/70 p-3.5 sm:p-5 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 flex flex-col justify-between gap-3">
+          <div className="bg-slate-50/80 dark:bg-white/[0.03] p-3.5 sm:p-5 rounded-xl border border-slate-200/70 dark:border-white/[0.06] flex flex-col justify-between gap-3">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] sm:text-xs font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                 Shu mahsulot bo‘yicha hisob-kitob
               </span>
               <TrendingUp className="w-4 h-4 text-emerald-500" />
             </div>
 
-            <div className="grid grid-cols-3 gap-2 sm:gap-3 my-auto">
+            <div className="grid grid-cols-3 gap-2 sm:gap-3 my-auto tabular-nums">
               {/* Jami Xarid */}
-              <div className="bg-white dark:bg-slate-800 p-2.5 sm:p-3 rounded-xl border border-slate-200/60 dark:border-slate-700/70 min-w-0">
-                <span className="text-[10px] sm:text-[11px] text-slate-400 font-semibold block truncate">
+              <div className="bg-white dark:bg-[#111726] p-2.5 sm:p-3 rounded-xl border border-slate-200/60 dark:border-white/[0.06] min-w-0">
+                <span className="text-[10px] sm:text-[11px] text-slate-400 font-medium block truncate">
                   Xarid ({totalQty} ta)
                 </span>
-                <span className="text-xs sm:text-base font-black font-mono text-slate-900 dark:text-white block mt-1 truncate">
+                <span className="text-xs sm:text-base font-bold text-slate-900 dark:text-white block mt-1 truncate">
                   {formatUSD(totalPurchaseCost)}
                 </span>
-                <span className="text-[9px] sm:text-[10px] text-slate-400 font-mono block mt-0.5 truncate">
+                <span className="text-[10px] text-slate-400 block mt-0.5 truncate">
                   1 ta: {formatUSD(batch.buyPrice)}
                 </span>
               </div>
 
               {/* Jami Sotuv */}
-              <div className="bg-white dark:bg-slate-800 p-2.5 sm:p-3 rounded-xl border border-slate-200/60 dark:border-slate-700/70 min-w-0">
-                <span className="text-[10px] sm:text-[11px] text-slate-400 font-semibold block truncate">
+              <div className="bg-white dark:bg-[#111726] p-2.5 sm:p-3 rounded-xl border border-slate-200/60 dark:border-white/[0.06] min-w-0">
+                <span className="text-[10px] sm:text-[11px] text-slate-400 font-medium block truncate">
                   Sotuv ({soldQty} ta)
                 </span>
-                <span className="text-xs sm:text-base font-black font-mono text-blue-600 dark:text-blue-400 block mt-1 truncate">
+                <span className="text-xs sm:text-base font-bold text-blue-600 dark:text-blue-400 block mt-1 truncate">
                   {formatUSD(totalSalesAmount)}
                 </span>
-                <span className="text-[9px] sm:text-[10px] text-slate-400 font-mono block mt-0.5 truncate">
+                <span className="text-[10px] text-slate-400 block mt-0.5 truncate">
                   {productSales.length} ta sotuv
                 </span>
               </div>
 
               {/* Sof Foyda */}
-              <div className="bg-emerald-50/70 dark:bg-emerald-950/30 p-2.5 sm:p-3 rounded-xl border border-emerald-200/60 dark:border-emerald-800/50 min-w-0">
-                <span className="text-[10px] sm:text-[11px] text-emerald-700 dark:text-emerald-400 font-semibold block truncate">
-                  Sof Foyda
+              <div className="bg-emerald-500/10 p-2.5 sm:p-3 rounded-xl border border-emerald-500/20 min-w-0">
+                <span className="text-[10px] sm:text-[11px] text-emerald-700 dark:text-emerald-400 font-medium block truncate">
+                  Sof foyda
                 </span>
                 <span
-                  className={`text-xs sm:text-base font-black font-mono block mt-1 truncate ${
+                  className={`text-xs sm:text-base font-bold block mt-1 truncate ${
                     totalProfit >= 0
                       ? "text-emerald-600 dark:text-emerald-400"
                       : "text-rose-600 dark:text-rose-400"
@@ -234,33 +186,37 @@ export function BatchDetailView({
                     ? `+${formatUSD(totalProfit)}`
                     : `-${formatUSD(Math.abs(totalProfit))}`}
                 </span>
-                <span className="text-[9px] sm:text-[10px] text-emerald-600/80 dark:text-emerald-400/80 block mt-0.5 truncate">
+                <span className="text-[10px] text-emerald-600/80 dark:text-emerald-400/80 block mt-0.5 truncate">
                   Sotilganlardan
                 </span>
               </div>
             </div>
 
-            <div className="text-[11px] text-slate-400 dark:text-slate-500 flex items-center justify-between pt-1 border-t border-slate-200/60 dark:border-slate-800 gap-2">
-              <span className="truncate">Kompaniya: <b className="text-slate-700 dark:text-slate-300">{batch.supplierName}</b></span>
-              <span className="shrink-0">Xarid: <b className="text-slate-700 dark:text-slate-300">{batch.purchaseDate}</b></span>
+            <div className="text-[11px] text-slate-400 dark:text-slate-500 flex items-center justify-between pt-1 border-t border-slate-200/60 dark:border-white/[0.06] gap-2">
+              <span className="truncate">
+                Kompaniya: <b className="text-slate-700 dark:text-slate-300">{batch.supplierName}</b>
+              </span>
+              <span className="shrink-0">
+                Xarid: <b className="text-slate-700 dark:text-slate-300">{formatDate(batch.purchaseDate)}</b>
+              </span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* MOBIL UCHUN TEZ ALMASHUVCHI TAB: Xarid vs Sotuv (Faqat mobilda ko'rinadi, kompyuterda 2 ta ustun yonma-yon turadi) */}
-      <div className="flex lg:hidden items-center gap-1.5 bg-slate-200/70 dark:bg-slate-800 p-1 rounded-2xl">
+      {/* MOBIL UCHUN TEZ ALMASHUVCHI TAB: Xarid vs Sotuv */}
+      <div className="flex lg:hidden items-center gap-1.5 bg-slate-200/70 dark:bg-[#111726] p-1 rounded-xl border border-transparent dark:border-white/[0.07]">
         <button
           type="button"
           onClick={() => setMobileTab("PURCHASES")}
-          className={`flex-1 py-2 px-3 rounded-xl text-xs font-extrabold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+          className={`flex-1 py-2 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
             mobileTab === "PURCHASES"
-              ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-xs"
+              ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs"
               : "text-slate-600 dark:text-slate-400"
           }`}
         >
-          <span>Xarid (Kimdan olingan)</span>
-          <span className="px-2 py-0.5 rounded-full text-[10px] bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400">
+          <span>Xarid (Kimdan)</span>
+          <span className="px-2 py-0.5 rounded-md text-[10px] bg-slate-100 dark:bg-white/[0.08] text-slate-700 dark:text-slate-300">
             {filteredPurchases.length}
           </span>
         </button>
@@ -268,38 +224,38 @@ export function BatchDetailView({
         <button
           type="button"
           onClick={() => setMobileTab("SALES")}
-          className={`flex-1 py-2 px-3 rounded-xl text-xs font-extrabold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+          className={`flex-1 py-2 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
             mobileTab === "SALES"
-              ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-xs"
+              ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs"
               : "text-slate-600 dark:text-slate-400"
           }`}
         >
-          <span>Sotuv (Kimga sotilgan)</span>
-          <span className="px-2 py-0.5 rounded-full text-[10px] bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400">
+          <span>Sotuv (Kimga)</span>
+          <span className="px-2 py-0.5 rounded-md text-[10px] bg-slate-100 dark:bg-white/[0.08] text-slate-700 dark:text-slate-300">
             {filteredSales.length}
           </span>
         </button>
       </div>
 
-      {/* 2. PASTKI BLOK: Chizmadagi kabi 2 ta ustun yonma-yon — Chapda "Xarid [+]", O'ngda "Sotuv [+]" */}
+      {/* 2. PASTKI BLOK: 2 ta ustun yonma-yon — Chapda "Xarid [+]", O'ngda "Sotuv [+]" */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* CHAP USTUN: XARID (Kimdan xarid qilingan) */}
         <div
-          className={`bg-white dark:bg-slate-800 p-4 sm:p-5 rounded-3xl border border-slate-200/80 dark:border-slate-700 shadow-xs flex-col ${
+          className={`bg-white dark:bg-[#111726] p-4 sm:p-5 rounded-2xl border border-slate-200/70 dark:border-white/[0.07] shadow-xs flex-col ${
             mobileTab === "PURCHASES" ? "flex" : "hidden lg:flex"
           }`}
         >
           {/* Ustun sarlavhasi va [+] tugmasi */}
-          <div className="flex items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-700">
+          <div className="flex items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-white/[0.06]">
             <div>
               <h3 className="text-lg font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
                 <span>Xarid</span>
-                <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400">
+                <span className="text-xs font-semibold px-2.5 py-0.5 rounded-lg bg-slate-100 dark:bg-white/[0.06] text-slate-700 dark:text-slate-300">
                   {filteredPurchases.length} ta
                 </span>
               </h3>
               <p className="text-xs text-slate-400 mt-0.5">
-                Shu mahsulot kimdan (qaysi kompaniyadan) xarid qilingan
+                Shu mahsulot qaysi kompaniyadan xarid qilingan
               </p>
             </div>
 
@@ -307,9 +263,9 @@ export function BatchDetailView({
               type="button"
               onClick={onOpenBatchModal}
               title="Yangi xarid qo'shish"
-              className="w-10 h-10 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center shadow-sm shadow-indigo-500/25 transition-all cursor-pointer shrink-0"
+              className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200/80 dark:bg-white/[0.07] dark:hover:bg-white/[0.12] text-slate-700 dark:text-slate-200 flex items-center justify-center transition-all cursor-pointer shrink-0"
             >
-              <Plus className="w-5 h-5" />
+              <Plus className="w-4 h-4" />
             </button>
           </div>
 
@@ -321,78 +277,78 @@ export function BatchDetailView({
               placeholder="Kompaniya, partiya yoki sana bo‘yicha..."
               value={purchaseSearch}
               onChange={(e) => setPurchaseSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50/80 dark:bg-white/[0.04] border border-slate-200/80 dark:border-white/[0.08] rounded-xl text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
             />
           </div>
 
-          {/* Xarid kartalari ro'yxati (Scroll bilan, chizmadagi kabi o'ng tomoni ajratilgan) */}
+          {/* Xarid kartalari ro'yxati */}
           <div className="space-y-3 lg:max-h-[460px] lg:overflow-y-auto pr-0.5 lg:pr-1">
             {filteredPurchases.map((b) => (
               <div
                 key={b.id}
-                className={`rounded-2xl border transition-all overflow-hidden flex flex-col sm:flex-row items-stretch justify-between ${
+                className={`rounded-xl border transition-all overflow-hidden flex flex-col sm:flex-row items-stretch justify-between ${
                   b.id === batch.id
-                    ? "bg-indigo-50/30 dark:bg-indigo-950/20 border-indigo-300 dark:border-indigo-700/80"
-                    : "bg-slate-50/70 dark:bg-slate-900/50 border-slate-200/80 dark:border-slate-700/80"
+                    ? "bg-blue-50/20 dark:bg-blue-500/[0.04] border-blue-200 dark:border-blue-500/30"
+                    : "bg-slate-50/60 dark:bg-white/[0.02] border-slate-200/70 dark:border-white/[0.06]"
                 }`}
               >
-                {/* Kartaning chap qismi: Kimdan olingani va tafsilotlar */}
+                {/* Kartaning chap qismi */}
                 <div className="p-3.5 flex-1 min-w-0 space-y-1.5">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300">
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-slate-200/70 dark:bg-white/[0.08] text-slate-700 dark:text-slate-300">
                       Ta&apos;minotchi
                     </span>
-                    <span className="font-mono text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                    <span className="tabular-nums text-[11px] font-semibold text-slate-500 dark:text-slate-400">
                       {b.batchNumber}
                     </span>
                     {b.isRoundTrip && (
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
-                        ⇄ Obratno
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                        ⇄ Borish-kelish
                       </span>
                     )}
-                    <span className="text-[11px] text-slate-400">• {b.purchaseDate}</span>
+                    <span className="text-[11px] text-slate-400">• {formatDate(b.purchaseDate)}</span>
                   </div>
 
                   <div className="flex items-center gap-1.5">
-                    <Building2 className="w-4 h-4 text-indigo-500 shrink-0" />
+                    <Building2 className="w-4 h-4 text-slate-400 shrink-0" />
                     <button
                       type="button"
                       onClick={() => onOpenHistoryModal?.(b.supplierId)}
-                      className="font-extrabold text-sm sm:text-base text-slate-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline truncate text-left cursor-pointer"
+                      className="font-bold text-sm sm:text-base text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 hover:underline truncate text-left cursor-pointer"
                     >
                       {b.supplierName}
                     </button>
                   </div>
 
-                  <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 flex-wrap pt-0.5">
+                  <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 flex-wrap pt-0.5 tabular-nums">
                     <span>
-                      Olingan soni: <b className="text-slate-800 dark:text-slate-200">{b.totalQty} ta</b>
+                      Soni: <b className="text-slate-800 dark:text-slate-200">{b.totalQty} ta</b>
                     </span>
                     <span>
                       Qoldiq: <b className="text-blue-600 dark:text-blue-400">{b.remainingQty} ta</b>
                     </span>
                     <span>
-                      Borish: <b className="text-slate-700 dark:text-slate-300">{b.flightDate}</b>
-                      {b.departureTime ? ` (🛫${b.departureTime}➔🛬${b.arrivalTime || ""})` : ""}
+                      Borish: <b className="text-slate-700 dark:text-slate-300">{formatDate(b.flightDate)}</b>
+                      {b.departureTime ? ` (${b.departureTime}${b.arrivalTime ? `–${b.arrivalTime}` : ""})` : ""}
                     </span>
                     {b.isRoundTrip && b.returnDate && (
-                      <span className="text-blue-600 dark:text-blue-400 font-semibold">
-                        ⇄ Qaytish: {b.returnDate}
+                      <span className="text-slate-600 dark:text-slate-300 font-medium">
+                        ⇄ Qaytish: {formatDate(b.returnDate, false)}
                         {b.returnDepartureTime
-                          ? ` (🛫${b.returnDepartureTime}➔🛬${b.returnArrivalTime || ""})`
+                          ? ` (${b.returnDepartureTime}${b.returnArrivalTime ? `–${b.returnArrivalTime}` : ""})`
                           : ""}
                       </span>
                     )}
                   </div>
                 </div>
 
-                {/* Kartaning o'ng qismi (Chizmadagi vertikal chiziq bilan ajratilgan narx va tahrirlash bloki) */}
-                <div className="p-3.5 sm:w-44 bg-white/80 dark:bg-slate-800/90 border-t sm:border-t-0 sm:border-l border-slate-200/80 dark:border-slate-700/80 flex sm:flex-col items-center sm:items-end justify-between gap-2 shrink-0">
+                {/* Kartaning o'ng qismi */}
+                <div className="p-3.5 sm:w-44 bg-white/80 dark:bg-white/[0.02] border-t sm:border-t-0 sm:border-l border-slate-200/70 dark:border-white/[0.06] flex sm:flex-col items-center sm:items-end justify-between gap-2 shrink-0 tabular-nums">
                   <div className="sm:text-right">
-                    <span className="text-[10px] text-slate-400 uppercase font-bold block">
+                    <span className="text-[11px] text-slate-400 font-medium block">
                       1 dona: {formatUSD(b.buyPrice)}
                     </span>
-                    <span className="text-sm sm:text-base font-black font-mono text-slate-900 dark:text-white block mt-0.5">
+                    <span className="text-sm sm:text-base font-bold text-slate-900 dark:text-white block mt-0.5">
                       {formatUSD(b.totalCost)}
                     </span>
                   </div>
@@ -400,9 +356,9 @@ export function BatchDetailView({
                   <button
                     type="button"
                     onClick={() => onEditBatch(b)}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 text-indigo-600 dark:text-indigo-400 text-[11px] font-bold rounded-full border border-indigo-200 dark:border-indigo-800 transition-all cursor-pointer"
+                    className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 hover:bg-slate-200/80 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] text-slate-700 dark:text-slate-200 text-[11px] font-medium rounded-lg transition-all cursor-pointer"
                   >
-                    <Pencil className="w-3 h-3" /> Narxni o‘zgartirish
+                    <Pencil className="w-3 h-3 text-slate-400" /> Narxni o‘zgartirish
                   </button>
                 </div>
               </div>
@@ -418,21 +374,21 @@ export function BatchDetailView({
 
         {/* O'NG USTUN: SOTUV (Kimga sotilgan) */}
         <div
-          className={`bg-white dark:bg-slate-800 p-4 sm:p-5 rounded-3xl border border-slate-200/80 dark:border-slate-700 shadow-xs flex-col ${
+          className={`bg-white dark:bg-[#111726] p-4 sm:p-5 rounded-2xl border border-slate-200/70 dark:border-white/[0.07] shadow-xs flex-col ${
             mobileTab === "SALES" ? "flex" : "hidden lg:flex"
           }`}
         >
           {/* Ustun sarlavhasi va [+] tugmasi */}
-          <div className="flex items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-700">
+          <div className="flex items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-white/[0.06]">
             <div>
               <h3 className="text-lg font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
                 <span>Sotuv</span>
-                <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400">
+                <span className="text-xs font-semibold px-2.5 py-0.5 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
                   {filteredSales.length} ta
                 </span>
               </h3>
               <p className="text-xs text-slate-400 mt-0.5">
-                Shu mahsulot kimga (qaysi mijozlarga) sotilgan
+                Shu mahsulot qaysi mijozlarga sotilgan
               </p>
             </div>
 
@@ -440,9 +396,9 @@ export function BatchDetailView({
               type="button"
               onClick={() => onOpenSaleModal(batch.id)}
               title="Shu mahsulotdan chipta sotish"
-              className="w-10 h-10 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center shadow-sm shadow-blue-500/25 transition-all cursor-pointer shrink-0"
+              className="w-9 h-9 rounded-xl bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center shadow-sm shadow-blue-500/20 transition-all cursor-pointer shrink-0"
             >
-              <Plus className="w-5 h-5" />
+              <Plus className="w-4 h-4" />
             </button>
           </div>
 
@@ -454,7 +410,7 @@ export function BatchDetailView({
               placeholder="Mijoz ismi, yo‘lovchi yoki sana bo‘yicha..."
               value={saleSearch}
               onChange={(e) => setSaleSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50/80 dark:bg-white/[0.04] border border-slate-200/80 dark:border-white/[0.08] rounded-xl text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
             />
           </div>
 
@@ -463,67 +419,68 @@ export function BatchDetailView({
             {filteredSales.map((s) => (
               <div
                 key={s.id}
-                className="rounded-2xl border bg-slate-50/70 dark:bg-slate-900/50 border-slate-200/80 dark:border-slate-700/80 overflow-hidden flex flex-col sm:flex-row items-stretch justify-between"
+                className="rounded-xl border bg-slate-50/60 dark:bg-white/[0.02] border-slate-200/70 dark:border-white/[0.06] overflow-hidden flex flex-col sm:flex-row items-stretch justify-between"
               >
-                {/* Kartaning chap qismi: Kimga sotilgani va yo'lovchi */}
+                {/* Kartaning chap qismi */}
                 <div className="p-3.5 flex-1 min-w-0 space-y-1.5">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300">
-                      Xaridor (Mijoz)
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                      Mijoz
                     </span>
                     {s.isRoundTrip && (
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
-                        ⇄ Obratno
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+                        ⇄ Borish-kelish
                       </span>
                     )}
-                    <span className="text-[11px] text-slate-400">• {s.saleDate}</span>
+                    <span className="text-[11px] text-slate-400">• {formatDate(s.saleDate)}</span>
                   </div>
 
                   <div className="flex items-center gap-1.5">
-                    <UserCheck className="w-4 h-4 text-blue-500 shrink-0" />
+                    <UserCheck className="w-4 h-4 text-slate-400 shrink-0" />
                     <button
                       type="button"
                       onClick={() => onOpenHistoryModal?.(s.clientId)}
-                      className="font-extrabold text-sm sm:text-base text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 hover:underline truncate text-left cursor-pointer"
+                      className="font-bold text-sm sm:text-base text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 hover:underline truncate text-left cursor-pointer"
                     >
                       {s.clientName}
                     </button>
                   </div>
 
-                  <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 flex-wrap pt-0.5">
+                  <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 flex-wrap pt-0.5 tabular-nums">
                     <span>
-                      Sotilgan soni: <b className="text-blue-600 dark:text-blue-400">{s.qty} ta</b>
+                      Soni: <b className="text-blue-600 dark:text-blue-400">{s.qty} ta</b>
                     </span>
                     <span className="truncate max-w-[220px]">
                       Yo‘lovchi: <b className="text-slate-700 dark:text-slate-300">{s.passengerNames || "-"}</b>
                     </span>
                     {s.departureTime && (
-                      <span className="font-mono text-[11px]">
-                        🛫{s.departureTime}➔🛬{s.arrivalTime || ""}
+                      <span className="text-[11px]">
+                        {s.departureTime}
+                        {s.arrivalTime ? `–${s.arrivalTime}` : ""}
                       </span>
                     )}
                     {s.isRoundTrip && s.returnDate && (
-                      <span className="text-blue-600 dark:text-blue-400 font-semibold">
-                        ⇄ Qaytish: {s.returnDate}
+                      <span className="text-slate-600 dark:text-slate-300 font-medium">
+                        ⇄ Qaytish: {formatDate(s.returnDate, false)}
                         {s.returnDepartureTime
-                          ? ` (🛫${s.returnDepartureTime}➔🛬${s.returnArrivalTime || ""})`
+                          ? ` (${s.returnDepartureTime}${s.returnArrivalTime ? `–${s.returnArrivalTime}` : ""})`
                           : ""}
                       </span>
                     )}
                   </div>
                 </div>
 
-                {/* Kartaning o'ng qismi: Sotuv narxi, foyda va tahrirlash */}
-                <div className="p-3.5 sm:w-44 bg-white/80 dark:bg-slate-800/90 border-t sm:border-t-0 sm:border-l border-slate-200/80 dark:border-slate-700/80 flex sm:flex-col items-center sm:items-end justify-between gap-2 shrink-0">
+                {/* Kartaning o'ng qismi */}
+                <div className="p-3.5 sm:w-44 bg-white/80 dark:bg-white/[0.02] border-t sm:border-t-0 sm:border-l border-slate-200/70 dark:border-white/[0.06] flex sm:flex-col items-center sm:items-end justify-between gap-2 shrink-0 tabular-nums">
                   <div className="sm:text-right">
-                    <span className="text-[10px] text-slate-400 uppercase font-bold block">
+                    <span className="text-[11px] text-slate-400 font-medium block">
                       1 dona: {formatUSD(s.sellPrice)}
                     </span>
-                    <span className="text-sm sm:text-base font-black font-mono text-slate-900 dark:text-white block mt-0.5">
+                    <span className="text-sm sm:text-base font-bold text-slate-900 dark:text-white block mt-0.5">
                       {formatUSD(s.totalAmount)}
                     </span>
                     <span
-                      className={`text-[10px] font-bold font-mono block ${
+                      className={`text-[10px] font-semibold block ${
                         s.profit >= 0
                           ? "text-emerald-600 dark:text-emerald-400"
                           : "text-rose-600 dark:text-rose-400"
@@ -536,9 +493,9 @@ export function BatchDetailView({
                   <button
                     type="button"
                     onClick={() => onEditSale(s)}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 text-blue-600 dark:text-blue-400 text-[11px] font-bold rounded-full border border-blue-200 dark:border-blue-800 transition-all cursor-pointer"
+                    className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 hover:bg-slate-200/80 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] text-slate-700 dark:text-slate-200 text-[11px] font-medium rounded-lg transition-all cursor-pointer"
                   >
-                    <Pencil className="w-3 h-3" /> Narxni o‘zgartirish
+                    <Pencil className="w-3 h-3 text-slate-400" /> Narxni o‘zgartirish
                   </button>
                 </div>
               </div>
@@ -550,7 +507,7 @@ export function BatchDetailView({
                 <button
                   type="button"
                   onClick={() => onOpenSaleModal(batch.id)}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-full cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" /> Birinchi chiptani sotish
                 </button>

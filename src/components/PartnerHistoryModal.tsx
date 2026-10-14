@@ -2,8 +2,8 @@
 
 import React, { useState } from "react";
 import { Modal } from "./Modal";
-import { ArrowDownLeft, ArrowUpRight, ArrowRightLeft, Pencil } from "lucide-react";
-import { formatUSD } from "@/lib/format";
+import { ArrowDownLeft, ArrowUpRight, ArrowRightLeft, Pencil, Tag, Layers, ShoppingBag } from "lucide-react";
+import { formatUSD, formatDate } from "@/lib/format";
 
 interface PartnerHistoryModalProps {
   isOpen: boolean;
@@ -35,18 +35,17 @@ export function PartnerHistoryModal({
   onEditSale,
 }: PartnerHistoryModalProps) {
   const [mobileTab, setMobileTab] = useState<"DEALS" | "PAYMENTS">("DEALS");
+  const [dealType, setDealType] = useState<"SALES" | "BATCHES">("SALES");
 
   if (!isOpen || !partnerId) return null;
 
   const partner = partners.find((p) => p.id === partnerId);
   if (!partner) return null;
 
-  const isSupplier = partner.type === "SUPPLIER";
-
-  // Deals: for supplier -> batches, for client -> sales
-  const deals = isSupplier
-    ? batches.filter((b) => b.supplierId === partnerId)
-    : sales.filter((s) => s.clientId === partnerId);
+  // Batches sold to us (Partner as Supplier/Vendor)
+  const partnerBatches = batches.filter((b) => b.supplierId === partnerId);
+  // Sales bought from us (Partner as Buyer/Client)
+  const partnerSales = sales.filter((s) => s.clientId === partnerId);
 
   // Payments for this partner
   const partnerPayments = payments.filter((p) => p.partnerId === partnerId);
@@ -56,196 +55,303 @@ export function PartnerHistoryModal({
     (o: any) => o.fromPartnerId === partnerId || o.toPartnerId === partnerId
   );
 
-  // Totals
-  const totalDeals = deals.reduce(
-    (sum: number, item: any) => sum + (isSupplier ? item.totalCost || 0 : item.totalAmount || 0),
-    0
-  );
-  const totalPaidDirect = partnerPayments.reduce((sum: number, item: any) => sum + (item.amount || 0), 0);
+  const totalSoldToUs = partnerBatches.reduce((sum, b) => sum + (b.totalCost || 0), 0);
+  const totalBoughtFromUs = partnerSales.reduce((sum, s) => sum + (s.totalAmount || 0), 0);
 
-  // Offsets impact
-  const offsetToAmount = partnerOffsets
-    .filter((o: any) => o.toPartnerId === partnerId)
-    .reduce((sum: number, o: any) => sum + (o.amount || 0), 0);
-  const offsetFromAmount = partnerOffsets
-    .filter((o: any) => o.fromPartnerId === partnerId)
-    .reduce((sum: number, o: any) => sum + (o.amount || 0), 0);
+  const totalPaidToUs = partnerPayments
+    .filter((p) => p.type === "INCOME")
+    .reduce((sum, p) => sum + (p.amount || 0), 0);
+  const totalPaidByUs = partnerPayments
+    .filter((p) => p.type === "EXPENSE")
+    .reduce((sum, p) => sum + (p.amount || 0), 0);
 
-  const totalPaid = isSupplier
-    ? totalPaidDirect + offsetToAmount - offsetFromAmount
-    : totalPaidDirect + offsetFromAmount - offsetToAmount;
+  const offsetFrom = partnerOffsets
+    .filter((o) => o.fromPartnerId === partnerId)
+    .reduce((sum, o) => sum + (o.amount || 0), 0);
+  const offsetTo = partnerOffsets
+    .filter((o) => o.toPartnerId === partnerId)
+    .reduce((sum, o) => sum + (o.amount || 0), 0);
 
-  const balance = totalDeals - totalPaid;
+  // Unified net balance (Sal'do)
+  const theyOweUs = totalBoughtFromUs - totalPaidToUs - offsetFrom + offsetTo;
+  const weOweThem = totalSoldToUs - totalPaidByUs - offsetTo + offsetFrom;
+  const netBalance = theyOweUs - weOweThem;
+
+  const effectiveDealType =
+    dealType === "SALES" && partnerSales.length === 0 && partnerBatches.length > 0
+      ? "BATCHES"
+      : dealType;
 
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={`${partner.name} — Hisob-kitob daftari (Otchyot)`}
-      description={
-        isSupplier
-          ? "Kompaniya (Ta'minotchi) bilan barcha partiyalar, to'lovlar va o'zaro hisob-kitoblar"
-          : "Mijoz bilan barcha chipta sotuvi, to'lovlar va o'zaro hisob-kitoblar"
-      }
+      title={`${partner.name} — Hisob-kitob`}
       maxWidth="max-w-4xl"
     >
       <div className="space-y-4">
-        {/* Top Balance Summary Card (Compact 2-col on mobile, 3-col on desktop) */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-3 p-3 sm:p-4 bg-slate-50/60 dark:bg-slate-800/40 border border-slate-200/70 dark:border-slate-800 rounded-3xl">
-          <div className="bg-white dark:bg-slate-800/80 p-3 sm:p-4 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-xs">
-            <span className="text-[11px] sm:text-xs text-slate-400 dark:text-slate-400 block font-medium">
-              {isSupplier ? "Jami olingan:" : "Jami sotilgan:"}
+        {/* Partner Tags Header Bar */}
+        {partner.tags && partner.tags.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5 pb-1">
+            <span className="text-[11px] text-slate-400 font-medium flex items-center gap-1 mr-1">
+              <Tag className="w-3 h-3" /> Teglar:
             </span>
-            <strong className="text-sm sm:text-base font-bold text-slate-900 dark:text-white font-mono">
-              {formatUSD(totalDeals)}
-            </strong>
+            {partner.tags.map((tag: string) => (
+              <span
+                key={tag}
+                className="text-[10px] font-semibold px-2.5 py-0.5 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20"
+              >
+                {tag}
+              </span>
+            ))}
           </div>
-          <div className="bg-white dark:bg-slate-800/80 p-3 sm:p-4 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-xs">
-            <span className="text-[11px] sm:text-xs text-slate-400 dark:text-slate-400 block font-medium">
-              {isSupplier ? "Biz to'lagan:" : "Mijoz to'lagan:"}
+        )}
+
+        {/* Top Universal Balance Summary Cards (3 cards) */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3 p-3.5 bg-slate-50/60 dark:bg-white/[0.03] border border-slate-200/70 dark:border-white/[0.07] rounded-2xl tabular-nums">
+          {/* Card 1: Bizdan xarid (Chiptalar) */}
+          <div className="bg-white dark:bg-[#111726] p-3 sm:p-3.5 rounded-xl border border-slate-100 dark:border-white/[0.06] shadow-xs">
+            <span className="text-[11px] text-slate-400 block font-medium">
+              Bizdan xarid (Chiptalar)
             </span>
-            <strong className="text-sm sm:text-base font-bold text-slate-900 dark:text-white font-mono">
-              {formatUSD(totalPaid)}
+            <strong className="text-sm sm:text-base font-bold text-slate-900 dark:text-white mt-0.5 block">
+              {formatUSD(totalBoughtFromUs)}
             </strong>
+            <span className="text-[11px] text-emerald-600 dark:text-emerald-400 block mt-0.5 font-medium">
+              To‘langan: +{formatUSD(totalPaidToUs)}
+            </span>
+          </div>
+
+          {/* Card 2: Bizga sotgan (Partiyalar) */}
+          <div className="bg-white dark:bg-[#111726] p-3 sm:p-3.5 rounded-xl border border-slate-100 dark:border-white/[0.06] shadow-xs">
+            <span className="text-[11px] text-slate-400 block font-medium">
+              Bizga sotgan (Partiyalar)
+            </span>
+            <strong className="text-sm sm:text-base font-bold text-slate-900 dark:text-white mt-0.5 block">
+              {formatUSD(totalSoldToUs)}
+            </strong>
+            <span className="text-[11px] text-rose-600 dark:text-rose-400 block mt-0.5 font-medium">
+              To‘langan: -{formatUSD(totalPaidByUs)}
+            </span>
+          </div>
+
+          {/* Card 3: O‘zaro umumiy Sal'do */}
+          <div
+            className={`p-3 sm:p-3.5 rounded-xl border shadow-xs flex sm:block items-center justify-between ${
+              netBalance > 0
+                ? "bg-amber-500/10 border-amber-500/20 text-amber-900 dark:text-amber-300"
+                : netBalance < 0
+                ? "bg-rose-500/10 border-rose-500/20 text-rose-900 dark:text-rose-300"
+                : "bg-emerald-500/10 border-emerald-500/20 text-emerald-900 dark:text-emerald-300"
+            }`}
+          >
+            <div>
+              <span className="text-xs block font-medium">
+                {netBalance > 0
+                  ? "Mijozning qarzi (Ular to‘lashi kerak)"
+                  : netBalance < 0
+                  ? "Bizning qarzimiz (Biz to‘lashimiz kerak)"
+                  : "O‘zaro hisob-kitob teng"}
+              </span>
+              <strong className="text-base sm:text-lg font-bold sm:mt-0.5 block">
+                {netBalance === 0 ? "$0" : formatUSD(Math.abs(netBalance))}
+              </strong>
+            </div>
             {partnerOffsets.length > 0 && (
-              <span className="text-[10px] text-blue-600 dark:text-blue-400 block mt-0.5">
-                (Surishlar bilan)
+              <span className="text-[10px] text-blue-600 dark:text-blue-400 block sm:mt-0.5">
+                (O‘zaro surishlar hisobga olingan)
               </span>
             )}
           </div>
-          <div
-            className={`col-span-2 sm:col-span-1 p-3 sm:p-4 rounded-2xl border shadow-xs flex sm:block items-center justify-between ${
-              balance > 0
-                ? isSupplier
-                  ? "bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800 text-rose-950 dark:text-rose-200"
-                  : "bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800 text-amber-950 dark:text-amber-200"
-                : "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800 text-emerald-950 dark:text-emerald-200"
-            }`}
-          >
-            <span className="text-xs block font-medium">
-              {isSupplier
-                ? balance > 0
-                  ? "Bizning qarzimiz:"
-                  : "Haqdorlik (Ortiqcha):"
-                : balance > 0
-                ? "Mijozning qarzi:"
-                : "Ortiqcha to'langan:"}
-            </span>
-            <strong className="text-base sm:text-lg font-bold font-mono">
-              {formatUSD(Math.abs(balance))}
-            </strong>
-          </div>
         </div>
 
-        {/* Quick Actions in Modal */}
-        <div className="grid grid-cols-2 sm:flex items-center justify-end gap-2">
+        {/* Quick Actions Bar */}
+        <div className="flex items-center justify-end gap-2 flex-wrap">
           {onOpenDebtOffsetModal && (
             <button
               onClick={() => {
                 onClose();
-                if (isSupplier) {
-                  onOpenDebtOffsetModal(undefined, partner.id);
-                } else {
-                  onOpenDebtOffsetModal(partner.id, undefined);
-                }
+                onOpenDebtOffsetModal(
+                  netBalance > 0 ? partner.id : undefined,
+                  netBalance < 0 ? partner.id : undefined
+                );
               }}
-              className="px-3 sm:px-4 py-2 text-xs font-bold rounded-full text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 border border-blue-200 dark:border-blue-800 transition-all cursor-pointer flex items-center justify-center gap-1.5"
+              className="px-3 sm:px-3.5 py-2 text-xs font-semibold rounded-xl text-slate-700 dark:text-slate-200 bg-slate-100 hover:bg-slate-200/80 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] transition-all cursor-pointer flex items-center justify-center gap-1.5"
             >
-              <ArrowRightLeft className="w-3.5 h-3.5" /> ⇄ Qarzni surish
+              <ArrowRightLeft className="w-3.5 h-3.5 text-slate-500" /> Qarzni surish
             </button>
           )}
 
           {onOpenPaymentModal && (
-            <button
-              onClick={() => {
-                onClose();
-                onOpenPaymentModal(isSupplier ? "EXPENSE" : "INCOME", partner.id);
-              }}
-              className={`px-3 sm:px-4 py-2 text-xs font-bold rounded-full text-white shadow-xs cursor-pointer text-center ${
-                isSupplier ? "bg-rose-600 hover:bg-rose-700" : "bg-emerald-600 hover:bg-emerald-700"
-              }`}
-            >
-              {isSupplier ? "- To'lov qilish" : "+ To'lov qabul qilish"}
-            </button>
+            <>
+              <button
+                onClick={() => {
+                  onClose();
+                  onOpenPaymentModal("INCOME", partner.id);
+                }}
+                className="px-3 sm:px-3.5 py-2 text-xs font-semibold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs cursor-pointer flex items-center gap-1"
+              >
+                <ArrowDownLeft className="w-3.5 h-3.5" /> + Pul olish (Kirim)
+              </button>
+
+              <button
+                onClick={() => {
+                  onClose();
+                  onOpenPaymentModal("EXPENSE", partner.id);
+                }}
+                className="px-3 sm:px-3.5 py-2 text-xs font-semibold rounded-xl bg-rose-600 hover:bg-rose-700 text-white shadow-xs cursor-pointer flex items-center gap-1"
+              >
+                <ArrowUpRight className="w-3.5 h-3.5" /> - Pul berish (Chiqim)
+              </button>
+            </>
           )}
         </div>
 
         {/* Mobile Tab Switch for Deals vs Payments */}
-        <div className="flex md:hidden items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl">
+        <div className="flex md:hidden items-center gap-1 bg-slate-100 dark:bg-white/[0.05] p-1 rounded-xl">
           <button
             type="button"
             onClick={() => setMobileTab("DEALS")}
-            className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
               mobileTab === "DEALS"
-                ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-xs"
+                ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs"
                 : "text-slate-500 dark:text-slate-400"
             }`}
           >
-            {isSupplier ? `Partiyalar (${deals.length})` : `Chiptalar (${deals.length})`}
+            Bitimlar ({partnerSales.length + partnerBatches.length})
           </button>
           <button
             type="button"
             onClick={() => setMobileTab("PAYMENTS")}
-            className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
               mobileTab === "PAYMENTS"
-                ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-xs"
+                ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs"
                 : "text-slate-500 dark:text-slate-400"
             }`}
           >
-            To&apos;lovlar ({partnerPayments.length + partnerOffsets.length})
+            To‘lovlar ({partnerPayments.length + partnerOffsets.length})
           </button>
         </div>
 
-        {/* Lists: Deals, Payments, and Offsets */}
+        {/* Lists: Deals (Sales/Batches) and Payments */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Column 1: Deals (Batches / Sales) */}
+          {/* Column 1: Deals */}
           <div
-            className={`border border-slate-200/70 dark:border-slate-800 rounded-3xl overflow-hidden bg-white dark:bg-slate-900 shadow-xs ${
+            className={`border border-slate-200/70 dark:border-white/[0.07] rounded-2xl overflow-hidden bg-white dark:bg-[#111726] shadow-xs ${
               mobileTab === "DEALS" ? "block" : "hidden md:block"
             }`}
           >
-            <div className="bg-slate-50/70 dark:bg-slate-800/60 px-4 py-3 border-b border-slate-100 dark:border-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-              {isSupplier ? "Olingan partiyalar" : "Sotilgan chiptalar"}
+            <div className="bg-slate-50/70 dark:bg-white/[0.03] px-3.5 py-2.5 border-b border-slate-100 dark:border-white/[0.06] flex items-center justify-between gap-2">
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                Bitimlar tarixi
+              </span>
+              {/* Sub-tabs for Sales vs Batches */}
+              <div className="flex items-center gap-1 bg-slate-200/60 dark:bg-white/[0.05] p-0.5 rounded-lg text-[11px]">
+                <button
+                  type="button"
+                  onClick={() => setDealType("SALES")}
+                  className={`px-2 py-0.5 rounded-md font-semibold transition-all cursor-pointer ${
+                    effectiveDealType === "SALES"
+                      ? "bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-xs"
+                      : "text-slate-500 dark:text-slate-400"
+                  }`}
+                >
+                  Sotuv ({partnerSales.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDealType("BATCHES")}
+                  className={`px-2 py-0.5 rounded-md font-semibold transition-all cursor-pointer ${
+                    effectiveDealType === "BATCHES"
+                      ? "bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-xs"
+                      : "text-slate-500 dark:text-slate-400"
+                  }`}
+                >
+                  Xarid ({partnerBatches.length})
+                </button>
+              </div>
             </div>
-            <div className="divide-y divide-slate-100 dark:divide-slate-800 md:max-h-64 md:overflow-y-auto">
-              {deals.length === 0 ? (
-                <p className="p-4 text-xs text-slate-400 dark:text-slate-500 text-center">Bitimlar yo&apos;q</p>
+
+            <div className="divide-y divide-slate-100 dark:divide-white/[0.05] max-h-80 overflow-y-auto tabular-nums">
+              {effectiveDealType === "SALES" ? (
+                partnerSales.length === 0 ? (
+                  <p className="p-4 text-xs text-slate-400 dark:text-slate-500 text-center">
+                    Ushbu hamkorga sotilgan chiptalar yo‘q
+                  </p>
+                ) : (
+                  partnerSales.map((s: any) => (
+                    <div key={s.id} className="p-3.5 text-xs hover:bg-slate-50/50 dark:hover:bg-white/[0.02]">
+                      <div className="flex items-center justify-between font-semibold text-slate-800 dark:text-slate-200">
+                        <span className="flex items-center gap-1.5">
+                          <ShoppingBag className="w-3.5 h-3.5 text-blue-500" />
+                          {s.route || "Chipta sotuvi"}
+                        </span>
+                        <span className="text-slate-900 dark:text-white font-bold">
+                          {formatUSD(s.totalAmount)}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mt-1.5">
+                        <span>
+                          {s.qty} ta × {formatUSD(s.sellPrice)}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px]">{formatDate(s.saleDate)}</span>
+                          {onEditSale && (
+                            <button
+                              type="button"
+                              onClick={() => onEditSale(s)}
+                              className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-100 hover:bg-slate-200/80 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] text-slate-700 dark:text-slate-200 text-[11px] font-medium rounded-lg cursor-pointer transition-all"
+                            >
+                              <Pencil className="w-2.5 h-2.5 text-slate-400" /> Narx
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      {s.passengerNames && (
+                        <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5 truncate">
+                          {s.passengerNames}
+                        </p>
+                      )}
+                    </div>
+                  ))
+                )
+              ) : partnerBatches.length === 0 ? (
+                <p className="p-4 text-xs text-slate-400 dark:text-slate-500 text-center">
+                  Ushbu hamkordan olingan partiyalar yo‘q
+                </p>
               ) : (
-                deals.map((item: any) => (
-                  <div key={item.id} className="p-3.5 text-xs hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
+                partnerBatches.map((b: any) => (
+                  <div key={b.id} className="p-3.5 text-xs hover:bg-slate-50/50 dark:hover:bg-white/[0.02]">
                     <div className="flex items-center justify-between font-semibold text-slate-800 dark:text-slate-200">
-                      <span>{item.route || item.batchNumber}</span>
-                      <span className="text-slate-900 dark:text-white font-mono font-bold">
-                        {formatUSD(isSupplier ? item.totalCost : item.totalAmount)}
+                      <span className="flex items-center gap-1.5">
+                        <Layers className="w-3.5 h-3.5 text-indigo-500" />
+                        {b.route || b.batchNumber}
+                      </span>
+                      <span className="text-slate-900 dark:text-white font-bold">
+                        {formatUSD(b.totalCost)}
                       </span>
                     </div>
                     <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mt-1.5">
                       <span>
-                        {isSupplier
-                          ? `${item.totalQty} ta × ${formatUSD(item.buyPrice)}`
-                          : `${item.qty} ta × ${formatUSD(item.sellPrice)}`}
+                        {b.totalQty} ta × {formatUSD(b.buyPrice)}
                       </span>
                       <div className="flex items-center gap-2">
-                        <span className="text-[11px]">{item.saleDate || item.flightDate}</span>
-                        {((isSupplier && onEditBatch) || (!isSupplier && onEditSale)) && (
+                        <span className="text-[11px]">{formatDate(b.purchaseDate || b.flightDate)}</span>
+                        {onEditBatch && (
                           <button
                             type="button"
-                            onClick={() => {
-                              if (isSupplier && onEditBatch) {
-                                onEditBatch(item);
-                              } else if (!isSupplier && onEditSale) {
-                                onEditSale(item);
-                              }
-                            }}
-                            className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 text-blue-600 dark:text-blue-400 text-[11px] font-bold rounded-full border border-blue-200 dark:border-blue-800 cursor-pointer"
+                            onClick={() => onEditBatch(b)}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-100 hover:bg-slate-200/80 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] text-slate-700 dark:text-slate-200 text-[11px] font-medium rounded-lg cursor-pointer transition-all"
                           >
-                            <Pencil className="w-2.5 h-2.5" /> Narxni o‘zgartirish
+                            <Pencil className="w-2.5 h-2.5 text-slate-400" /> Narx
                           </button>
                         )}
                       </div>
                     </div>
-                    {item.passengerNames && (
-                      <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5 truncate">{item.passengerNames}</p>
+                    {b.notes && (
+                      <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5 truncate">
+                        {b.notes}
+                      </p>
                     )}
                   </div>
                 ))
@@ -255,34 +361,48 @@ export function PartnerHistoryModal({
 
           {/* Column 2: Payments & Offsets */}
           <div
-            className={`border border-slate-200/70 dark:border-slate-800 rounded-3xl overflow-hidden bg-white dark:bg-slate-900 shadow-xs ${
+            className={`border border-slate-200/70 dark:border-white/[0.07] rounded-2xl overflow-hidden bg-white dark:bg-[#111726] shadow-xs ${
               mobileTab === "PAYMENTS" ? "block" : "hidden md:block"
             }`}
           >
-            <div className="bg-slate-50/70 dark:bg-slate-800/60 px-4 py-3 border-b border-slate-100 dark:border-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-              To&apos;lovlar & O‘zaro hisoblar
+            <div className="bg-slate-50/70 dark:bg-white/[0.03] px-3.5 py-2.5 border-b border-slate-100 dark:border-white/[0.06] text-xs font-semibold text-slate-700 dark:text-slate-300">
+              To‘lovlar va o‘zaro hisoblar
             </div>
-            <div className="divide-y divide-slate-100 dark:divide-slate-800 md:max-h-64 md:overflow-y-auto">
+            <div className="divide-y divide-slate-100 dark:divide-white/[0.05] max-h-80 overflow-y-auto tabular-nums">
               {partnerPayments.length === 0 && partnerOffsets.length === 0 ? (
-                <p className="p-4 text-xs text-slate-400 dark:text-slate-500 text-center">To&apos;lovlar va o&apos;zaro hisoblar yo&apos;q</p>
+                <p className="p-4 text-xs text-slate-400 dark:text-slate-500 text-center">
+                  To‘lovlar va o‘zaro hisoblar yo‘q
+                </p>
               ) : (
                 <>
                   {partnerPayments.map((p: any) => (
-                    <div key={`p-${p.id}`} className="p-3.5 text-xs hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
+                    <div key={`p-${p.id}`} className="p-3.5 text-xs hover:bg-slate-50/50 dark:hover:bg-white/[0.02]">
                       <div className="flex items-center justify-between font-semibold text-slate-800 dark:text-slate-200">
                         <span className="flex items-center gap-1 font-bold">
                           {p.type === "INCOME" ? (
-                            <ArrowDownLeft className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                            <>
+                              <ArrowDownLeft className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                              <span className="text-emerald-600 dark:text-emerald-400">+{formatUSD(p.amount)}</span>
+                            </>
                           ) : (
-                            <ArrowUpRight className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
+                            <>
+                              <ArrowUpRight className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
+                              <span className="text-rose-600 dark:text-rose-400">-{formatUSD(p.amount)}</span>
+                            </>
                           )}
-                          {formatUSD(p.amount)}
                         </span>
-                        <span className="text-slate-400 dark:text-slate-500">{p.paymentDate}</span>
+                        <span className="text-slate-400 dark:text-slate-500">{formatDate(p.paymentDate)}</span>
                       </div>
                       <div className="flex items-center justify-between text-slate-400 dark:text-slate-500 mt-1">
-                        <span>Usuli: {p.paymentMethod || "CASH"}</span>
-                        <span>{p.notes || "-"}</span>
+                        <span>
+                          {p.type === "INCOME" ? "Kirim (Mijoz to‘ladi)" : "Chiqim (Biz to‘ladik)"} •{" "}
+                          {p.paymentMethod === "CASH"
+                            ? "Naqd pul"
+                            : p.paymentMethod === "CARD"
+                            ? "Karta"
+                            : "Bank hisobi"}
+                        </span>
+                        <span className="truncate max-w-[120px]">{p.notes || "-"}</span>
                       </div>
                     </div>
                   ))}
@@ -290,7 +410,7 @@ export function PartnerHistoryModal({
                   {partnerOffsets.map((o: any) => {
                     const isFrom = o.fromPartnerId === partnerId;
                     return (
-                      <div key={`o-${o.id}`} className="p-3.5 text-xs bg-blue-50/30 dark:bg-blue-950/20 hover:bg-blue-50/50">
+                      <div key={`o-${o.id}`} className="p-3.5 text-xs bg-blue-500/[0.04] hover:bg-blue-500/[0.08]">
                         <div className="flex items-center justify-between font-semibold text-slate-800 dark:text-slate-200">
                           <span className="flex items-center gap-1.5 font-bold text-blue-600 dark:text-blue-400">
                             <ArrowRightLeft className="w-3.5 h-3.5" />
@@ -299,7 +419,7 @@ export function PartnerHistoryModal({
                               (O‘zaro surish)
                             </span>
                           </span>
-                          <span className="text-slate-400 dark:text-slate-500">{o.date}</span>
+                          <span className="text-slate-400 dark:text-slate-500">{formatDate(o.date)}</span>
                         </div>
                         <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
                           {isFrom ? (

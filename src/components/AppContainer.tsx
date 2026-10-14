@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
+import { CheckCircle2, AlertCircle, Info, X } from "lucide-react";
 import { Navbar } from "./Navbar";
 import { DashboardView } from "./DashboardView";
 import { BatchesView } from "./BatchesView";
@@ -34,6 +35,21 @@ export function AppContainer() {
   const [detailBatchId, setDetailBatchId] = useState<number | null>(null);
   const [isDark, setIsDark] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Toast Notification state
+  const [toast, setToast] = useState<{
+    id: number;
+    message: string;
+    type: "success" | "warning" | "info";
+  } | null>(null);
+
+  const showToast = (message: string, type: "success" | "warning" | "info" = "success") => {
+    const id = Date.now();
+    setToast({ id, message, type });
+    setTimeout(() => {
+      setToast((current) => (current?.id === id ? null : current));
+    }, 3200);
+  };
 
   // Initialize theme from localStorage / system preference
   useEffect(() => {
@@ -174,6 +190,7 @@ export function AppContainer() {
       ...data,
       debtOffsets: [newOffset, ...(data.debtOffsets || [])],
     });
+    showToast("O‘zaro qarz muvaffaqiyatli surildi! 🔄");
   };
 
   // CRUD Operations
@@ -266,6 +283,7 @@ export function AppContainer() {
       sales: [...newSales, ...data.sales],
       payments: newPayments,
     });
+    showToast("Chipta sotuvi muvaffaqiyatli saqlandi! 🎉");
   };
 
   const handleAddBatch = (batchInput: {
@@ -363,6 +381,7 @@ export function AppContainer() {
       batches: [...newBatches, ...data.batches],
       payments: newPayments,
     });
+    showToast("Yangi partiya omborga kiritildi! ✈️");
   };
 
   const handleAddPayment = (paymentInput: {
@@ -388,18 +407,25 @@ export function AppContainer() {
       ...data,
       payments: [newPayment, ...data.payments],
     });
+    showToast(
+      paymentInput.type === "INCOME"
+        ? "Kassa kirimi muvaffaqiyatli saqlandi! 💵"
+        : "Kassa chiqimi muvaffaqiyatli saqlandi! 💸"
+    );
   };
 
   const handleAddPartner = (partnerInput: {
     name: string;
-    type: "SUPPLIER" | "CLIENT";
+    type?: "SUPPLIER" | "CLIENT";
+    tags?: string[];
     phone: string;
     notes: string;
   }) => {
     const newPartner: Partner = {
       id: Date.now(),
       name: partnerInput.name,
-      type: partnerInput.type,
+      type: partnerInput.type || "CLIENT",
+      tags: partnerInput.tags || [],
       phone: partnerInput.phone,
       notes: partnerInput.notes,
       createdAt: new Date().toISOString(),
@@ -409,6 +435,7 @@ export function AppContainer() {
       ...data,
       partners: [...data.partners, newPartner],
     });
+    showToast("Yangi hamkor muvaffaqiyatli qo‘shildi! 🤝");
   };
 
   const handleToggleBatchStatus = (id: number) => {
@@ -426,6 +453,7 @@ export function AppContainer() {
       ...data,
       batches: updatedBatches,
     });
+    showToast("Partiya holati yangilandi!");
   };
 
   // Xarid narxi va sonini tahrirlash (Kompaniya hisob-kitobi va sof foydani qayta hisoblaydi)
@@ -458,6 +486,7 @@ export function AppContainer() {
       batches: updatedBatches,
       sales: updatedSales,
     });
+    showToast("Partiya ma'lumotlari yangilandi!");
   };
 
   // Sotuv narxi va sonini tahrirlash (Mijoz hisob-kitobi va sof foydani qayta hisoblaydi)
@@ -489,6 +518,7 @@ export function AppContainer() {
       ...data,
       sales: updatedSales,
     });
+    showToast("Sotuv ma'lumotlari yangilandi!");
   };
 
   // Backup & Restore
@@ -502,6 +532,7 @@ export function AppContainer() {
     a.download = `aviakassa_zaxira_${dateStr}.json`;
     a.click();
     URL.revokeObjectURL(url);
+    showToast("Zaxira nusxa fayli yuklab olindi! 📥");
   };
 
   const handleImportFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -525,13 +556,13 @@ export function AppContainer() {
             )
           ) {
             updateData(parsed);
-            alert("Ma'lumotlar muvaffaqiyatli tiklandi!");
+            showToast("Zaxira nusxa muvaffaqiyatli tiklandi! 📦");
           }
         } else {
-          alert("Fayl formati mos kelmadi! Aviakassa zaxira JSON faylini tanlang.");
+          showToast("Fayl formati mos kelmadi! Aviakassa JSON faylini tanlang.", "warning");
         }
       } catch (err) {
-        alert("Faylni o'qishda xatolik yuz berdi!");
+        showToast("Faylni o'qishda xatolik yuz berdi!", "warning");
       }
     };
     reader.readAsText(file);
@@ -541,6 +572,7 @@ export function AppContainer() {
   const handleResetDemo = () => {
     if (window.confirm("Barcha namunaviy demo ma'lumotlar qayta yuklansinmi?")) {
       updateData(INITIAL_DEMO_DATA);
+      showToast("Demo ma'lumotlar qayta yuklandi! 🔄", "info");
     }
   };
 
@@ -548,7 +580,7 @@ export function AppContainer() {
   const suppliers = partners.filter((p) => p.type === "SUPPLIER");
 
   return (
-    <div className="min-h-screen bg-[#f4f5f8] dark:bg-[#0b0f19] text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors duration-200">
+    <div className="min-h-screen bg-[#f6f7f9] dark:bg-[#090d16] text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors duration-200">
       <input
         type="file"
         ref={fileInputRef}
@@ -568,6 +600,7 @@ export function AppContainer() {
         onToggleTheme={handleToggleTheme}
         onOpenSaleModal={() => handleOpenSaleModal()}
         onOpenBatchModal={() => setIsBatchModalOpen(true)}
+        onOpenPaymentModal={(type) => handleOpenPaymentModal(type)}
         onExportData={handleExportBackup}
         onImportData={() => fileInputRef.current?.click()}
         onResetDemo={handleResetDemo}
@@ -588,6 +621,11 @@ export function AppContainer() {
               setDetailBatchId(null);
             }}
             onViewAllPartners={() => setActiveTab("purchases")}
+            onSelectBatch={(batchId) => {
+              setActiveTab("inventory");
+              setDetailBatchId(batchId);
+            }}
+            onOpenSaleModal={(batchId) => handleOpenSaleModal(batchId)}
             onResetDemo={handleResetDemo}
           />
         )}
@@ -622,7 +660,6 @@ export function AppContainer() {
             <BatchesView
               batches={batches}
               onOpenBatchModal={() => setIsBatchModalOpen(true)}
-              onToggleStatus={handleToggleBatchStatus}
               onEditBatch={handleOpenEditBatch}
               onOpenHistoryModal={handleOpenHistoryModal}
               onSelectBatch={(batchId) => setDetailBatchId(batchId)}
@@ -660,7 +697,7 @@ export function AppContainer() {
         isOpen={isSaleModalOpen}
         onClose={() => setIsSaleModalOpen(false)}
         batches={batches}
-        clients={clients}
+        clients={partners}
         selectedBatchId={selectedBatchId}
         onSave={handleAddSale}
         onOpenClientModal={() => {
@@ -672,7 +709,7 @@ export function AppContainer() {
       <BatchModal
         isOpen={isBatchModalOpen}
         onClose={() => setIsBatchModalOpen(false)}
-        suppliers={suppliers}
+        suppliers={partners}
         onSave={handleAddBatch}
         onOpenSupplierModal={() => {
           setIsBatchModalOpen(false);
@@ -728,6 +765,29 @@ export function AppContainer() {
         onSaveBatch={handleUpdateBatchPrice}
         onSaveSale={handleUpdateSalePrice}
       />
+
+      {/* Enterprise Toast Notification */}
+      {toast && (
+        <div className="fixed bottom-5 sm:bottom-6 right-5 sm:right-6 z-50 flex items-center gap-3 px-4 py-3 bg-slate-900/95 dark:bg-white/95 text-white dark:text-slate-900 rounded-2xl shadow-xl border border-white/10 dark:border-slate-800 backdrop-blur-md transition-all animate-in fade-in slide-in-from-bottom-2 duration-200">
+          {toast.type === "success" && (
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 dark:text-emerald-600 shrink-0" />
+          )}
+          {toast.type === "warning" && (
+            <AlertCircle className="w-4 h-4 text-amber-400 dark:text-amber-600 shrink-0" />
+          )}
+          {toast.type === "info" && (
+            <Info className="w-4 h-4 text-blue-400 dark:text-blue-600 shrink-0" />
+          )}
+          <span className="text-xs sm:text-sm font-semibold">{toast.message}</span>
+          <button
+            type="button"
+            onClick={() => setToast(null)}
+            className="p-1 hover:bg-white/10 dark:hover:bg-slate-900/10 rounded-lg text-slate-400 hover:text-white dark:hover:text-slate-900 transition-colors cursor-pointer shrink-0 ml-1"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }

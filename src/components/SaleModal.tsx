@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from "react";
 import { Modal } from "./Modal";
 import { Plus, Trash2, ArrowRightLeft } from "lucide-react";
-import { formatUSD } from "@/lib/format";
+import { formatUSD, formatDate } from "@/lib/format";
+import { FlightBar } from "./FlightBar";
 
 export interface SaleItemInput {
   id: string;
@@ -65,15 +66,15 @@ export function SaleModal({
   const [paymentMethod, setPaymentMethod] = useState<string>("CASH");
   const [notes, setNotes] = useState<string>("");
 
-  // Only active batches with remaining stock
-  const activeBatches = batches.filter((b) => b.status === "ACTIVE" && b.remainingQty > 0);
+  // Batches with remaining stock
+  const activeBatches = batches.filter((b) => b.remainingQty > 0);
 
   const [items, setItems] = useState<SaleItemInput[]>([]);
 
   // Reset or initialize on open
   useEffect(() => {
     if (isOpen) {
-      const active = batches.filter((b) => b.status === "ACTIVE" && b.remainingQty > 0);
+      const active = batches.filter((b) => b.remainingQty > 0);
       const initialBatch = selectedBatchId
         ? batches.find((b) => b.id === selectedBatchId)
         : active[0];
@@ -259,7 +260,7 @@ export function SaleModal({
           <div>
             <div className="flex items-center justify-between mb-1">
               <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Mijoz / Agent *
+                Mijoz / Hamkor *
               </label>
               {onOpenClientModal && (
                 <button
@@ -267,7 +268,7 @@ export function SaleModal({
                   onClick={onOpenClientModal}
                   className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline font-semibold cursor-pointer"
                 >
-                  + Yangi mijoz
+                  + Yangi hamkor
                 </button>
               )}
             </div>
@@ -277,10 +278,10 @@ export function SaleModal({
               className="w-full px-3 py-2 text-xs sm:text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
               required
             >
-              <option value="">-- Mijozni tanlang --</option>
+              <option value="">-- Mijoz yoki Hamkorni tanlang --</option>
               {clients.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.name} {c.phone ? `(${c.phone})` : ""}
+                  {c.name} {c.tags && c.tags.length > 0 ? `• [${c.tags.join(", ")}]` : ""} {c.phone ? `(${c.phone})` : ""}
                 </option>
               ))}
             </select>
@@ -341,11 +342,13 @@ export function SaleModal({
                         <option value="">-- Partiya/Reysni tanlang --</option>
                         {activeBatches.map((b) => (
                           <option key={b.id} value={b.id}>
-                            {b.route}{" "}
-                            {b.isRoundTrip
-                              ? `[⇄ Obratno: ${b.flightDate} ➔ ${b.returnDate || ""}]`
-                              : `(${b.flightDate})`}{" "}
-                            • 🛫{b.departureTime || "08:00"}➔🛬{b.arrivalTime || "11:30"} — Qoldiq: {b.remainingQty} ta (${b.buyPrice})
+                            {b.route} (
+                            {formatDate(b.flightDate, false)}
+                            {b.isRoundTrip && b.returnDate
+                              ? ` ⇄ ${formatDate(b.returnDate, false)}`
+                              : ""}
+                            {" • "}Qoldiq: {b.remainingQty} ta{" • "}
+                            {formatUSD(b.buyPrice)})
                           </option>
                         ))}
                       </select>
@@ -380,11 +383,17 @@ export function SaleModal({
                     </div>
                   </div>
 
+                  {selectedBatch && (
+                    <div className="pt-0.5">
+                      <FlightBar batch={selectedBatch} showSubtitle={false} />
+                    </div>
+                  )}
+
                   {/* Uchish va Qo'nish vaqtlari (Borish) */}
                   <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                     <div>
                       <label className="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 mb-0.5">
-                        🛫 Uchish vaqti
+                        Uchish vaqti
                       </label>
                       <input
                         type="time"
@@ -398,7 +407,7 @@ export function SaleModal({
 
                     <div>
                       <label className="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 mb-0.5">
-                        🛬 Qo‘nish vaqti
+                        Qo‘nish vaqti
                       </label>
                       <input
                         type="time"
@@ -414,21 +423,52 @@ export function SaleModal({
                       <label className="block text-[10px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">
                         Chipta soni
                       </label>
-                      <input
-                        type="number"
-                        min="1"
-                        max={selectedBatch?.remainingQty || 9999}
-                        value={item.qty}
-                        onChange={(e) =>
-                          handleUpdateItem(
-                            index,
-                            "qty",
-                            Math.max(1, parseInt(e.target.value) || 0)
-                          )
-                        }
-                        className="w-full px-2.5 py-1.5 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold"
-                        required
-                      />
+                      <div className="flex items-center">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleUpdateItem(
+                              index,
+                              "qty",
+                              Math.max(1, (item.qty || 1) - 1)
+                            )
+                          }
+                          className="w-6 h-[30px] flex items-center justify-center bg-slate-100 hover:bg-slate-200 dark:bg-slate-700/70 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-l-xl font-bold text-xs cursor-pointer border border-r-0 border-slate-300 dark:border-slate-700 shrink-0"
+                        >
+                          -
+                        </button>
+                        <input
+                          type="number"
+                          min="1"
+                          max={selectedBatch?.remainingQty || 9999}
+                          value={item.qty}
+                          onChange={(e) =>
+                            handleUpdateItem(
+                              index,
+                              "qty",
+                              Math.max(1, parseInt(e.target.value) || 0)
+                            )
+                          }
+                          className="w-full text-center py-1.5 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white border-y border-slate-300 dark:border-slate-700 focus:outline-none font-bold tabular-nums"
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleUpdateItem(
+                              index,
+                              "qty",
+                              Math.min(
+                                selectedBatch?.remainingQty || 9999,
+                                (item.qty || 0) + 1
+                              )
+                            )
+                          }
+                          className="w-6 h-[30px] flex items-center justify-center bg-slate-100 hover:bg-slate-200 dark:bg-slate-700/70 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-r-xl font-bold text-xs cursor-pointer border border-l-0 border-slate-300 dark:border-slate-700 shrink-0"
+                        >
+                          +
+                        </button>
+                      </div>
                     </div>
 
                     <div>
@@ -449,7 +489,7 @@ export function SaleModal({
                               parseFloat(e.target.value) || 0
                             )
                           }
-                          className="w-full pl-6 pr-2 py-1.5 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold"
+                          className="w-full pl-6 pr-2 py-1.5 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold tabular-nums"
                           required
                         />
                       </div>
@@ -510,7 +550,7 @@ export function SaleModal({
 
                       <div>
                         <label className="block text-[10px] font-bold text-blue-700 dark:text-blue-300 mb-0.5">
-                          🛫 Qaytish uchish
+                          ⇄ Qaytish uchish
                         </label>
                         <input
                           type="time"
@@ -528,7 +568,7 @@ export function SaleModal({
 
                       <div>
                         <label className="block text-[10px] font-bold text-blue-700 dark:text-blue-300 mb-0.5">
-                          🛬 Qaytish qo‘nish
+                          ⇄ Qaytish qo‘nish
                         </label>
                         <input
                           type="time"
@@ -548,17 +588,17 @@ export function SaleModal({
 
                   {/* Qator xulosasi */}
                   {selectedBatch && (
-                    <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 pt-0.5 px-0.5 border-t border-slate-200/50 dark:border-slate-700/50">
+                    <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 pt-0.5 px-0.5 border-t border-slate-200/50 dark:border-slate-700/50 tabular-nums">
                       <span>
-                        Qoldiq: <b className="text-blue-600 dark:text-blue-400">{selectedBatch.remainingQty} ta</b> • Tannarx: <b>${selectedBatch.buyPrice}</b>
+                        Qoldiq: <b className="text-blue-600 dark:text-blue-400">{selectedBatch.remainingQty} ta</b> • Tannarx: <b>{formatUSD(selectedBatch.buyPrice)}</b>
                       </span>
                       <span>
-                        Jami: <strong className="text-slate-900 dark:text-white font-mono">{formatUSD(itemTotal)}</strong> • Foyda:{" "}
+                        Jami: <strong className="text-slate-900 dark:text-white font-bold">{formatUSD(itemTotal)}</strong> • Foyda:{" "}
                         <strong
                           className={
                             itemProfit >= 0
-                              ? "text-emerald-600 dark:text-emerald-400 font-mono"
-                              : "text-rose-600 dark:text-rose-400 font-mono"
+                              ? "text-emerald-600 dark:text-emerald-400 font-bold"
+                              : "text-rose-600 dark:text-rose-400 font-bold"
                           }
                         >
                           {itemProfit >= 0 ? `+${formatUSD(itemProfit)}` : `-${formatUSD(Math.abs(itemProfit))}`}
@@ -581,19 +621,19 @@ export function SaleModal({
         </div>
 
         {/* 3. Real-time Calculation Summary Bar */}
-        <div className="flex items-center justify-between px-3.5 py-2 bg-slate-100 dark:bg-slate-800/90 rounded-2xl border border-slate-200/80 dark:border-slate-700 text-xs">
+        <div className="flex items-center justify-between px-3.5 py-2.5 bg-slate-100 dark:bg-slate-800/90 rounded-2xl border border-slate-200/80 dark:border-slate-700 text-xs tabular-nums">
           <div className="flex items-center gap-1.5">
             <span className="text-slate-500 dark:text-slate-400 font-medium">
               Jami ({totalQty} ta):
             </span>
-            <span className="font-black font-mono text-slate-900 dark:text-white text-sm">
+            <span className="font-bold text-slate-900 dark:text-white text-sm">
               {formatUSD(totalAmount)}
             </span>
           </div>
           <div className="flex items-center gap-1.5">
             <span className="text-slate-500 dark:text-slate-400 font-medium">Sof foyda:</span>
             <span
-              className={`font-black font-mono text-sm ${
+              className={`font-bold text-sm ${
                 estimatedProfit >= 0
                   ? "text-emerald-600 dark:text-emerald-400"
                   : "text-rose-600 dark:text-rose-400"
@@ -607,11 +647,29 @@ export function SaleModal({
         </div>
 
         {/* 4. To'lov */}
-        <div className="grid grid-cols-2 gap-3 pt-1 border-t border-slate-100 dark:border-slate-800">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-slate-100 dark:border-slate-800">
           <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-              Hozir to&apos;landi ($)
-            </label>
+            <div className="flex items-center justify-between mb-1 gap-1 flex-wrap">
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                Hozir to&apos;landi ($)
+              </label>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setPaidNow(totalAmount)}
+                  className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500/20 transition-colors cursor-pointer"
+                >
+                  To‘liq (100%)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPaidNow(0)}
+                  className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-white/[0.06] text-slate-600 dark:text-slate-300 hover:bg-slate-200 transition-colors cursor-pointer"
+                >
+                  Qarzga ($0)
+                </button>
+              </div>
+            </div>
             <div className="relative">
               <span className="absolute left-3 top-2 text-slate-400 text-sm">$</span>
               <input
@@ -622,10 +680,10 @@ export function SaleModal({
                 value={paidNow || ""}
                 onChange={(e) => setPaidNow(parseFloat(e.target.value) || 0)}
                 placeholder="0"
-                className="w-full pl-7 pr-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+                className="w-full pl-7 pr-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium tabular-nums"
               />
             </div>
-            <div className="text-[11px] text-slate-400 mt-0.5 px-0.5">
+            <div className="text-[11px] text-slate-400 mt-0.5 px-0.5 tabular-nums">
               Qarz:{" "}
               <strong
                 className={
@@ -668,18 +726,18 @@ export function SaleModal({
           />
         </div>
 
-        {/* Action Buttons */}
-        <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-2">
+        {/* Sticky Action Buttons */}
+        <div className="sticky bottom-0 -mx-4 sm:-mx-5 -mb-6 sm:-mb-5 px-4 sm:px-5 py-3 bg-white/95 dark:bg-[#111726]/95 backdrop-blur-md border-t border-slate-100 dark:border-white/[0.07] flex items-center justify-end gap-2 z-10">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors cursor-pointer"
+            className="px-4 py-2 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/[0.06] rounded-xl transition-colors cursor-pointer"
           >
             Bekor qilish
           </button>
           <button
             type="submit"
-            className="px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-full shadow-sm shadow-blue-500/25 transition-all cursor-pointer"
+            className="px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm shadow-blue-500/20 transition-all cursor-pointer"
           >
             Sotuvni tasdiqlash
           </button>

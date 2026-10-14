@@ -262,7 +262,7 @@ export function BatchModal({
           <div>
             <div className="flex items-center justify-between mb-1">
               <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Ta&apos;minotchi (Kompaniya) *
+                Hamkor (Ta&apos;minotchi / Vendor) *
               </label>
               {onOpenSupplierModal && (
                 <button
@@ -270,7 +270,7 @@ export function BatchModal({
                   onClick={onOpenSupplierModal}
                   className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline font-semibold cursor-pointer"
                 >
-                  + Yangi ta&apos;minotchi
+                  + Yangi hamkor
                 </button>
               )}
             </div>
@@ -280,10 +280,10 @@ export function BatchModal({
               className="w-full px-3 py-2 text-xs sm:text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
               required
             >
-              <option value="">-- Ta&apos;minotchini tanlang --</option>
+              <option value="">-- Hamkorni tanlang --</option>
               {suppliers.map((s) => (
                 <option key={s.id} value={s.id}>
-                  {s.name} {s.phone ? `(${s.phone})` : ""}
+                  {s.name} {s.tags && s.tags.length > 0 ? `• [${s.tags.join(", ")}]` : ""} {s.phone ? `(${s.phone})` : ""}
                 </option>
               ))}
             </select>
@@ -472,20 +472,48 @@ export function BatchModal({
                       <label className="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-0.5">
                         Chipta soni *
                       </label>
-                      <input
-                        type="number"
-                        min="1"
-                        value={item.totalQty}
-                        onChange={(e) =>
-                          handleUpdateItem(
-                            index,
-                            "totalQty",
-                            Math.max(1, parseInt(e.target.value) || 0)
-                          )
-                        }
-                        className="w-full px-2 py-1.5 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold"
-                        required
-                      />
+                      <div className="flex items-center">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleUpdateItem(
+                              index,
+                              "totalQty",
+                              Math.max(1, (item.totalQty || 1) - 1)
+                            )
+                          }
+                          className="w-6 h-[30px] flex items-center justify-center bg-slate-100 hover:bg-slate-200 dark:bg-slate-700/70 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-l-xl font-bold text-xs cursor-pointer border border-r-0 border-slate-300 dark:border-slate-700 shrink-0"
+                        >
+                          -
+                        </button>
+                        <input
+                          type="number"
+                          min="1"
+                          value={item.totalQty}
+                          onChange={(e) =>
+                            handleUpdateItem(
+                              index,
+                              "totalQty",
+                              Math.max(1, parseInt(e.target.value) || 0)
+                            )
+                          }
+                          className="w-full text-center py-1.5 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white border-y border-slate-300 dark:border-slate-700 focus:outline-none font-bold tabular-nums"
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleUpdateItem(
+                              index,
+                              "totalQty",
+                              (item.totalQty || 0) + 1
+                            )
+                          }
+                          className="w-6 h-[30px] flex items-center justify-center bg-slate-100 hover:bg-slate-200 dark:bg-slate-700/70 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-r-xl font-bold text-xs cursor-pointer border border-l-0 border-slate-300 dark:border-slate-700 shrink-0"
+                        >
+                          +
+                        </button>
+                      </div>
                     </div>
 
                     <div>
@@ -506,7 +534,7 @@ export function BatchModal({
                               parseFloat(e.target.value) || 0
                             )
                           }
-                          className="w-full pl-5 pr-2 py-1.5 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold"
+                          className="w-full pl-5 pr-2 py-1.5 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold tabular-nums"
                           required
                         />
                       </div>
@@ -581,17 +609,17 @@ export function BatchModal({
                   )}
 
                   {/* Qator pastki qismi */}
-                  <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 pt-1 px-0.5 border-t border-slate-200/50 dark:border-slate-700/50">
+                  <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 pt-1 px-0.5 border-t border-slate-200/50 dark:border-slate-700/50 tabular-nums">
                     <span className="flex items-center gap-1">
                       <Sparkles className="w-3 h-3 text-amber-500" />
                       Partiya kodi (avto):{" "}
-                      <strong className="text-blue-600 dark:text-blue-400 font-mono font-bold">
+                      <strong className="text-blue-600 dark:text-blue-400 font-bold">
                         {autoBatchNumber}
                       </strong>
                     </span>
                     <span>
                       Jami:{" "}
-                      <strong className="text-amber-600 dark:text-amber-400 font-mono font-bold text-xs">
+                      <strong className="text-amber-600 dark:text-amber-400 font-bold text-xs">
                         {formatUSD(itemTotal)}
                       </strong>
                     </span>
@@ -611,21 +639,39 @@ export function BatchModal({
         </div>
 
         {/* 3. Real-time Calculation Summary Bar */}
-        <div className="flex items-center justify-between px-3.5 py-2 bg-slate-100 dark:bg-slate-800/90 rounded-2xl border border-slate-200/80 dark:border-slate-700 text-xs">
+        <div className="flex items-center justify-between px-3.5 py-2.5 bg-slate-100 dark:bg-slate-800/90 rounded-2xl border border-slate-200/80 dark:border-slate-700 text-xs tabular-nums">
           <span className="text-slate-500 dark:text-slate-400 font-medium">
             Jami xarid ({totalTickets} ta chipta):
           </span>
-          <span className="font-black font-mono text-sm text-amber-600 dark:text-amber-400">
+          <span className="font-bold text-sm text-amber-600 dark:text-amber-400">
             {formatUSD(totalCost)}
           </span>
         </div>
 
         {/* 4. To'lov */}
-        <div className="grid grid-cols-2 gap-3 pt-1 border-t border-slate-100 dark:border-slate-800">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-slate-100 dark:border-slate-800">
           <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-              Hozir to&apos;landi ($)
-            </label>
+            <div className="flex items-center justify-between mb-1 gap-1 flex-wrap">
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                Hozir to&apos;landi ($)
+              </label>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setPaidNow(totalCost)}
+                  className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500/20 transition-colors cursor-pointer"
+                >
+                  To‘liq (100%)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPaidNow(0)}
+                  className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-white/[0.06] text-slate-600 dark:text-slate-300 hover:bg-slate-200 transition-colors cursor-pointer"
+                >
+                  Qarzga ($0)
+                </button>
+              </div>
+            </div>
             <div className="relative">
               <span className="absolute left-3 top-2 text-slate-400 text-sm">$</span>
               <input
@@ -636,10 +682,10 @@ export function BatchModal({
                 value={paidNow || ""}
                 onChange={(e) => setPaidNow(parseFloat(e.target.value) || 0)}
                 placeholder="0"
-                className="w-full pl-7 pr-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+                className="w-full pl-7 pr-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium tabular-nums"
               />
             </div>
-            <div className="text-[11px] text-slate-400 mt-0.5 px-0.5">
+            <div className="text-[11px] text-slate-400 mt-0.5 px-0.5 tabular-nums">
               Qarz:{" "}
               <strong
                 className={
@@ -683,18 +729,18 @@ export function BatchModal({
           />
         </div>
 
-        {/* Action Buttons */}
-        <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-2">
+        {/* Sticky Action Buttons */}
+        <div className="sticky bottom-0 -mx-4 sm:-mx-5 -mb-6 sm:-mb-5 px-4 sm:px-5 py-3 bg-white/95 dark:bg-[#111726]/95 backdrop-blur-md border-t border-slate-100 dark:border-white/[0.07] flex items-center justify-end gap-2 z-10">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors cursor-pointer"
+            className="px-4 py-2 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/[0.06] rounded-xl transition-colors cursor-pointer"
           >
             Bekor qilish
           </button>
           <button
             type="submit"
-            className="px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-full shadow-sm shadow-blue-500/25 transition-all cursor-pointer"
+            className="px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm shadow-blue-500/20 transition-all cursor-pointer"
           >
             Xaridni qabul qilish
           </button>

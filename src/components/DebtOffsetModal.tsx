@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Modal } from "./Modal";
-import { ArrowRightLeft, Users, CheckCircle, AlertCircle, Sparkles } from "lucide-react";
+import { ArrowRightLeft, Users, CheckCircle, AlertCircle } from "lucide-react";
 import { Partner } from "@/lib/storage";
 import { formatUSD } from "@/lib/format";
 
@@ -118,8 +118,7 @@ export function DebtOffsetModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="O‘zaro hisob-kitob (Qarzni surish)"
-      description="Kimdandir haqingiz bo'lsa, uni boshqa tomonning qarziga o'tkazib hisoblarni o'zaro tenglang"
+      title="O‘zaro hisob-kitob"
       maxWidth="max-w-xl"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -130,20 +129,12 @@ export function DebtOffsetModal({
           </div>
         )}
 
-        {/* Info banner */}
-        <div className="bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200/60 dark:border-blue-900/40 p-3 rounded-2xl text-xs text-blue-800 dark:text-blue-300 flex items-start gap-2.5">
-          <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
-          <p className="leading-relaxed">
-            Ushbu amal kassadagi naqd pulga tegmaydi. <strong>1-tomonning</strong> qarzi/haqi kamayadi, <strong>2-tomonning</strong> qarzi esa mos ravishda yopiladi.
-          </p>
-        </div>
-
         {/* Two sides selection */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
           {/* Side 1: From */}
           <div className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-slate-200/80 dark:border-slate-700">
             <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1.5">
-              1. Kimning hisobidan yechilsin? (Haqdor tomon)
+              1. Kimning hisobidan yechilsin?
             </label>
             <select
               value={fromPartnerId}
@@ -153,7 +144,7 @@ export function DebtOffsetModal({
               <option value="">Hamkorni tanlang...</option>
               {partners.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.name} ({p.type === "CLIENT" ? "Mijoz" : "Ta'minotchi"}) — Balans: {formatUSD(p.balance)}
+                  {p.name} {p.tags?.length ? `• [${p.tags.join(", ")}]` : ""} — Balans: {formatUSD(p.balance)}
                 </option>
               ))}
             </select>
@@ -170,7 +161,7 @@ export function DebtOffsetModal({
           {/* Side 2: To */}
           <div className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-slate-200/80 dark:border-slate-700">
             <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1.5">
-              2. Kimning qarzi yopilsin? (Qarz egasi)
+              2. Kimning qarzi yopilsin?
             </label>
             <select
               value={toPartnerId}
@@ -180,7 +171,7 @@ export function DebtOffsetModal({
               <option value="">Hamkorni tanlang...</option>
               {partners.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.name} ({p.type === "CLIENT" ? "Mijoz" : "Ta'minotchi"}) — Balans: {formatUSD(p.balance)}
+                  {p.name} {p.tags?.length ? `• [${p.tags.join(", ")}]` : ""} — Balans: {formatUSD(p.balance)}
                 </option>
               ))}
             </select>
@@ -312,7 +303,7 @@ export function DebtOffsetModal({
             className="inline-flex items-center gap-2 px-5 py-2 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-sm shadow-blue-500/25 active:scale-95 transition-all cursor-pointer"
           >
             <ArrowRightLeft className="w-3.5 h-3.5" />
-            Qarzni surishni tasdiqlash
+            Tasdiqlash
           </button>
         </div>
       </form>
