@@ -864,7 +864,6 @@ export function AppContainer() {
               setDetailBatchId(batchId);
             }}
             onOpenSaleModal={(batchId) => handleOpenSaleModal(batchId)}
-            onResetDemo={handleResetDemo}
           />
         )}
 

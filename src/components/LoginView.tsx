@@ -103,7 +103,7 @@ export function LoginView({ onLoginSuccess, isDark, onToggleTheme }: LoginViewPr
                   required
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="admin"
+                  placeholder="Loginni kiriting"
                   autoComplete="username"
                   className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-white/[0.1] bg-slate-50/50 dark:bg-[#0c121e] text-slate-900 dark:text-white text-xs sm:text-sm font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-hidden"
                 />
@@ -124,7 +124,7 @@ export function LoginView({ onLoginSuccess, isDark, onToggleTheme }: LoginViewPr
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
+                  placeholder="Parolni kiriting"
                   autoComplete="current-password"
                   className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 dark:border-white/[0.1] bg-slate-50/50 dark:bg-[#0c121e] text-slate-900 dark:text-white text-xs sm:text-sm font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-hidden"
                 />
@@ -158,13 +158,6 @@ export function LoginView({ onLoginSuccess, isDark, onToggleTheme }: LoginViewPr
               )}
             </button>
           </form>
-
-          {/* Quick Access Info for Admin */}
-          <div className="mt-6 pt-4 border-t border-slate-100 dark:border-white/[0.06] text-center">
-            <p className="text-[11px] text-slate-400 dark:text-slate-500">
-              Standart login: <span className="font-mono text-slate-600 dark:text-slate-400 font-semibold">admin</span> • Parol: <span className="font-mono text-slate-600 dark:text-slate-400 font-semibold">admin123$</span>
-            </p>
-          </div>
         </div>
       </div>
     </div>

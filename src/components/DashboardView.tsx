@@ -9,7 +9,6 @@ import {
   Search,
   MoreHorizontal,
   ChevronDown,
-  Sparkles,
   Plane,
   ArrowRightLeft,
 } from "lucide-react";
@@ -26,7 +25,6 @@ interface DashboardViewProps {
   onSelectBatch?: (batchId: number) => void;
   onOpenSaleModal?: (batchId: number) => void;
   onRefresh?: () => void;
-  onResetDemo?: () => void;
 }
 
 export function DashboardView({
@@ -37,13 +35,11 @@ export function DashboardView({
   onViewAllBatches,
   onSelectBatch,
   onOpenSaleModal,
-  onResetDemo,
 }: DashboardViewProps) {
   const [search, setSearch] = useState("");
   const [period, setPeriod] = useState("Bu oy");
 
   const availableBatches = batches.filter((b) => b.remainingQty > 0);
-  const isEmptyData = batches.length === 0 && partners.length === 0;
 
   // Filtered sales for bottom table
   const filteredSales = sales.filter((s) => {
@@ -109,25 +105,6 @@ export function DashboardView({
         </div>
       </div>
 
-      {/* Empty State Banner (if needed) */}
-      {isEmptyData && (
-        <div className="p-5 bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl text-white shadow-md flex items-center justify-between gap-4">
-          <div>
-            <h4 className="font-bold text-sm flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-amber-300" /> Demo ma&apos;lumotlarni yuklash
-            </h4>
-            <p className="text-xs text-blue-100 mt-0.5">
-              Tizim qanday ishlashini ko&apos;rish uchun namunaviy partiyalar va sotuvlarni oching.
-            </p>
-          </div>
-          <button
-            onClick={onResetDemo}
-            className="px-4 py-2 bg-white text-blue-700 font-semibold text-xs rounded-xl shadow-sm hover:bg-blue-50 transition-all cursor-pointer shrink-0"
-          >
-            Namunaviy ma&apos;lumotlar
-          </button>
-        </div>
-      )}
 
       {/* 2. Top 4 KPI Cards Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 tabular-nums">
