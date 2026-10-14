@@ -46,10 +46,11 @@ class Batch(models.Model):
         return f"{self.batch_number} - {self.route} ({self.flight_date})"
 
     def save(self, *args, **kwargs):
-        if not self.total_cost:
-            self.total_cost = self.buy_price * self.total_qty
+        self.total_cost = self.buy_price * self.total_qty
         if self.remaining_qty is None:
             self.remaining_qty = self.total_qty
         if self.remaining_qty == 0:
             self.status = self.Status.COMPLETED
+        elif self.remaining_qty > 0 and self.status == self.Status.COMPLETED:
+            self.status = self.Status.ACTIVE
         super().save(*args, **kwargs)

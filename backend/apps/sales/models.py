@@ -51,19 +51,37 @@ class Sale(models.Model):
         return f"Sotuv #{self.id} - {self.client.name} ({self.qty} ta)"
 
     def clean(self):
-        if self.pk is None and self.batch:
-            if self.batch.remaining_qty < self.qty:
-                raise ValidationError(
-                    f"Partiyada yetarli chipta yo'q! Qoldiq: {self.batch.remaining_qty} ta, so'ralgan: {self.qty} ta."
-                )
+        if self.batch:
+            if self.pk is None:
+                if self.batch.remaining_qty < self.qty:
+                    raise ValidationError(
+                        f"Partiyada yetarli chipta yo'q! Qoldiq: {self.batch.remaining_qty} ta, so'ralgan: {self.qty} ta."
+                    )
+            else:
+                try:
+                    old = Sale.objects.get(pk=self.pk)
+                    diff = self.qty - old.qty
+                    if diff > 0 and self.batch.remaining_qty < diff:
+                        raise ValidationError(
+                            f"Partiyada qo‘shimcha chipta yetarli emas! Qoldiq: {self.batch.remaining_qty} ta, qo‘shimcha so‘ralgan: {diff} ta."
+                        )
+                except Sale.DoesNotExist:
+                    pass
 
     def save(self, *args, **kwargs):
         is_new = self.pk is None
-        
+        old_qty = 0
+        if not is_new:
+            try:
+                old_sale = Sale.objects.get(pk=self.pk)
+                old_qty = old_sale.qty
+            except Sale.DoesNotExist:
+                is_new = True
+
         # Narxlar va foydani avtomatik hisoblash
         if not self.buy_price and self.batch:
             self.buy_price = self.batch.buy_price
-        
+
         self.total_amount = self.sell_price * self.qty
         self.profit = self.total_amount - (self.buy_price * self.qty)
 
@@ -91,13 +109,36 @@ class Sale(models.Model):
                 self.return_arrival_time = self.batch.return_arrival_time
 
         with transaction.atomic():
-            if is_new and self.batch:
-                # Partiyadan qoldiqni ayirish (Race condition bo'lmasligi uchun)
+            if self.batch:
+                # Partiyadan qoldiqni ayirish yoki qaytarish (Race condition bo'lmasligi uchun)
                 batch = Batch.objects.select_for_update().get(pk=self.batch.pk)
-                if batch.remaining_qty < self.qty:
-                    raise ValidationError("Partiyada yetarli chipta qolmagan!")
-                batch.remaining_qty -= self.qty
+                if is_new:
+                    if batch.remaining_qty < self.qty:
+                        raise ValidationError("Partiyada yetarli chipta qolmagan!")
+                    batch.remaining_qty -= self.qty
+                else:
+                    diff = self.qty - old_qty
+                    if diff > 0:
+                        if batch.remaining_qty < diff:
+                            raise ValidationError("Partiyada yetarli chipta qolmagan!")
+                        batch.remaining_qty -= diff
+                    elif diff < 0:
+                        batch.remaining_qty += abs(diff)
+
                 if batch.remaining_qty == 0:
                     batch.status = Batch.Status.COMPLETED
+                elif batch.remaining_qty > 0 and batch.status == Batch.Status.COMPLETED:
+                    batch.status = Batch.Status.ACTIVE
                 batch.save()
+
             super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        with transaction.atomic():
+            if self.batch:
+                batch = Batch.objects.select_for_update().get(pk=self.batch.pk)
+                batch.remaining_qty += self.qty
+                if batch.status == Batch.Status.COMPLETED and batch.remaining_qty > 0:
+                    batch.status = Batch.Status.ACTIVE
+                batch.save()
+            super().delete(*args, **kwargs)

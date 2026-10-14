@@ -52,15 +52,27 @@ class Partner(models.Model):
         return float(val or 0)
 
     @property
+    def total_offset_from(self) -> float:
+        """Ushbu hamkordan boshqa hamkorga surilgan qarz summasi."""
+        val = self.offsets_from.aggregate(total=Sum('amount'))['total']
+        return float(val or 0)
+
+    @property
+    def total_offset_to(self) -> float:
+        """Boshqa hamkordan ushbu hamkor foydasiga o'tkazilgan qarz summasi."""
+        val = self.offsets_to.aggregate(total=Sum('amount'))['total']
+        return float(val or 0)
+
+    @property
     def net_balance(self) -> float:
         """
-        O'zaro sal'do:
-        (total_bought_from_us - total_paid_to_us) - (total_sold_to_us - total_paid_by_us)
+        O'zaro sal'do (DebtOffset - qarz surishlar hisobga olingan):
+        they_owe_us - we_owe_them
         > 0 bo'lsa: Hamkor bizdan qarzdor.
         < 0 bo'lsa: Biz hamkordan qarzdormiz.
         """
-        client_debt = self.total_bought_from_us - self.total_paid_to_us
-        supplier_debt = self.total_sold_to_us - self.total_paid_by_us
+        client_debt = self.total_bought_from_us - self.total_paid_to_us - self.total_offset_from + self.total_offset_to
+        supplier_debt = self.total_sold_to_us - self.total_paid_by_us - self.total_offset_to + self.total_offset_from
         return client_debt - supplier_debt
 
     @property
