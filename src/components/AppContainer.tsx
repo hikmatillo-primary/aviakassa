@@ -18,7 +18,7 @@ import { EditPriceModal } from "./EditPriceModal";
 import { BatchDetailView } from "./BatchDetailView";
 import {
   AviakassaData,
-  INITIAL_DEMO_DATA,
+  EMPTY_AVIAKASSA_DATA,
   loadData,
   saveData,
   calculateEnrichedData,
@@ -38,10 +38,14 @@ import {
   apiCreatePartner,
   apiCreateDebtOffset,
 } from "@/lib/api";
-
+import { LoginView } from "./LoginView";
+import { getStoredUser, isAuthenticated, logoutUser, AuthUser } from "@/lib/auth";
 
 export function AppContainer() {
-  const [data, setData] = useState<AviakassaData>(INITIAL_DEMO_DATA);
+  const [data, setData] = useState<AviakassaData>(EMPTY_AVIAKASSA_DATA);
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+  const [isAuthChecking, setIsAuthChecking] = useState(true);
+
   const [activeTab, setActiveTab] = useState("dashboard");
   const [detailBatchId, setDetailBatchId] = useState<number | null>(null);
   const [isDark, setIsDark] = useState(false);
@@ -89,27 +93,40 @@ export function AppContainer() {
     });
   };
 
-  // Initialize data from localStorage on mount & sync with Django backend
+  // Check authentication on mount
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      const user = getStoredUser();
+      const isAuth = isAuthenticated();
+      if (isAuth && user) {
+        setCurrentUser(user);
+      }
+      setIsAuthChecking(false);
+    }
+  }, []);
+
+  // Sync data with Django backend when authenticated
+  useEffect(() => {
+    if (!currentUser) return;
     const saved = loadData();
     setData(saved);
 
     // Backend bilan sinxronlash
     apiFetchAll()
       .then((backendData) => {
-        if (
-          backendData.partners.length > 0 ||
-          backendData.batches.length > 0 ||
-          backendData.sales.length > 0
-        ) {
-          setData(backendData);
-          saveData(backendData);
-        }
+        setData(backendData);
+        saveData(backendData);
       })
       .catch((err) => {
         console.warn("Backend bilan ulanib bo'lmadi, lokal ma'lumotlar ishlatilmoqda:", err);
       });
-  }, []);
+  }, [currentUser]);
+
+  const handleLogout = () => {
+    logoutUser();
+    setCurrentUser(null);
+    showToast("Tizimdan muvaffaqiyatli chiqildi!", "info");
+  };
 
   const updateData = (newData: AviakassaData) => {
     setData(newData);
@@ -768,14 +785,35 @@ export function AppContainer() {
   };
 
   const handleResetDemo = () => {
-    if (window.confirm("Barcha namunaviy demo ma'lumotlar qayta yuklansinmi?")) {
-      updateData(INITIAL_DEMO_DATA);
-      showToast("Demo ma'lumotlar qayta yuklandi! 🔄", "info");
+    if (window.confirm("Barcha ma'lumotlar tozalanib, bo'sh holatga o'tkazilsinmi?")) {
+      updateData(EMPTY_AVIAKASSA_DATA);
+      showToast("Barcha ma'lumotlar tozalandi! 🧹", "info");
     }
   };
 
   const clients = partners.filter((p) => p.type === "CLIENT");
   const suppliers = partners.filter((p) => p.type === "SUPPLIER");
+
+  if (isAuthChecking) {
+    return (
+      <div className="min-h-screen bg-[#f6f7f9] dark:bg-[#090d16] flex items-center justify-center">
+        <div className="w-8 h-8 rounded-full border-2 border-blue-600 border-t-transparent animate-spin" />
+      </div>
+    );
+  }
+
+  if (!currentUser) {
+    return (
+      <LoginView
+        onLoginSuccess={(user) => {
+          setCurrentUser(user);
+          showToast(`Xush kelibsiz, ${user.name || user.username}! 👋`);
+        }}
+        isDark={isDark}
+        onToggleTheme={handleToggleTheme}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#f6f7f9] dark:bg-[#090d16] text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors duration-200">
@@ -787,7 +825,7 @@ export function AppContainer() {
         className="hidden"
       />
 
-      {/* Navbar with exact requested tabs and dark mode toggle */}
+      {/* Navbar with exact requested tabs, dark mode toggle and user profile */}
       <Navbar
         activeTab={activeTab}
         setActiveTab={(tab) => {
@@ -795,6 +833,8 @@ export function AppContainer() {
           setDetailBatchId(null);
         }}
         isDark={isDark}
+        currentUser={currentUser}
+        onLogout={handleLogout}
         onToggleTheme={handleToggleTheme}
         onOpenSaleModal={() => handleOpenSaleModal()}
         onOpenBatchModal={() => setIsBatchModalOpen(true)}

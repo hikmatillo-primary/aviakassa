@@ -267,20 +267,27 @@ export const INITIAL_DEMO_DATA: AviakassaData = {
   ],
 };
 
+export const EMPTY_AVIAKASSA_DATA: AviakassaData = {
+  partners: [],
+  batches: [],
+  sales: [],
+  payments: [],
+  debtOffsets: [],
+};
+
 export function loadData(): AviakassaData {
   if (typeof window === "undefined") {
-    return INITIAL_DEMO_DATA;
+    return EMPTY_AVIAKASSA_DATA;
   }
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) {
-      saveData(INITIAL_DEMO_DATA);
-      return INITIAL_DEMO_DATA;
+      return EMPTY_AVIAKASSA_DATA;
     }
     return JSON.parse(raw);
   } catch (err) {
     console.error("loadData error:", err);
-    return INITIAL_DEMO_DATA;
+    return EMPTY_AVIAKASSA_DATA;
   }
 }
 

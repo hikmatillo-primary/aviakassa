@@ -1,5 +1,6 @@
 import os
 import sys
+from datetime import timedelta
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -38,6 +39,7 @@ INSTALLED_APPS = [
     # Tashqi kutubxonalar
     "corsheaders",
     "rest_framework",
+    "rest_framework_simplejwt",
     # Loyiha modullari (Apps)
     "apps.partners.apps.PartnersConfig",
     "apps.flights.apps.FlightsConfig",
@@ -136,6 +138,10 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Django REST Framework sozlamalari
 REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "rest_framework.authentication.SessionAuthentication",
+    ),
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.AllowAny",
     ],
@@ -144,6 +150,13 @@ REST_FRAMEWORK = {
     "DATETIME_FORMAT": "%Y-%m-%d %H:%M:%S",
     "DATE_FORMAT": "%Y-%m-%d",
 }
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(days=30),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=90),
+    "ROTATE_REFRESH_TOKENS": True,
+}
+
 
 # CORS sozlamalari
 CORS_ALLOW_ALL_ORIGINS = True

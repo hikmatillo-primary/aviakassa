@@ -17,13 +17,16 @@ import {
   Plus,
   ArrowDownLeft,
   ArrowUpRight,
+  LogOut,
 } from "lucide-react";
 
 interface NavbarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   isDark: boolean;
+  currentUser?: { username: string; name?: string } | null;
   onToggleTheme: () => void;
+  onLogout?: () => void;
   onOpenSaleModal: () => void;
   onOpenBatchModal: () => void;
   onOpenPaymentModal?: (type: "INCOME" | "EXPENSE") => void;
@@ -36,7 +39,9 @@ export function Navbar({
   activeTab,
   setActiveTab,
   isDark,
+  currentUser,
   onToggleTheme,
+  onLogout,
   onOpenSaleModal,
   onOpenBatchModal,
   onOpenPaymentModal,
@@ -195,15 +200,15 @@ export function Navbar({
                   title="Profil va Sozlamalar"
                   className="flex items-center gap-2 bg-white dark:bg-[#111726] p-1 sm:pl-1.5 sm:pr-3 sm:py-1 rounded-xl border border-slate-200/80 dark:border-white/[0.08] shadow-xs hover:border-slate-300 dark:hover:border-white/[0.15] transition-all cursor-pointer"
                 >
-                  <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-500 text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0">
-                    A
+                  <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-500 text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0 uppercase">
+                    {currentUser?.username?.[0] || "A"}
                   </div>
                   <div className="text-left hidden sm:block">
                     <span className="block text-xs font-semibold text-slate-900 dark:text-white leading-none">
-                      Aviakassa Admin
+                      {currentUser?.name || currentUser?.username || "Aviakassa Admin"}
                     </span>
                     <span className="text-[10px] text-slate-400 leading-none mt-0.5 block">
-                      admin@aviakassa.uz
+                      {currentUser?.username ? `@${currentUser.username}` : "admin@aviakassa.uz"}
                     </span>
                   </div>
                 </button>
@@ -216,9 +221,11 @@ export function Navbar({
                     {/* Profile header inside dropdown */}
                     <div className="px-3.5 py-2 border-b border-slate-100 dark:border-white/[0.06]">
                       <div className="font-bold text-slate-900 dark:text-white text-xs">
-                        Aviakassa Admin
+                        {currentUser?.name || currentUser?.username || "Aviakassa Admin"}
                       </div>
-                      <div className="text-[11px] text-slate-400">admin@aviakassa.uz</div>
+                      <div className="text-[11px] text-slate-400">
+                        {currentUser?.username ? `@${currentUser.username}` : "admin@aviakassa.uz"}
+                      </div>
                     </div>
 
                     <div className="px-3.5 pt-2 pb-1 text-[11px] font-semibold text-slate-400 dark:text-slate-500 flex items-center gap-1.5">
@@ -244,15 +251,17 @@ export function Navbar({
                         Zaxirani tiklash (JSON)
                       </button>
                     )}
-                    <div className="my-1.5 border-t border-slate-100 dark:border-white/[0.06]" />
-                    {onResetDemo && (
-                      <button
-                        onClick={onResetDemo}
-                        className="w-full px-3.5 py-2 text-left hover:bg-slate-50 dark:hover:bg-white/[0.05] flex items-center gap-2.5 text-slate-600 dark:text-slate-300 hover:text-rose-600 cursor-pointer"
-                      >
-                        <RotateCcw className="w-4 h-4 text-slate-400" />
-                        Demo ma&apos;lumotlarni tiklash
-                      </button>
+                    {onLogout && (
+                      <>
+                        <div className="my-1.5 border-t border-slate-100 dark:border-white/[0.06]" />
+                        <button
+                          onClick={onLogout}
+                          className="w-full px-3.5 py-2 text-left hover:bg-rose-50 dark:hover:bg-rose-950/30 flex items-center gap-2.5 text-rose-600 dark:text-rose-400 font-semibold cursor-pointer"
+                        >
+                          <LogOut className="w-4 h-4 text-rose-500" />
+                          Tizimdan chiqish (Logout)
+                        </button>
+                      </>
                     )}
                   </div>
                 )}
