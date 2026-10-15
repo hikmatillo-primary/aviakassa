@@ -212,22 +212,6 @@ export function PartnersListView({
               {/* Partner Card Top */}
               <div className="flex items-start justify-between gap-3">
                 <div className="space-y-1 min-w-0">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    {pt.tags && pt.tags.length > 0 ? (
-                      pt.tags.map((t: string) => (
-                        <span
-                          key={t}
-                          className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20"
-                        >
-                          {t}
-                        </span>
-                      ))
-                    ) : (
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-white/[0.06] text-slate-600 dark:text-slate-400">
-                        {pt.type === "SUPPLIER" ? "Birinchi qo'l" : "Hamkor"}
-                      </span>
-                    )}
-                  </div>
                   <h3 className="font-extrabold text-base sm:text-lg text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors truncate">
                     {pt.name}
                   </h3>

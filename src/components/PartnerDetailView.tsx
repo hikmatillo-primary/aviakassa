@@ -204,20 +204,6 @@ export function PartnerDetailView({
                 <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
                   {partner.name}
                 </h1>
-                {partner.tags && partner.tags.length > 0 ? (
-                  partner.tags.map((t: string) => (
-                    <span
-                      key={t}
-                      className="px-2.5 py-0.5 rounded-lg text-[10px] font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20"
-                    >
-                      {t}
-                    </span>
-                  ))
-                ) : (
-                  <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
-                    {partner.type === "SUPPLIER" ? "Birinchi qo'l" : "Hamkor"}
-                  </span>
-                )}
               </div>
               <div className="flex items-center gap-4 text-xs text-slate-400 mt-1 flex-wrap">
                 {partner.phone && (

@@ -436,21 +436,9 @@ export function calculateEnrichedData(data: AviakassaData) {
     const totalDeal = totalBoughtFromUs + totalSoldToUs;
     const totalPaid = totalPaidToUs + totalPaidByUs;
 
-    // Infer tags if not set
-    const defaultTags: string[] = [];
-    if (partner.tags && partner.tags.length > 0) {
-      defaultTags.push(...partner.tags);
-    } else {
-      if (totalSoldToUs > 0) defaultTags.push("Birinchi qo'l");
-      if (totalBoughtFromUs > 0) defaultTags.push("Sub-agent");
-      if (defaultTags.length === 0) {
-        defaultTags.push(partner.type === "SUPPLIER" ? "Birinchi qo'l" : "Mijoz");
-      }
-    }
-
     return {
       ...partner,
-      tags: Array.from(new Set(defaultTags)),
+      tags: partner.tags || [],
       totalBoughtFromUs,
       totalPaidToUs,
       totalSoldToUs,
