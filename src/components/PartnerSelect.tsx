@@ -55,9 +55,11 @@ export function PartnerSelect({
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const [coords, setCoords] = useState<{
-    top: number;
+    top?: number;
+    bottom?: number;
     left: number;
     width: number;
+    maxHeight: number;
   } | null>(null);
 
   useEffect(() => {
@@ -71,24 +73,30 @@ export function PartnerSelect({
   const updatePosition = useCallback(() => {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
-    const width = Math.max(rect.width, 320);
-    const height = 360;
-    const margin = 8;
+    const margin = 6;
+    const width = rect.width;
 
     const spaceBelow = window.innerHeight - rect.bottom;
-    const openUp = spaceBelow < height && rect.top > spaceBelow;
+    const spaceAbove = rect.top;
 
-    const top = openUp
-      ? Math.max(margin, rect.top - height - margin)
-      : Math.min(window.innerHeight - height - margin, rect.bottom + margin);
+    // Faqat pastda 160px dan kam joy bo'lsa va tepada ko'proq joy bo'lsagina tepaga ochiladi
+    const openUp = spaceBelow < 160 && spaceAbove > spaceBelow;
 
-    let left = rect.left;
-    if (left + width > window.innerWidth - margin) {
-      left = Math.max(margin, window.innerWidth - width - margin);
+    if (openUp) {
+      setCoords({
+        bottom: window.innerHeight - rect.top + margin,
+        left: rect.left,
+        width,
+        maxHeight: Math.min(320, spaceAbove - margin * 2),
+      });
+    } else {
+      setCoords({
+        top: rect.bottom + margin,
+        left: rect.left,
+        width,
+        maxHeight: Math.min(320, Math.max(160, spaceBelow - margin * 2)),
+      });
     }
-    if (left < margin) left = margin;
-
-    setCoords({ top, left, width });
   }, []);
 
   useEffect(() => {
@@ -215,17 +223,19 @@ export function PartnerSelect({
             ref={popoverRef}
             style={{
               position: "fixed",
-              top: `${coords.top}px`,
+              top: coords.top !== undefined ? `${coords.top}px` : "auto",
+              bottom: coords.bottom !== undefined ? `${coords.bottom}px` : "auto",
               left: `${coords.left}px`,
               width: `${coords.width}px`,
-              minWidth: "320px",
-              maxWidth: "420px",
+              minWidth: "280px",
+              maxWidth: "min(460px, 95vw)",
+              maxHeight: `${coords.maxHeight}px`,
               zIndex: 99999,
             }}
-            className="bg-white dark:bg-[#0f1523] rounded-2xl shadow-2xl border border-slate-200 dark:border-white/[0.1] p-2.5 animate-in fade-in zoom-in-95 duration-100 select-none text-slate-900 dark:text-white"
+            className="bg-white dark:bg-[#0f1523] rounded-2xl shadow-2xl border border-slate-200 dark:border-white/[0.1] p-2.5 animate-in fade-in zoom-in-95 duration-100 select-none text-slate-900 dark:text-white flex flex-col"
           >
             {/* Search Box */}
-            <div className="relative mb-2">
+            <div className="relative mb-2 shrink-0">
               <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
               <input
                 ref={searchInputRef}
@@ -247,7 +257,10 @@ export function PartnerSelect({
             </div>
 
             {/* Partners List */}
-            <div className="max-h-60 overflow-y-auto space-y-1 pr-0.5 text-xs scrollbar-thin">
+            <div
+              style={{ maxHeight: Math.max(120, coords.maxHeight - 80) }}
+              className="overflow-y-auto space-y-1 pr-0.5 text-xs scrollbar-thin"
+            >
               {filtered.map((p) => {
                 const isSelected = String(p.id) === String(value);
 
