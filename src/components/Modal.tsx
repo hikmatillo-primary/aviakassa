@@ -11,9 +11,19 @@ interface ModalProps {
   children: React.ReactNode;
   footer?: React.ReactNode;
   maxWidth?: string;
+  zIndex?: string;
 }
 
-export function Modal({ isOpen, onClose, title, description, children, footer, maxWidth = "max-w-xl md:max-w-2xl" }: ModalProps) {
+export function Modal({
+  isOpen,
+  onClose,
+  title,
+  description,
+  children,
+  footer,
+  maxWidth = "max-w-xl md:max-w-2xl",
+  zIndex = "z-50",
+}: ModalProps) {
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -23,15 +33,20 @@ export function Modal({ isOpen, onClose, title, description, children, footer, m
       window.addEventListener("keydown", handleEscape);
     }
     return () => {
-      document.body.style.overflow = "unset";
       window.removeEventListener("keydown", handleEscape);
+      const openModals = document.querySelectorAll(".aviakassa-modal-root");
+      if (openModals.length <= 1) {
+        document.body.style.overflow = "unset";
+      }
     };
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6 md:p-8 overflow-y-auto">
+    <div
+      className={`fixed inset-0 ${zIndex} flex items-end sm:items-center justify-center p-0 sm:p-6 md:p-8 overflow-y-auto aviakassa-modal-root`}
+    >
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"

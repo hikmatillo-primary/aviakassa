@@ -7,6 +7,7 @@ interface PartnerModalProps {
   isOpen: boolean;
   onClose: () => void;
   defaultType?: "SUPPLIER" | "CLIENT";
+  zIndex?: string;
   onSave: (partnerData: {
     name: string;
     type?: "SUPPLIER" | "CLIENT";
@@ -20,6 +21,7 @@ export function PartnerModal({
   isOpen,
   onClose,
   defaultType = "CLIENT",
+  zIndex = "z-[60]",
   onSave,
 }: PartnerModalProps) {
   const [error, setError] = useState<string | null>(null);
@@ -68,6 +70,7 @@ export function PartnerModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
+      zIndex={zIndex}
       title="Yangi hamkor qo‘shish"
       maxWidth="max-w-xl md:max-w-2xl"
       footer={

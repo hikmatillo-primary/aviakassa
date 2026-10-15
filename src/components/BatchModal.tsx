@@ -52,6 +52,7 @@ interface BatchModalProps {
     }>;
   }) => void;
   onOpenSupplierModal?: () => void;
+  newlyCreatedPartnerId?: number | null;
 }
 
 import { DatePicker } from "./DatePicker";
@@ -69,6 +70,7 @@ export function BatchModal({
   suppliers,
   onSave,
   onOpenSupplierModal,
+  newlyCreatedPartnerId,
 }: BatchModalProps) {
   const [error, setError] = useState<string | null>(null);
   const [supplierId, setSupplierId] = useState<string>("");
@@ -78,9 +80,10 @@ export function BatchModal({
   const [notes, setNotes] = useState<string>("");
 
   const [items, setItems] = useState<BatchItemInput[]>([]);
+  const prevIsOpenRef = React.useRef(false);
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !prevIsOpenRef.current) {
       const today = new Date().toISOString().split("T")[0];
       setItems([
         {
@@ -101,12 +104,21 @@ export function BatchModal({
           baggage: "20 kg",
         },
       ]);
+      setSupplierId("");
       setPurchaseDate(today);
       setPaidNow(0);
       setNotes("");
       setError(null);
     }
+    prevIsOpenRef.current = isOpen;
   }, [isOpen]);
+
+  // Yangi hamkor qo'shilganda avtomatik tanlash
+  useEffect(() => {
+    if (newlyCreatedPartnerId) {
+      setSupplierId(String(newlyCreatedPartnerId));
+    }
+  }, [newlyCreatedPartnerId]);
 
   const handleAddItem = () => {
     const today = new Date().toISOString().split("T")[0];

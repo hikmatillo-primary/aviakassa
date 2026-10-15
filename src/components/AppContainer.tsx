@@ -169,6 +169,7 @@ export function AppContainer() {
 
   const [isPartnerModalOpen, setIsPartnerModalOpen] = useState(false);
   const [partnerModalType, setPartnerModalType] = useState<"CLIENT" | "SUPPLIER">("CLIENT");
+  const [lastCreatedPartnerId, setLastCreatedPartnerId] = useState<number | null>(null);
 
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [historyPartnerId, setHistoryPartnerId] = useState<number | null>(null);
@@ -609,6 +610,7 @@ export function AppContainer() {
       createdAt: new Date().toISOString(),
     };
 
+    setLastCreatedPartnerId(newPartner.id);
     updateData({
       ...data,
       partners: [...data.partners, newPartner],
@@ -964,8 +966,8 @@ export function AppContainer() {
         clients={partners}
         selectedBatchId={selectedBatchId}
         onSave={handleAddSale}
+        newlyCreatedPartnerId={lastCreatedPartnerId}
         onOpenClientModal={() => {
-          setIsSaleModalOpen(false);
           handleOpenPartnerModal("CLIENT");
         }}
       />
@@ -975,8 +977,8 @@ export function AppContainer() {
         onClose={() => setIsBatchModalOpen(false)}
         suppliers={partners}
         onSave={handleAddBatch}
+        newlyCreatedPartnerId={lastCreatedPartnerId}
         onOpenSupplierModal={() => {
-          setIsBatchModalOpen(false);
           handleOpenPartnerModal("SUPPLIER");
         }}
       />

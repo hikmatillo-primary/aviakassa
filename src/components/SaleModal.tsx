@@ -34,6 +34,7 @@ interface SaleModalProps {
     }>;
   }) => void;
   onOpenClientModal?: () => void;
+  newlyCreatedPartnerId?: number | null;
 }
 
 export function SaleModal({
@@ -44,6 +45,7 @@ export function SaleModal({
   selectedBatchId,
   onSave,
   onOpenClientModal,
+  newlyCreatedPartnerId,
 }: SaleModalProps) {
   const [error, setError] = useState<string | null>(null);
   const [currentBatchId, setCurrentBatchId] = useState<string>("");
@@ -55,12 +57,14 @@ export function SaleModal({
   const [paymentMethod, setPaymentMethod] = useState<string>("CASH");
   const [notes, setNotes] = useState<string>("");
 
+  const prevIsOpenRef = React.useRef(false);
+
   // Omborda qoldig'i mavjud bo'lgan partiyalar
   const activeBatches = batches.filter((b) => b.remainingQty > 0);
 
-  // Modal ochilganda qiymatlarni tiklash va partiyani sozlash
+  // Modal ochilganda qiymatlarni tiklash va partiyani sozlash (faqat yangi ochilganda)
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !prevIsOpenRef.current) {
       const active = batches.filter((b) => b.remainingQty > 0);
       const targetBatch = selectedBatchId
         ? batches.find((b) => b.id === selectedBatchId)
@@ -68,6 +72,7 @@ export function SaleModal({
 
       const bId = targetBatch ? String(targetBatch.id) : "";
       setCurrentBatchId(bId);
+      setClientId("");
       setQty(1);
       setSellPrice(targetBatch ? Math.round(targetBatch.buyPrice + 30) : 0);
       setSaleDate(new Date().toISOString().split("T")[0]);
@@ -75,7 +80,15 @@ export function SaleModal({
       setNotes("");
       setError(null);
     }
+    prevIsOpenRef.current = isOpen;
   }, [isOpen, selectedBatchId, batches]);
+
+  // Yangi hamkor qo'shilganda avtomatik tanlash
+  useEffect(() => {
+    if (newlyCreatedPartnerId) {
+      setClientId(String(newlyCreatedPartnerId));
+    }
+  }, [newlyCreatedPartnerId]);
 
   const handleBatchChange = (newBatchId: string) => {
     setCurrentBatchId(newBatchId);
