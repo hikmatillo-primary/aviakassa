@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "npx tsx test-business-logic.ts"
+    "test": "node --experimental-strip-types test-business-logic.ts"
   },
   "dependencies": {
     "clsx": "^2.1.1",

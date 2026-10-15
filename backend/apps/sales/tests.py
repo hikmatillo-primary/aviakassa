@@ -1,6 +1,8 @@
 from decimal import Decimal
 from django.test import TestCase
 from django.core.exceptions import ValidationError
+from rest_framework.test import APITestCase
+from rest_framework import status
 from apps.partners.models import Partner
 from apps.flights.models import Batch
 from apps.sales.models import Sale
@@ -34,7 +36,6 @@ class SaleModelTests(TestCase):
             sell_price=Decimal("400.00"),
             sale_date="2026-11-15"
         )
-        # Partiya qoldig'i 3 ta qolishi kerak
         self.batch.refresh_from_db()
         self.assertEqual(self.batch.remaining_qty, 3)
         self.assertEqual(self.batch.status, Batch.Status.ACTIVE)
@@ -71,7 +72,6 @@ class SaleModelTests(TestCase):
         self.assertEqual(self.batch.status, Batch.Status.COMPLETED)
 
     def test_sale_quantity_update_adjustment(self):
-        # Dastlab 3 ta sotamiz (qoldiq 5 - 3 = 2 qoladi)
         sale = Sale.objects.create(
             batch=self.batch,
             client=self.client,
@@ -82,14 +82,12 @@ class SaleModelTests(TestCase):
         self.batch.refresh_from_db()
         self.assertEqual(self.batch.remaining_qty, 2)
 
-        # Sotuv sonini 3 tadan 2 taga kamaytiramiz (1 ta chipta partiyaga qaytishi kerak)
         sale.qty = 2
         sale.save()
         self.batch.refresh_from_db()
         self.assertEqual(self.batch.remaining_qty, 3)
         self.assertEqual(sale.total_amount, Decimal("800.00"))
 
-        # Endi 2 tadan 4 taga oshiramiz (2 ta chipta qo'shimcha olinishi kerak: 3 - 2 = 1 qoladi)
         sale.qty = 4
         sale.save()
         self.batch.refresh_from_db()
@@ -97,7 +95,6 @@ class SaleModelTests(TestCase):
         self.assertEqual(sale.total_amount, Decimal("1600.00"))
 
     def test_sale_deletion_restores_inventory(self):
-        # 5 ta chiptani to'liq sotamiz (status COMPLETED bo'ladi)
         sale = Sale.objects.create(
             batch=self.batch,
             client=self.client,
@@ -109,9 +106,182 @@ class SaleModelTests(TestCase):
         self.assertEqual(self.batch.remaining_qty, 0)
         self.assertEqual(self.batch.status, Batch.Status.COMPLETED)
 
-        # Sotuv bekor qilinadi (o'chiriladi)
         sale.delete()
         self.batch.refresh_from_db()
-        # Qoldiq yana 5 ta bo'lishi va status ACTIVE ga qaytishi kerak!
         self.assertEqual(self.batch.remaining_qty, 5)
+        self.assertEqual(self.batch.status, Batch.Status.ACTIVE)
+
+
+class SaleAPITests(APITestCase):
+    def setUp(self):
+        self.supplier = Partner.objects.create(
+            name="Air Arabia",
+            type=Partner.PartnerType.SUPPLIER
+        )
+        self.client_partner = Partner.objects.create(
+            name="Ziyorat Travel",
+            type=Partner.PartnerType.CLIENT
+        )
+        self.batch = Batch.objects.create(
+            batch_number="TEST-SHJ-100",
+            route="Toshkent - Sharja",
+            flight_date="2026-12-10",
+            supplier=self.supplier,
+            total_qty=10,
+            buy_price=Decimal("300.00")
+        )
+
+    def test_api_create_sale_with_float_payload(self):
+        """Frontenddan keladigan float qiymatlarni API orqali to'g'ri qabul qilish."""
+        payload = {
+            "batchId": self.batch.id,
+            "clientId": self.client_partner.id,
+            "qty": 3,
+            "sellPrice": 425.50,
+            "saleDate": "2026-11-20",
+            "notes": "Test sotuv"
+        }
+        response = self.client.post("/api/sales/", payload, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        sale = Sale.objects.get(id=response.data["id"])
+        self.assertEqual(sale.qty, 3)
+        self.assertEqual(sale.sell_price, Decimal("425.50"))
+        self.assertEqual(sale.buy_price, Decimal("300.00"))  # Partiyadan avtomatik ko'chirilgan
+        self.assertEqual(sale.total_amount, Decimal("1276.50"))
+        self.assertEqual(sale.profit, Decimal("376.50"))  # 1276.50 - 900.00
+
+        self.batch.refresh_from_db()
+        self.assertEqual(self.batch.remaining_qty, 7)
+
+    def test_api_exact_user_scenario_sale_and_payment_balance(self):
+        """
+        Foydalanuvchi ta'riflagan real holat:
+        1. 10 ta chiptani donasi $330 dan jami $3300 ga sotamiz.
+        2. Mijoz balansi -$3300 (bizdan qarzdor).
+        3. Mijozdan $1300 to'lov qabul qilinadi.
+        4. Balans aniq -$2000 bo'lishi kerak (haqimiz 1300 bo'lib qolmasligi lozim!).
+        5. Sotuv o'chib ketmasligi, bazada saqlanib qolishi shart.
+        """
+        sale_payload = {
+            "batchId": self.batch.id,
+            "clientId": self.client_partner.id,
+            "qty": 10,
+            "sellPrice": 330.00,
+            "saleDate": "2026-10-15"
+        }
+        res_sale = self.client.post("/api/sales/", sale_payload, format="json")
+        self.assertEqual(res_sale.status_code, status.HTTP_201_CREATED)
+
+        self.client_partner.refresh_from_db()
+        self.assertEqual(self.client_partner.total_bought_from_us, 3300.0)
+        self.assertEqual(self.client_partner.net_balance, -3300.0)
+        self.assertEqual(self.client_partner.they_owe_us, 3300.0)
+
+        # Partiya to'liq sotildi -> COMPLETED
+        self.batch.refresh_from_db()
+        self.assertEqual(self.batch.remaining_qty, 0)
+        self.assertEqual(self.batch.status, Batch.Status.COMPLETED)
+
+        # $1300 to'lov qabul qilamiz
+        payment_payload = {
+            "partnerId": self.client_partner.id,
+            "type": "INCOME",
+            "amount": 1300.00,
+            "paymentDate": "2026-10-15",
+            "paymentMethod": "NAQD_USD"
+        }
+        res_pay = self.client.post("/api/cash/payments/", payment_payload, format="json")
+        self.assertEqual(res_pay.status_code, status.HTTP_201_CREATED)
+
+        # Balans tekshiruvi: 3300 - 1300 = 2000 qarzdor -> balans -2000
+        self.client_partner.refresh_from_db()
+        self.assertEqual(self.client_partner.total_paid_to_us, 1300.0)
+        self.assertEqual(self.client_partner.net_balance, -2000.0)
+        self.assertEqual(self.client_partner.they_owe_us, 2000.0)
+        self.assertEqual(self.client_partner.we_owe_them, 0.0)
+
+        # Sotuv saqlanib qolganini API orqali tekshiramiz
+        res_list = self.client.get("/api/sales/")
+        self.assertEqual(res_list.status_code, status.HTTP_200_OK)
+        # Natijalar pagination ichida bo'lishi mumkin
+        data_list = res_list.data.get("results", res_list.data)
+        self.assertEqual(len(data_list), 1)
+        self.assertEqual(data_list[0]["totalAmount"], 3300.0)
+
+    def test_api_oversell_returns_400(self):
+        """Partiyadagi qoldiqdan ortiqcha so'ralganda 400 xatosi qaytishi kerak."""
+        payload = {
+            "batchId": self.batch.id,
+            "clientId": self.client_partner.id,
+            "qty": 15,  # Qoldiq 10 ta, so'ralgan 15 ta
+            "sellPrice": 400.00,
+            "saleDate": "2026-11-20"
+        }
+        response = self.client.post("/api/sales/", payload, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("qty", response.data)
+
+        self.batch.refresh_from_db()
+        self.assertEqual(self.batch.remaining_qty, 10)  # Qoldiq o'zgarmagan bo'lishi kerak
+
+    def test_api_zero_or_negative_qty_returns_400(self):
+        """Chiptalar soni 0 yoki manfiy bo'lsa 400 xatosi chiqishi."""
+        payload = {
+            "batchId": self.batch.id,
+            "clientId": self.client_partner.id,
+            "qty": 0,
+            "sellPrice": 400.00,
+            "saleDate": "2026-11-20"
+        }
+        response = self.client.post("/api/sales/", payload, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_api_patch_sale_quantity_and_price(self):
+        """Sotuv miqdori yoki narxi API orqali o'zgartirilganda qoldiq va foyda moslashishi."""
+        sale = Sale.objects.create(
+            batch=self.batch,
+            client=self.client_partner,
+            qty=4,
+            sell_price=Decimal("400.00"),
+            sale_date="2026-11-20"
+        )
+        self.batch.refresh_from_db()
+        self.assertEqual(self.batch.remaining_qty, 6)
+
+        # 4 tadan 6 taga oshiramiz
+        patch_payload = {
+            "qty": 6,
+            "sellPrice": 420.00
+        }
+        res_patch = self.client.patch(f"/api/sales/{sale.id}/", patch_payload, format="json")
+        self.assertEqual(res_patch.status_code, status.HTTP_200_OK)
+
+        self.batch.refresh_from_db()
+        self.assertEqual(self.batch.remaining_qty, 4)
+
+        sale.refresh_from_db()
+        self.assertEqual(sale.qty, 6)
+        self.assertEqual(sale.sell_price, Decimal("420.00"))
+        self.assertEqual(sale.total_amount, Decimal("2520.00"))
+        self.assertEqual(sale.profit, Decimal("720.00"))  # 2520 - (6 * 300)
+
+    def test_api_delete_sale_restores_inventory(self):
+        """Sotuv o'chirilganda partiyadagi chiptalar to'liq qaytishi."""
+        sale = Sale.objects.create(
+            batch=self.batch,
+            client=self.client_partner,
+            qty=10,
+            sell_price=Decimal("400.00"),
+            sale_date="2026-11-20"
+        )
+        self.batch.refresh_from_db()
+        self.assertEqual(self.batch.remaining_qty, 0)
+        self.assertEqual(self.batch.status, Batch.Status.COMPLETED)
+
+        response = self.client.delete(f"/api/sales/{sale.id}/")
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+
+        self.batch.refresh_from_db()
+        self.assertEqual(self.batch.remaining_qty, 10)
         self.assertEqual(self.batch.status, Batch.Status.ACTIVE)

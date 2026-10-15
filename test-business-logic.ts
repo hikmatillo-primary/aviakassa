@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { calculateEnrichedData } from "./src/lib/storage";
+import { calculateEnrichedData } from "./src/lib/storage.ts";
 import type {
   AviakassaData,
   Partner,
@@ -665,6 +665,251 @@ test("12. Kassa to'lovlarining aniqligi va metodlar", () => {
   assert.equal(enriched.stats.totalIncome, 3000);
   assert.equal(enriched.stats.totalExpense, 1500);
   assert.equal(enriched.stats.cashBalance, 1500);
+});
+
+// ----------------------------------------------------
+// 13. Real foydalanuvchi ssenariysi ($3300 sotuv, $1300 to'lov -> -$2000 balans)
+// ----------------------------------------------------
+test("13. Real ssenariy: $3300 sotuv va $1300 qisman to'lov -> Balans qat'iy -$2000", () => {
+  const partners: Partner[] = [
+    { id: 100, name: "Hamkor Sayyoh", createdAt: "2026-10-15" },
+  ];
+  const batches: Batch[] = [
+    {
+      id: 1,
+      batchNumber: "P-REAL-10",
+      route: "TAS - JED",
+      flightDate: "2026-11-01",
+      supplierId: 999,
+      totalQty: 10,
+      remainingQty: 0,
+      buyPrice: 300,
+      totalCost: 3000,
+      status: "COMPLETED",
+      createdAt: "2026-10-15",
+    },
+  ];
+  const sales: Sale[] = [
+    {
+      id: 1,
+      batchId: 1,
+      clientId: 100,
+      qty: 10,
+      sellPrice: 330,
+      totalAmount: 3300,
+      profit: 300,
+      saleDate: "2026-10-15",
+      createdAt: "2026-10-15",
+    },
+  ];
+  const payments: Payment[] = [
+    {
+      id: 1,
+      partnerId: 100,
+      type: "INCOME",
+      amount: 1300,
+      paymentDate: "2026-10-15",
+      paymentMethod: "CASH",
+      createdAt: "2026-10-15",
+    },
+  ];
+
+  const enriched = calculateEnrichedData({
+    partners,
+    batches,
+    sales,
+    payments,
+    debtOffsets: [],
+  });
+
+  const p = enriched.partners[0];
+  assert.equal(p.totalBoughtFromUs, 3300, "Jami xarid: $3300");
+  assert.equal(p.totalPaidToUs, 1300, "To'langan summa: $1300");
+  assert.equal(p.theyOweUs, 2000, "Qolgan qarz: $2000");
+  assert.equal(p.weOweThem, 0, "Biz qarzdor emasmiz");
+  assert.equal(p.balance, -2000, "Balans qat'iy manfiy (-2000) bo'lishi kerak");
+  assert.equal(enriched.stats.clientDebtToUs, 2000, "Dashboard: Hamkorlar qarzi $2000");
+});
+
+// ----------------------------------------------------
+// 14. Qarzdan ortiqcha to'lov (Overpayment / Avans)
+// ----------------------------------------------------
+test("14. Qarzdan ortiqcha to'lov (Mijoz qarzi $1000, to'ladi $1500 -> Balans +$500)", () => {
+  const partners: Partner[] = [
+    { id: 200, name: "Avanschi Agent", createdAt: "2026-10-15" },
+  ];
+  const sales: Sale[] = [
+    {
+      id: 1,
+      batchId: 1,
+      clientId: 200,
+      qty: 2,
+      sellPrice: 500,
+      totalAmount: 1000,
+      profit: 200,
+      saleDate: "2026-10-15",
+      createdAt: "2026-10-15",
+    },
+  ];
+  const payments: Payment[] = [
+    {
+      id: 1,
+      partnerId: 200,
+      type: "INCOME",
+      amount: 1500,
+      paymentDate: "2026-10-15",
+      paymentMethod: "BANK",
+      createdAt: "2026-10-15",
+    },
+  ];
+
+  const enriched = calculateEnrichedData({
+    partners,
+    batches: [],
+    sales,
+    payments,
+    debtOffsets: [],
+  });
+
+  const p = enriched.partners[0];
+  assert.equal(p.totalBoughtFromUs, 1000);
+  assert.equal(p.totalPaidToUs, 1500);
+  assert.equal(p.theyOweUs, 0, "Mijoz qarzdor emas");
+  assert.equal(p.weOweThem, 500, "Mijozning haqi bor: $500");
+  assert.equal(p.balance, 500, "Balans musbat (+500) bo'lishi kerak");
+});
+
+// ----------------------------------------------------
+// 15. Bir nechta sotuv va bosqichma-bosqich to'lovlar
+// ----------------------------------------------------
+test("15. Ko'p martalik sotuvlar va bo'lib-bo'lib to'lash dinamikasi", () => {
+  const partners: Partner[] = [
+    { id: 300, name: "Doimiy Mijoz", createdAt: "2026-10-10" },
+  ];
+  const batches: Batch[] = [
+    { id: 1, batchNumber: "B1", route: "R1", flightDate: "2026-11-01", supplierId: 99, totalQty: 10, remainingQty: 9, buyPrice: 300, totalCost: 3000, status: "ACTIVE", createdAt: "2026-10-10" },
+    { id: 2, batchNumber: "B2", route: "R2", flightDate: "2026-11-02", supplierId: 99, totalQty: 10, remainingQty: 8, buyPrice: 350, totalCost: 3500, status: "ACTIVE", createdAt: "2026-10-10" },
+    { id: 3, batchNumber: "B3", route: "R3", flightDate: "2026-11-03", supplierId: 99, totalQty: 10, remainingQty: 7, buyPrice: 400, totalCost: 4000, status: "ACTIVE", createdAt: "2026-10-10" },
+  ];
+  const sales: Sale[] = [
+    { id: 1, batchId: 1, clientId: 300, qty: 1, sellPrice: 400, totalAmount: 400, profit: 100, saleDate: "2026-10-10", createdAt: "2026-10-10" },
+    { id: 2, batchId: 2, clientId: 300, qty: 2, sellPrice: 450, totalAmount: 900, profit: 200, saleDate: "2026-10-11", createdAt: "2026-10-11" },
+    { id: 3, batchId: 3, clientId: 300, qty: 3, sellPrice: 500, totalAmount: 1500, profit: 300, saleDate: "2026-10-12", createdAt: "2026-10-12" },
+  ]; // Jami xarid: 400 + 900 + 1500 = 2800
+
+  const payments: Payment[] = [
+    { id: 1, partnerId: 300, type: "INCOME", amount: 1000, paymentDate: "2026-10-11", paymentMethod: "CASH", createdAt: "2026-10-11" },
+    { id: 2, partnerId: 300, type: "INCOME", amount: 1000, paymentDate: "2026-10-13", paymentMethod: "BANK", createdAt: "2026-10-13" },
+  ]; // Jami to'lov: 2000
+
+  const enriched = calculateEnrichedData({
+    partners,
+    batches,
+    sales,
+    payments,
+    debtOffsets: [],
+  });
+
+  const p = enriched.partners[0];
+  assert.equal(p.totalBoughtFromUs, 2800);
+  assert.equal(p.totalPaidToUs, 2000);
+  assert.equal(p.theyOweUs, 800);
+  assert.equal(p.balance, -800, "Qolgan qarz -$800");
+  assert.equal(enriched.stats.totalProfit, 600, "Jami foyda 100 + 200 + 300 = 600");
+});
+
+// ----------------------------------------------------
+// 16. To'liq yopilgan balans (Qarz va to'lov teng bo'lganda 0)
+// ----------------------------------------------------
+test("16. Nol balans: Sotuv va to'lov to'liq teng bo'lganda balans 0 bo'lishi", () => {
+  const partners: Partner[] = [
+    { id: 400, name: "Aniqlik LLC", createdAt: "2026-10-01" },
+  ];
+  const sales: Sale[] = [
+    { id: 1, batchId: 1, clientId: 400, qty: 5, sellPrice: 500, totalAmount: 2500, profit: 500, saleDate: "2026-10-01", createdAt: "2026-10-01" },
+  ];
+  const payments: Payment[] = [
+    { id: 1, partnerId: 400, type: "INCOME", amount: 2500, paymentDate: "2026-10-02", paymentMethod: "CASH", createdAt: "2026-10-02" },
+  ];
+
+  const enriched = calculateEnrichedData({
+    partners,
+    batches: [],
+    sales,
+    payments,
+    debtOffsets: [],
+  });
+
+  const p = enriched.partners[0];
+  assert.equal(p.balance, 0, "Balans aynan 0 bo'lishi kerak");
+  assert.equal(p.theyOweUs, 0);
+  assert.equal(p.weOweThem, 0);
+  assert.equal(enriched.stats.clientDebtToUs, 0);
+});
+
+// ----------------------------------------------------
+// 17. Uch tomonlama qarz surish (A agent qarzini B ta'minotchi orqali yopish)
+// ----------------------------------------------------
+test("17. Uch tomonlama qarz surish: Agent qarzi nollanib, ta'minotchi haqi kamayishi", () => {
+  const partners: Partner[] = [
+    { id: 1, name: "Ta'minotchi Airline", createdAt: "2026-10-01" },
+    { id: 2, name: "Qarzdor Agent", createdAt: "2026-10-01" },
+  ];
+  // Ta'minotchidan $5000 lik partiya oldik
+  const batches: Batch[] = [
+    { id: 1, batchNumber: "B1", route: "T-D", flightDate: "2026-11-01", supplierId: 1, totalQty: 10, remainingQty: 10, buyPrice: 500, totalCost: 5000, status: "ACTIVE", createdAt: "2026-10-01" }
+  ];
+  // Agent bizdan $2000 lik chipta oldi
+  const sales: Sale[] = [
+    { id: 1, batchId: 1, clientId: 2, qty: 4, sellPrice: 500, totalAmount: 2000, profit: 0, saleDate: "2026-10-02", createdAt: "2026-10-02" }
+  ];
+  // Agent 500 to'ladi (qarz 1500 qoldi)
+  const payments: Payment[] = [
+    { id: 1, partnerId: 2, type: "INCOME", amount: 500, paymentDate: "2026-10-03", paymentMethod: "CASH", createdAt: "2026-10-03" }
+  ];
+  // Qolgan $1500 qarzni ta'minotchi qarzimizga suramiz
+  const debtOffsets: DebtOffset[] = [
+    { id: 1, fromPartnerId: 2, toPartnerId: 1, amount: 1500, date: "2026-10-04", notes: "Qarz surish", createdAt: "2026-10-04" }
+  ];
+
+  const enriched = calculateEnrichedData({
+    partners,
+    batches,
+    sales,
+    payments,
+    debtOffsets,
+  });
+
+  const agent = enriched.partners.find(p => p.id === 2)!;
+  const airline = enriched.partners.find(p => p.id === 1)!;
+
+  assert.equal(agent.balance, 0, "Agent qarzi to'liq 0 bo'ldi");
+  assert.equal(airline.balance, 3500, "Aviakompaniya haqi: 5000 - 1500 = 3500");
+  assert.equal(enriched.stats.totalDebtOffsets, 1500);
+});
+
+// ----------------------------------------------------
+// 18. Kassa statistikasi: Barcha to'lovlar turi bo'yicha jami tushum va xarajat
+// ----------------------------------------------------
+test("18. Kassa to'liq hisoboti: Kirim, Chiqim va Kassa sof balansi", () => {
+  const payments: Payment[] = [
+    { id: 1, partnerId: 1, type: "INCOME", amount: 5000, paymentDate: "2026-10-01", paymentMethod: "CASH", createdAt: "2026-10-01" },
+    { id: 2, partnerId: 2, type: "INCOME", amount: 3500, paymentDate: "2026-10-02", paymentMethod: "BANK", createdAt: "2026-10-02" },
+    { id: 3, partnerId: 3, type: "EXPENSE", amount: 2000, paymentDate: "2026-10-03", paymentMethod: "CASH", createdAt: "2026-10-03" },
+    { id: 4, partnerId: 4, type: "EXPENSE", amount: 1500, paymentDate: "2026-10-04", paymentMethod: "BANK", createdAt: "2026-10-04" },
+  ];
+
+  const enriched = calculateEnrichedData({
+    partners: [],
+    batches: [],
+    sales: [],
+    payments,
+    debtOffsets: [],
+  });
+
+  assert.equal(enriched.stats.totalIncome, 8500, "Jami kirim: 5000 + 3500 = 8500");
+  assert.equal(enriched.stats.totalExpense, 3500, "Jami chiqim: 2000 + 1500 = 3500");
+  assert.equal(enriched.stats.cashBalance, 5000, "Kassa qoldig'i: 8500 - 3500 = 5000");
 });
 
 console.log("\n==========================================");

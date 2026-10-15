@@ -27,6 +27,24 @@ class SaleSerializer(serializers.ModelSerializer):
     saleDate = serializers.DateField(source='sale_date')
     createdAt = serializers.DateTimeField(source='created_at', read_only=True)
 
+    def validate(self, attrs):
+        batch = attrs.get('batch')
+        qty = attrs.get('qty', 1)
+        if qty <= 0:
+            raise serializers.ValidationError({"qty": "Chiptalar soni kamida 1 ta bo'lishi kerak."})
+        if self.instance is None:
+            if batch and batch.remaining_qty < qty:
+                raise serializers.ValidationError({
+                    "qty": f"Partiyada yetarli chipta yo'q! Qoldiq: {batch.remaining_qty} ta, so'ralgan: {qty} ta."
+                })
+        else:
+            diff = qty - self.instance.qty
+            if diff > 0 and batch and batch.remaining_qty < diff:
+                raise serializers.ValidationError({
+                    "qty": f"Partiyada qo'shimcha chipta yetarli emas! Qoldiq: {batch.remaining_qty} ta, qo'shimcha so'ralgan: {diff} ta."
+                })
+        return attrs
+
     class Meta:
         model = Sale
         fields = [

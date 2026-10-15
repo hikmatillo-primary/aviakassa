@@ -1,5 +1,7 @@
 from decimal import Decimal
 from django.test import TestCase
+from rest_framework.test import APITestCase
+from rest_framework import status
 from apps.partners.models import Partner
 from apps.flights.models import Batch
 from apps.sales.models import Sale
@@ -83,7 +85,6 @@ class PartnerModelTests(TestCase):
             date="2026-10-24"
         )
 
-        # Endi:
         # Ali Turizmning qarzi 0 bo'lishi kerak ($1000 qarz surildi)
         self.assertEqual(self.client.total_offset_from, 1000.0)
         self.assertEqual(self.client.net_balance, 0.0)
@@ -118,3 +119,83 @@ class PartnerModelTests(TestCase):
         self.assertEqual(self.universal.net_balance, 1000.0)
         self.assertEqual(self.universal.we_owe_them, 1000.0)
         self.assertEqual(self.universal.they_owe_us, 0.0)
+
+
+class PartnerAPITests(APITestCase):
+    def setUp(self):
+        self.client_partner = Partner.objects.create(
+            name="Madina Tour",
+            type=Partner.PartnerType.CLIENT
+        )
+        self.supplier = Partner.objects.create(
+            name="FlyNas",
+            type=Partner.PartnerType.SUPPLIER
+        )
+
+    def test_partner_api_crud(self):
+        """Hamkor yaratish va API orqali olish."""
+        payload = {
+            "name": "Buxoro Turizm",
+            "type": "CLIENT",
+            "phone": "+998901234567",
+            "notes": "Yangi agent"
+        }
+        res = self.client.post("/api/partners/", payload, format="json")
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(res.data["name"], "Buxoro Turizm")
+        self.assertEqual(res.data["balance"], 0.0)
+
+    def test_partner_api_balance_reflection_after_sale_and_partial_payment(self):
+        """API orqali so'ralganda hamkorning balansi qat'iy manfiy (-) yoki musbat (+) ko'rsatilishi."""
+        batch = Batch.objects.create(
+            batch_number="TEST-JED-55",
+            route="TAS - JED",
+            flight_date="2026-11-25",
+            supplier=self.supplier,
+            total_qty=10,
+            buy_price=Decimal("400.00")
+        )
+
+        # 1. Sotuv yaratamiz: 5 ta chipta * $500 = $2500
+        Sale.objects.create(
+            batch=batch,
+            client=self.client_partner,
+            qty=5,
+            sell_price=Decimal("500.00"),
+            sale_date="2026-10-15"
+        )
+
+        res1 = self.client.get(f"/api/partners/{self.client_partner.id}/")
+        self.assertEqual(res1.status_code, status.HTTP_200_OK)
+        self.assertEqual(res1.data["totalBoughtFromUs"], 2500.0)
+        self.assertEqual(res1.data["balance"], -2500.0)
+        self.assertEqual(res1.data["theyOweUs"], 2500.0)
+
+        # 2. Qisman to'lov: $1000
+        Payment.objects.create(
+            partner=self.client_partner,
+            type=Payment.PaymentType.INCOME,
+            amount=Decimal("1000.00"),
+            payment_date="2026-10-15"
+        )
+
+        res2 = self.client.get(f"/api/partners/{self.client_partner.id}/")
+        self.assertEqual(res2.status_code, status.HTTP_200_OK)
+        self.assertEqual(res2.data["totalPaidToUs"], 1000.0)
+        self.assertEqual(res2.data["balance"], -1500.0)
+        self.assertEqual(res2.data["theyOweUs"], 1500.0)
+
+        # 3. To'liq yopish va ortiqcha to'lov: yana $2000 to'laydi (qarz $1500 edi, $500 ortiqcha)
+        Payment.objects.create(
+            partner=self.client_partner,
+            type=Payment.PaymentType.INCOME,
+            amount=Decimal("2000.00"),
+            payment_date="2026-10-16"
+        )
+
+        res3 = self.client.get(f"/api/partners/{self.client_partner.id}/")
+        self.assertEqual(res3.status_code, status.HTTP_200_OK)
+        self.assertEqual(res3.data["totalPaidToUs"], 3000.0)
+        self.assertEqual(res3.data["balance"], 500.0)  # Musbat (+500): Endi mijozning haqi bor!
+        self.assertEqual(res3.data["theyOweUs"], 0.0)
+        self.assertEqual(res3.data["weOweThem"], 500.0)
