@@ -79,6 +79,24 @@ export function AppContainer() {
     }
   }, []);
 
+  // Prevent mouse wheel from incrementing/decrementing number inputs
+  useEffect(() => {
+    const handleWheel = (e: WheelEvent) => {
+      const active = document.activeElement;
+      if (active instanceof HTMLInputElement && active.type === "number") {
+        active.blur();
+      }
+      const target = e.target;
+      if (target instanceof HTMLInputElement && target.type === "number") {
+        target.blur();
+      }
+    };
+    window.addEventListener("wheel", handleWheel, { passive: true });
+    return () => {
+      window.removeEventListener("wheel", handleWheel);
+    };
+  }, []);
+
   const handleToggleTheme = () => {
     setIsDark((prev) => {
       const next = !prev;

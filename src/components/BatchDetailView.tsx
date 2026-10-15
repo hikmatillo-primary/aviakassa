@@ -211,7 +211,7 @@ export function BatchDetailView({
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Mijoz ismi yoki sana bo‘yicha qidirish..."
+            placeholder="Hamkor yoki sana bo‘yicha qidirish..."
             value={saleSearch}
             onChange={(e) => setSaleSearch(e.target.value)}
             className="w-full pl-10 pr-4 py-2 text-xs sm:text-sm bg-slate-50/80 dark:bg-white/[0.04] border border-slate-200/80 dark:border-white/[0.08] rounded-xl text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
@@ -229,7 +229,7 @@ export function BatchDetailView({
               <div className="flex-1 min-w-0 space-y-1.5">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400">
-                    Mijoz
+                    Hamkor
                   </span>
                   {s.isRoundTrip && (
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
@@ -254,11 +254,6 @@ export function BatchDetailView({
                   <span>
                     Soni: <b className="text-blue-600 dark:text-blue-400 font-bold">{s.qty} ta</b>
                   </span>
-                  {s.passengerNames && (
-                    <span className="truncate max-w-[240px]">
-                      Yo‘lovchi: <b className="text-slate-700 dark:text-slate-300">{s.passengerNames}</b>
-                    </span>
-                  )}
                   {s.departureTime && (
                     <span>
                       Vaqti: <b className="text-slate-700 dark:text-slate-300 font-mono">{s.departureTime}{s.arrivalTime ? `–${s.arrivalTime}` : ""}</b>
@@ -297,7 +292,7 @@ export function BatchDetailView({
                   onClick={() => onEditSale(s)}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200/80 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] text-slate-700 dark:text-slate-200 text-xs font-semibold rounded-xl transition-all cursor-pointer"
                 >
-                  <Pencil className="w-3.5 h-3.5 text-slate-400" /> Narxni o‘zgartirish
+                  <Pencil className="w-3.5 h-3.5 text-slate-400" /> Narx
                 </button>
               </div>
             </div>

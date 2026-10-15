@@ -99,8 +99,8 @@ export function EditPriceModal({
       onClose={onClose}
       title={
         isBatch
-          ? "Kompaniyadan olingan narxni o‘zgartirish"
-          : "Mijozga sotilgan narxni o‘zgartirish"
+          ? "Partiya narxini o‘zgartirish"
+          : "Sotuv narxini o‘zgartirish"
       }
       maxWidth="max-w-xl md:max-w-2xl"
       footer={
@@ -133,9 +133,7 @@ export function EditPriceModal({
         {/* Top Info Banner */}
         <div className="p-4 sm:p-5 bg-slate-50 dark:bg-slate-800/70 rounded-2xl border border-slate-200/70 dark:border-slate-700 space-y-2 text-xs sm:text-sm">
           <div className="flex items-center justify-between">
-            <span className="text-slate-400">
-              {isBatch ? "Kompaniya (Ta’minotchi):" : "Xaridor (Mijoz):"}
-            </span>
+            <span className="text-slate-400">Hamkor:</span>
             <strong className="text-slate-900 dark:text-white font-bold text-sm sm:text-base">
               {isBatch ? item.supplierName : item.clientName}
             </strong>

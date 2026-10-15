@@ -73,7 +73,7 @@ export function SalesView({
           <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3.5 top-2.5" />
           <input
             type="text"
-            placeholder="Yo‘lovchi ismi, hamkor, yo‘nalish yoki reys..."
+            placeholder="Hamkor, yo‘nalish yoki reys..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50/80 dark:bg-white/[0.04] border border-slate-200/70 dark:border-white/[0.08] rounded-xl focus:bg-white dark:focus:bg-white/[0.06] focus:outline-none focus:ring-2 focus:ring-blue-500/40 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all"
@@ -117,27 +117,17 @@ export function SalesView({
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 text-xs pt-3 border-t border-slate-100 dark:border-white/[0.06]">
-              <div>
-                <span className="text-[11px] text-slate-400 dark:text-slate-500 block">
-                  Yo‘lovchi
-                </span>
-                <span className="font-semibold text-slate-800 dark:text-slate-200 block truncate mt-0.5">
-                  {sale.passengerNames || "-"}
-                </span>
-              </div>
-              <div>
-                <span className="text-[11px] text-slate-400 dark:text-slate-500 block">
-                  Hamkor
-                </span>
-                <button
-                  type="button"
-                  onClick={() => onOpenHistoryModal && onOpenHistoryModal(sale.clientId)}
-                  className="font-semibold text-slate-800 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 hover:underline block truncate mt-0.5 text-left cursor-pointer"
-                >
-                  {sale.clientName}
-                </button>
-              </div>
+            <div className="flex items-center justify-between text-xs pt-3 border-t border-slate-100 dark:border-white/[0.06]">
+              <span className="text-[11px] text-slate-400 dark:text-slate-500">
+                Hamkor:
+              </span>
+              <button
+                type="button"
+                onClick={() => onOpenHistoryModal && onOpenHistoryModal(sale.clientId)}
+                className="font-semibold text-slate-800 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 hover:underline truncate text-right cursor-pointer"
+              >
+                {sale.clientName}
+              </button>
             </div>
 
             <div className="flex items-center justify-between text-xs pt-3 border-t border-slate-100 dark:border-white/[0.06]">
@@ -158,9 +148,10 @@ export function SalesView({
                 <button
                   type="button"
                   onClick={() => onEditSale(sale)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200/80 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] text-slate-700 dark:text-slate-200 text-xs font-medium rounded-xl border border-slate-200/60 dark:border-white/[0.08] transition-colors cursor-pointer"
+                  title="Sotish narxini o'zgartirish"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 hover:bg-slate-200/80 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] text-slate-700 dark:text-slate-200 text-xs font-medium rounded-lg border border-slate-200/60 dark:border-white/[0.08] transition-colors cursor-pointer"
                 >
-                  <Pencil className="w-3 h-3 text-slate-400" /> Narxni o‘zgartirish
+                  <Pencil className="w-3 h-3 text-slate-400" /> Narx
                 </button>
               )}
             </div>
@@ -191,7 +182,6 @@ export function SalesView({
               <tr className="border-b border-slate-100 dark:border-white/[0.06] text-xs font-medium text-slate-400 dark:text-slate-500">
                 <th className="py-3.5 px-5 font-medium">Sana</th>
                 <th className="py-3.5 px-5 font-medium">Mahsulot / Reys</th>
-                <th className="py-3.5 px-5 font-medium">Yo‘lovchi</th>
                 <th className="py-3.5 px-5 font-medium">Hamkor</th>
                 <th className="py-3.5 px-5 font-medium text-center">Soni</th>
                 <th className="py-3.5 px-5 font-medium text-right">Tannarx</th>
@@ -215,13 +205,6 @@ export function SalesView({
                   {/* Route & Flight */}
                   <td className="py-4 px-5">
                     <FlightBar batch={sale} showSubtitle={false} />
-                  </td>
-
-                  {/* Passenger names */}
-                  <td className="py-4 px-5">
-                    <span className="font-medium text-slate-700 dark:text-slate-200">
-                      {sale.passengerNames || "-"}
-                    </span>
                   </td>
 
                   {/* Client name */}
@@ -275,9 +258,10 @@ export function SalesView({
                       <button
                         type="button"
                         onClick={() => onEditSale(sale)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200/80 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] text-slate-700 dark:text-slate-200 text-xs font-medium rounded-xl border border-slate-200/60 dark:border-white/[0.08] transition-all cursor-pointer"
+                        title="Sotish narxini o'zgartirish"
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 hover:bg-slate-200/80 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] text-slate-700 dark:text-slate-200 text-xs font-medium rounded-lg border border-slate-200/60 dark:border-white/[0.08] transition-all cursor-pointer"
                       >
-                        <Pencil className="w-3 h-3 text-slate-400" /> Narxni o‘zgartirish
+                        <Pencil className="w-3 h-3 text-slate-400" /> Narx
                       </button>
                     )}
                   </td>
@@ -287,7 +271,7 @@ export function SalesView({
               {filteredSales.length === 0 && (
                 <tr>
                   <td
-                    colSpan={10}
+                    colSpan={9}
                     className="py-12 text-center text-xs text-slate-400 dark:text-slate-500 space-y-2"
                   >
                     <div>Mos keladigan sotuvlar topilmadi</div>
@@ -307,7 +291,7 @@ export function SalesView({
             {filteredSales.length > 0 && (
               <tfoot>
                 <tr className="border-t-2 border-slate-200/80 dark:border-white/[0.08] bg-slate-50/70 dark:bg-white/[0.02] text-xs font-semibold text-slate-700 dark:text-slate-200 tabular-nums">
-                  <td colSpan={4} className="py-3.5 px-5 text-slate-500 dark:text-slate-400">
+                  <td colSpan={3} className="py-3.5 px-5 text-slate-500 dark:text-slate-400">
                     Jami ({filteredSales.length} ta sotuv):
                   </td>
                   <td className="py-3.5 px-5 text-center font-bold text-slate-900 dark:text-white">
