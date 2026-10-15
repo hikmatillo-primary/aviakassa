@@ -70,8 +70,26 @@ export function PartnerModal({
       onClose={onClose}
       title="Yangi hamkor qo‘shish"
       maxWidth="max-w-xl md:max-w-2xl"
+      footer={
+        <div className="flex items-center justify-end w-full gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-5 py-2.5 text-xs sm:text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/[0.06] rounded-xl transition-colors cursor-pointer"
+          >
+            Bekor qilish
+          </button>
+          <button
+            type="submit"
+            form="partner-form"
+            className="px-6 py-2.5 text-xs sm:text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm shadow-blue-500/20 transition-all cursor-pointer"
+          >
+            Saqlash
+          </button>
+        </div>
+      }
     >
-      <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
+      <form id="partner-form" onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
         {error && (
           <div className="p-3.5 sm:p-4 text-xs sm:text-sm bg-red-50 dark:bg-red-950/50 text-red-600 dark:text-red-400 rounded-xl border border-red-200 dark:border-red-800 font-medium">
             {error}
@@ -120,23 +138,6 @@ export function PartnerModal({
             onChange={(e) => setNotes(e.target.value)}
             className="w-full px-3.5 py-2.5 sm:py-3 text-sm sm:text-base bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
-        </div>
-
-        {/* Sticky Buttons */}
-        <div className="sticky bottom-0 -mx-4 sm:-mx-6 md:-mx-8 -mb-4 sm:-mb-6 md:-mb-8 px-5 sm:px-7 md:px-8 py-3.5 sm:py-4 bg-white/95 dark:bg-[#111726]/95 backdrop-blur-md border-t border-slate-100 dark:border-white/[0.07] flex items-center justify-end gap-3 z-10">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-5 py-2.5 text-xs sm:text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/[0.06] rounded-xl transition-colors cursor-pointer"
-          >
-            Bekor qilish
-          </button>
-          <button
-            type="submit"
-            className="px-6 py-2.5 text-xs sm:text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm shadow-blue-500/20 transition-all cursor-pointer"
-          >
-            Saqlash
-          </button>
         </div>
       </form>
     </Modal>
