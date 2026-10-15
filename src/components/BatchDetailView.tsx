@@ -81,7 +81,7 @@ export function BatchDetailView({
           <div className="bg-slate-50/80 dark:bg-white/[0.03] p-3.5 sm:p-5 rounded-xl border border-slate-200/70 dark:border-white/[0.06] flex flex-col justify-between gap-3">
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1 min-w-0">
-                <FlightBar batch={batch} />
+                <FlightBar batch={batch} size="lg" />
               </div>
             </div>
 
@@ -171,7 +171,7 @@ export function BatchDetailView({
                 onClick={() => onEditBatch(batch)}
                 className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] text-slate-700 dark:text-slate-200 text-[11px] font-semibold rounded-lg transition-all cursor-pointer"
               >
-                <Pencil className="w-3 h-3 text-slate-400" /> Narxni o‘zgartirish
+                <Pencil className="w-3.5 h-3.5 text-slate-400" /> Narx
               </button>
             </div>
           </div>

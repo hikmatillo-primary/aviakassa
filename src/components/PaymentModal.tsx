@@ -41,15 +41,15 @@ export function PaymentModal({
   const [notes, setNotes] = useState<string>("");
 
   React.useEffect(() => {
-    if (!paymentDate) {
+    if (isOpen) {
+      setError(null);
+      if (defaultType) setType(defaultType);
+      setPartnerId(defaultPartnerId ? String(defaultPartnerId) : "");
+      setAmount(0);
+      setNotes("");
       setPaymentDate(new Date().toISOString().split("T")[0]);
     }
-  }, [paymentDate]);
-
-  React.useEffect(() => {
-    if (defaultType) setType(defaultType);
-    if (defaultPartnerId) setPartnerId(String(defaultPartnerId));
-  }, [defaultType, defaultPartnerId]);
+  }, [isOpen, defaultType, defaultPartnerId]);
 
   const selectedPartner = partners.find((p) => String(p.id) === partnerId);
 
@@ -147,33 +147,78 @@ export function PaymentModal({
 
         {/* Hamkor */}
         <div>
-          <PartnerSelect
-            label="Qaysi hamkor bilan hisob-kitob?"
-            value={partnerId}
-            onChange={(val) => setPartnerId(val)}
-            partners={partners}
-            placeholder="-- Hamkorni tanlang --"
-            required
-          />
-          {selectedPartner && (
-            <div className="mt-1.5 text-xs text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-between tabular-nums">
-              <span>Hozirgi hisob-kitob holati:</span>
-              <strong
-                className={
-                  (selectedPartner.balance || 0) > 0
-                    ? "text-amber-600 dark:text-amber-400 font-bold"
-                    : (selectedPartner.balance || 0) < 0
-                    ? "text-rose-600 dark:text-rose-400 font-bold"
-                    : "text-emerald-600 dark:text-emerald-400 font-bold"
-                }
-              >
-                {(selectedPartner.balance || 0) > 0
-                  ? `Mijoz qarzdor: +${formatUSD(selectedPartner.balance)}`
-                  : (selectedPartner.balance || 0) < 0
-                  ? `Biz qarzdormiz: -${formatUSD(Math.abs(selectedPartner.balance))}`
-                  : "Qarz yo‘q ($0)"}
-              </strong>
+          {defaultPartnerId && selectedPartner ? (
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                Hamkor
+              </label>
+              <div className="p-3 bg-slate-50 dark:bg-white/[0.03] border border-slate-200/80 dark:border-white/[0.08] rounded-xl flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-9 h-9 rounded-lg bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 font-bold text-sm">
+                    {selectedPartner.name ? selectedPartner.name.charAt(0).toUpperCase() : "H"}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-sm font-bold text-slate-900 dark:text-white truncate">
+                      {selectedPartner.name}
+                    </div>
+                    {selectedPartner.phone && (
+                      <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                        {selectedPartner.phone}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="text-right shrink-0 tabular-nums">
+                  <span className="text-[10px] text-slate-400 block font-medium">Hozirgi hisob-kitob:</span>
+                  <span
+                    className={`text-xs sm:text-sm font-bold ${
+                      (selectedPartner.balance || 0) > 0
+                        ? "text-amber-600 dark:text-amber-400"
+                        : (selectedPartner.balance || 0) < 0
+                        ? "text-rose-600 dark:text-rose-400"
+                        : "text-emerald-600 dark:text-emerald-400"
+                    }`}
+                  >
+                    {(selectedPartner.balance || 0) > 0
+                      ? `Mijoz qarzdor: +${formatUSD(selectedPartner.balance)}`
+                      : (selectedPartner.balance || 0) < 0
+                      ? `Biz qarzdormiz: -${formatUSD(Math.abs(selectedPartner.balance))}`
+                      : "Qarz yo‘q ($0)"}
+                  </span>
+                </div>
+              </div>
             </div>
+          ) : (
+            <>
+              <PartnerSelect
+                label="Qaysi hamkor bilan hisob-kitob?"
+                value={partnerId}
+                onChange={(val) => setPartnerId(val)}
+                partners={partners}
+                placeholder="-- Hamkorni tanlang --"
+                required
+              />
+              {selectedPartner && (
+                <div className="mt-1.5 text-xs text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-between tabular-nums">
+                  <span>Hozirgi hisob-kitob holati:</span>
+                  <strong
+                    className={
+                      (selectedPartner.balance || 0) > 0
+                        ? "text-amber-600 dark:text-amber-400 font-bold"
+                        : (selectedPartner.balance || 0) < 0
+                        ? "text-rose-600 dark:text-rose-400 font-bold"
+                        : "text-emerald-600 dark:text-emerald-400 font-bold"
+                    }
+                  >
+                    {(selectedPartner.balance || 0) > 0
+                      ? `Mijoz qarzdor: +${formatUSD(selectedPartner.balance)}`
+                      : (selectedPartner.balance || 0) < 0
+                      ? `Biz qarzdormiz: -${formatUSD(Math.abs(selectedPartner.balance))}`
+                      : "Qarz yo‘q ($0)"}
+                  </strong>
+                </div>
+              )}
+            </>
           )}
         </div>
 
