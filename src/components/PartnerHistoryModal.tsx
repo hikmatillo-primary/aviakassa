@@ -74,7 +74,7 @@ export function PartnerHistoryModal({
   // Unified net balance (Sal'do)
   const clientDebt = totalBoughtFromUs - totalPaidToUs;
   const supplierDebt = totalSoldToUs - totalPaidByUs;
-  const netBalance = clientDebt - supplierDebt - offsetFrom + offsetTo;
+  const netBalance = supplierDebt - clientDebt + offsetFrom - offsetTo;
 
   return (
     <Modal
@@ -116,23 +116,31 @@ export function PartnerHistoryModal({
           {/* Card 3: O‘zaro umumiy Sal'do */}
           <div
             className={`p-3 sm:p-3.5 rounded-xl border shadow-xs flex sm:block items-center justify-between ${
-              netBalance > 0
-                ? "bg-amber-500/10 border-amber-500/20 text-amber-900 dark:text-amber-300"
-                : netBalance < 0
+              netBalance < 0
                 ? "bg-rose-500/10 border-rose-500/20 text-rose-900 dark:text-rose-300"
-                : "bg-emerald-500/10 border-emerald-500/20 text-emerald-900 dark:text-emerald-300"
+                : netBalance > 0
+                ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-900 dark:text-emerald-300"
+                : "bg-slate-500/10 border-slate-500/20 text-slate-800 dark:text-slate-200"
             }`}
           >
             <div>
               <span className="text-xs block font-medium">
-                {netBalance > 0
-                  ? "Hamkorning qarzi (Ular to‘lashi kerak)"
-                  : netBalance < 0
-                  ? "Bizning qarzimiz (Biz to‘lashimiz kerak)"
-                  : "O‘zaro hisob-kitob teng"}
+                Balans
               </span>
-              <strong className="text-base sm:text-lg font-bold sm:mt-0.5 block">
-                {netBalance === 0 ? "$0" : formatUSD(Math.abs(netBalance))}
+              <strong
+                className={`text-base sm:text-lg font-bold sm:mt-0.5 block ${
+                  netBalance < 0
+                    ? "text-rose-600 dark:text-rose-400"
+                    : netBalance > 0
+                    ? "text-emerald-600 dark:text-emerald-400"
+                    : "text-slate-800 dark:text-white"
+                }`}
+              >
+                {netBalance < 0
+                  ? `-${formatUSD(Math.abs(netBalance))}`
+                  : netBalance > 0
+                  ? `+${formatUSD(netBalance)}`
+                  : "$0"}
               </strong>
             </div>
             {partnerOffsets.length > 0 && (

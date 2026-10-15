@@ -36,8 +36,8 @@ class PartnerModelTests(TestCase):
             buy_price=Decimal("300.00")
         )
         self.assertEqual(self.supplier.total_sold_to_us, 3000.0)
-        # Biz ularga hech narsa to'lamaganmiz, shuning uchun bizning qarzimiz $3000
-        self.assertEqual(self.supplier.net_balance, -3000.0)
+        # Biz ularga hech narsa to'lamaganmiz, shuning uchun ularning haqi $3000 (+)
+        self.assertEqual(self.supplier.net_balance, 3000.0)
         self.assertEqual(self.supplier.we_owe_them, 3000.0)
 
         # 2. Centrum Air ga $1000 to'ladik (EXPENSE)
@@ -47,9 +47,9 @@ class PartnerModelTests(TestCase):
             amount=Decimal("1000.00"),
             payment_date="2026-10-21"
         )
-        # Qarzimiz $2000 qolishi kerak
+        # Haqi $2000 qolishi kerak (+)
         self.assertEqual(self.supplier.total_paid_by_us, 1000.0)
-        self.assertEqual(self.supplier.net_balance, -2000.0)
+        self.assertEqual(self.supplier.net_balance, 2000.0)
 
         # 3. Ali Turizmga 4 ta chipta sotdik, donasi $350 ($1400)
         Sale.objects.create(
@@ -60,9 +60,9 @@ class PartnerModelTests(TestCase):
             sell_price=Decimal("350.00"),
             sale_date="2026-10-22"
         )
-        # Ali Turizm bizdan $1400 qarzdor
+        # Ali Turizm bizdan $1400 qarzdor (-)
         self.assertEqual(self.client.total_bought_from_us, 1400.0)
-        self.assertEqual(self.client.net_balance, 1400.0)
+        self.assertEqual(self.client.net_balance, -1400.0)
         self.assertEqual(self.client.they_owe_us, 1400.0)
 
         # 4. Ali Turizm $400 to'ladi (INCOME)
@@ -72,8 +72,8 @@ class PartnerModelTests(TestCase):
             amount=Decimal("400.00"),
             payment_date="2026-10-23"
         )
-        # Ali Turizm qarzi $1000 qoladi
-        self.assertEqual(self.client.net_balance, 1000.0)
+        # Ali Turizm qarzi $1000 qoladi (-)
+        self.assertEqual(self.client.net_balance, -1000.0)
 
         # 5. O'zaro qarz surish (DebtOffset): Ali Turizmning $1000 qarzini Centrum Air hisobiga suramiz
         DebtOffset.objects.create(
@@ -88,9 +88,9 @@ class PartnerModelTests(TestCase):
         self.assertEqual(self.client.total_offset_from, 1000.0)
         self.assertEqual(self.client.net_balance, 0.0)
 
-        # Centrum Air ning bizdan qarzdorligi $2000 dan $1000 ga tushishi kerak (-$1000)
+        # Centrum Air ning haqi $2000 dan $1000 ga tushishi kerak (+$1000)
         self.assertEqual(self.supplier.total_offset_to, 1000.0)
-        self.assertEqual(self.supplier.net_balance, -1000.0)
+        self.assertEqual(self.supplier.net_balance, 1000.0)
 
     def test_universal_partner_dual_role(self):
         # Universal hamkor Oasis Travel: ham partiya sotadi, ham chipta oladi
@@ -112,9 +112,9 @@ class PartnerModelTests(TestCase):
         # Hisob-kitob:
         # total_sold_to_us = 3000
         # total_bought_from_us = 2000
-        # net_balance = 2000 - 3000 = -1000
+        # net_balance = 3000 - 2000 = +1000 (Oasis Travelning haqi bor)
         self.assertEqual(self.universal.total_sold_to_us, 3000.0)
         self.assertEqual(self.universal.total_bought_from_us, 2000.0)
-        self.assertEqual(self.universal.net_balance, -1000.0)
+        self.assertEqual(self.universal.net_balance, 1000.0)
         self.assertEqual(self.universal.we_owe_them, 1000.0)
         self.assertEqual(self.universal.they_owe_us, 0.0)

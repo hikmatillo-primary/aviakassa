@@ -396,7 +396,8 @@ export function AppContainer() {
         const synced = await apiFetchAll();
         updateData(synced);
       } catch (e) {
-        console.warn("Backendga sotuv saqlashda xato:", e);
+        console.error("Backendga sotuv saqlashda xato:", e);
+        showToast("Server bilan sinxronizatsiyada xatolik yuz berdi!", "warning");
       }
     })();
   };

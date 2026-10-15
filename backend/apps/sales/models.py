@@ -1,3 +1,4 @@
+from decimal import Decimal
 from django.db import models, transaction
 from django.core.exceptions import ValidationError
 from apps.flights.models import Batch
@@ -79,11 +80,19 @@ class Sale(models.Model):
                 is_new = True
 
         # Narxlar va foydani avtomatik hisoblash
+        if self.sell_price is not None:
+            self.sell_price = Decimal(str(self.sell_price))
         if not self.buy_price and self.batch:
             self.buy_price = self.batch.buy_price
+        if self.buy_price is not None:
+            self.buy_price = Decimal(str(self.buy_price))
 
-        self.total_amount = self.sell_price * self.qty
-        self.profit = self.total_amount - (self.buy_price * self.qty)
+        if self.sell_price is not None and self.qty is not None:
+            self.total_amount = self.sell_price * Decimal(str(self.qty))
+            if self.buy_price is not None:
+                self.profit = self.total_amount - (self.buy_price * Decimal(str(self.qty)))
+            else:
+                self.profit = Decimal("0.00")
 
         # Partiyadan reys ma'lumotlarini to'ldirish
         if self.batch:

@@ -49,8 +49,8 @@ export function PaymentsView({
   });
 
   const filteredPartners = partners.filter((pt) => {
-    if (partnerBalanceFilter === "DEBT_US" && (pt.balance || 0) <= 0) return false;
-    if (partnerBalanceFilter === "DEBT_THEM" && (pt.balance || 0) >= 0) return false;
+    if (partnerBalanceFilter === "DEBT_US" && (pt.balance || 0) >= 0) return false;
+    if (partnerBalanceFilter === "DEBT_THEM" && (pt.balance || 0) <= 0) return false;
     if (!search.trim()) return true;
     const q = search.toLowerCase();
     return (
@@ -373,21 +373,21 @@ export function PaymentsView({
               onClick={() => setPartnerBalanceFilter("DEBT_US")}
               className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer shrink-0 ${
                 partnerBalanceFilter === "DEBT_US"
-                  ? "bg-amber-600 text-white shadow-xs"
+                  ? "bg-rose-600 text-white shadow-xs"
                   : "bg-slate-100/80 dark:bg-white/[0.05] text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
               }`}
             >
-              Bizning haqimiz ({partners.filter((p) => (p.balance || 0) > 0).length})
+              Qarzdorlar (–) ({partners.filter((p) => (p.balance || 0) < 0).length})
             </button>
             <button
               onClick={() => setPartnerBalanceFilter("DEBT_THEM")}
               className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer shrink-0 ${
                 partnerBalanceFilter === "DEBT_THEM"
-                  ? "bg-rose-600 text-white shadow-xs"
+                  ? "bg-emerald-600 text-white shadow-xs"
                   : "bg-slate-100/80 dark:bg-white/[0.05] text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
               }`}
             >
-              Bizning qarzimiz ({partners.filter((p) => (p.balance || 0) < 0).length})
+              Haqdorlar (+) ({partners.filter((p) => (p.balance || 0) > 0).length})
             </button>
           </div>
         )}
@@ -628,26 +628,22 @@ export function PaymentsView({
 
                   <div className="text-right shrink-0 tabular-nums">
                     <span className="text-[11px] text-slate-400 font-medium block">
-                      {debt > 0
-                        ? "Hamkorning qarzi"
-                        : debt < 0
-                        ? "Bizning qarzimiz"
-                        : "Hisob-kitob teng"}
+                      Balans
                     </span>
                     <span
                       className={`text-lg sm:text-xl font-bold block mt-0.5 ${
-                        debt > 0
-                          ? "text-amber-600 dark:text-amber-400"
-                          : debt < 0
+                        debt < 0
                           ? "text-rose-600 dark:text-rose-400"
-                          : "text-emerald-600 dark:text-emerald-400"
+                          : debt > 0
+                          ? "text-emerald-600 dark:text-emerald-400"
+                          : "text-slate-600 dark:text-slate-400"
                       }`}
                     >
-                      {debt > 0
-                        ? formatUSD(debt)
-                        : debt < 0
-                        ? formatUSD(Math.abs(debt))
-                        : "Qarz yo‘q ($0)"}
+                      {debt < 0
+                        ? `-${formatUSD(Math.abs(debt))}`
+                        : debt > 0
+                        ? `+${formatUSD(debt)}`
+                        : "$0"}
                     </span>
                   </div>
                 </div>

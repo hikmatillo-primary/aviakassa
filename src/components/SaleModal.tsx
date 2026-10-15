@@ -457,7 +457,7 @@ export function SaleModal({
               />
             </div>
             <div className="text-[11px] text-slate-400 mt-1 px-0.5 tabular-nums">
-              Hamkor qarzi:{" "}
+              To‘lanmagan qoldiq:{" "}
               <strong
                 className={
                   remainingDebt > 0

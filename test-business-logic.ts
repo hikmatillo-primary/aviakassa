@@ -180,7 +180,7 @@ test("3. Hamkor balansi (Mijoz sifatida chipta olib qisman to'laganda)", () => {
   assert.equal(p.totalBoughtFromUs, 1520, "Bizdan olgani: 1520");
   assert.equal(p.totalPaidToUs, 520, "Bizga to'lagani: 520");
   assert.equal(p.theyOweUs, 1000, "Uning qarzi: 1520 - 520 = 1000");
-  assert.equal(p.balance, 1000, "Balans musbat (+1000): Biz haqdormiz");
+  assert.equal(p.balance, -1000, "Balans manfiy (-1000): Hamkor bizdan qarzdor");
   assert.equal(enriched.stats.clientDebtToUs, 1000, "Dashboard: Hamkorlar qarzi = 1000");
 });
 
@@ -230,7 +230,7 @@ test("4. Ta'minotchi balansi (Biz partiya olib qisman to'laganimizda)", () => {
   assert.equal(p.totalSoldToUs, 7000, "Bizga sotgani: 7000");
   assert.equal(p.totalPaidByUs, 4000, "Biz to'lagan: 4000");
   assert.equal(p.weOweThem, 3000, "Bizning qarzimiz: 7000 - 4000 = 3000");
-  assert.equal(p.balance, -3000, "Balans manfiy (-3000): Biz qarzdormiz");
+  assert.equal(p.balance, 3000, "Balans musbat (+3000): Ta'minotchi haqi bor");
   assert.equal(enriched.stats.ourDebtToSuppliers, 3000, "Dashboard: Bizning qarzimiz = 3000");
 });
 
@@ -275,7 +275,7 @@ test("5. Yagona Hamkor (Ikkala rolda: partiya sotgan va chipta olgan)", () => {
   // Hech kim naqd to'lamadi, hisob-kitob avtomatik to'qnashadi:
   // Biz unga qarzdormiz: 5000
   // U bizga qarzdor: 3500
-  // Sof balans: 3500 - 5000 = -1500 (Biz unga $1500 berishimiz kerak)
+  // Sof balans: 5000 - 3500 = +1500 (Uning haqi bor $1500)
   const enriched = calculateEnrichedData({
     partners,
     batches,
@@ -289,7 +289,7 @@ test("5. Yagona Hamkor (Ikkala rolda: partiya sotgan va chipta olgan)", () => {
   assert.equal(p.totalBoughtFromUs, 3500);
   assert.equal(p.theyOweUs, 0, "Net: Ular bizdan qarzdor emas");
   assert.equal(p.weOweThem, 1500, "Net: Biz ularga $1500 qarzdormiz");
-  assert.equal(p.balance, -1500, "Sof balans -1500 bo'lishi kerak");
+  assert.equal(p.balance, 1500, "Sof balans +1500 bo'lishi kerak");
   assert.equal(enriched.stats.ourDebtToSuppliers, 1500, "Kompaniyamiz sof qarzi 1500");
   assert.equal(enriched.stats.clientDebtToUs, 0, "Boshqa qarzdor yo'q");
 });
@@ -363,7 +363,7 @@ test("6. O'zaro qarz surish (DebtOffset / Vzaimozachet mantig'i)", () => {
 
   // Ta'minotchi oldidagi qarzimiz $2000 dan $800 ga tushishi kerak!
   assert.equal(supplier.weOweThem, 800, "Ta'minotchi oldidagi qarzimiz $800 qoldi");
-  assert.equal(supplier.balance, -800, "Ta'minotchi balansi -800");
+  assert.equal(supplier.balance, 800, "Ta'minotchi balansi +800 (haqi bor)");
 
   // Dashboard statistikasi
   assert.equal(enriched.stats.clientDebtToUs, 0, "Mijozlardan qarz yo'q");
@@ -544,8 +544,8 @@ test("9. Murakkab kombinatsiyalashgan tranzaksiyalar va qarz surish", () => {
   assert.equal(p.totalPaidByUs, 1500, "Biz to'lagan: 1500");
   // clientDebt = 5500 - 3000 = 2500
   // supplierDebt = 2500 - 1500 = 1000
-  // balance = 2500 - 1000 + 500 = 2000
-  assert.equal(p.balance, 2000, "Sof balans 2000");
+  // balance = 1000 - 2500 - 500 = -2000
+  assert.equal(p.balance, -2000, "Sof balans -2000 (Hamkor qarzdor)");
   assert.equal(p.theyOweUs, 2000, "Net qarz 2000");
   assert.equal(p.weOweThem, 0, "Biz qarzdor emasmiz");
 });

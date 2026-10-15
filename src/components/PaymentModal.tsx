@@ -169,21 +169,21 @@ export function PaymentModal({
                   </div>
                 </div>
                 <div className="text-right shrink-0 tabular-nums">
-                  <span className="text-[10px] text-slate-400 block font-medium">Hozirgi hisob-kitob:</span>
+                  <span className="text-[10px] text-slate-400 block font-medium">Balans:</span>
                   <span
                     className={`text-xs sm:text-sm font-bold ${
-                      (selectedPartner.balance || 0) > 0
-                        ? "text-amber-600 dark:text-amber-400"
-                        : (selectedPartner.balance || 0) < 0
+                      (selectedPartner.balance || 0) < 0
                         ? "text-rose-600 dark:text-rose-400"
-                        : "text-emerald-600 dark:text-emerald-400"
+                        : (selectedPartner.balance || 0) > 0
+                        ? "text-emerald-600 dark:text-emerald-400"
+                        : "text-slate-600 dark:text-slate-400"
                     }`}
                   >
-                    {(selectedPartner.balance || 0) > 0
-                      ? `Mijoz qarzdor: +${formatUSD(selectedPartner.balance)}`
-                      : (selectedPartner.balance || 0) < 0
-                      ? `Biz qarzdormiz: -${formatUSD(Math.abs(selectedPartner.balance))}`
-                      : "Qarz yo‘q ($0)"}
+                    {(selectedPartner.balance || 0) < 0
+                      ? `-${formatUSD(Math.abs(selectedPartner.balance))}`
+                      : (selectedPartner.balance || 0) > 0
+                      ? `+${formatUSD(selectedPartner.balance)}`
+                      : "$0"}
                   </span>
                 </div>
               </div>
@@ -200,21 +200,21 @@ export function PaymentModal({
               />
               {selectedPartner && (
                 <div className="mt-1.5 text-xs text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 flex items-center justify-between tabular-nums">
-                  <span>Hozirgi hisob-kitob holati:</span>
+                  <span>Balans:</span>
                   <strong
                     className={
-                      (selectedPartner.balance || 0) > 0
-                        ? "text-amber-600 dark:text-amber-400 font-bold"
-                        : (selectedPartner.balance || 0) < 0
+                      (selectedPartner.balance || 0) < 0
                         ? "text-rose-600 dark:text-rose-400 font-bold"
-                        : "text-emerald-600 dark:text-emerald-400 font-bold"
+                        : (selectedPartner.balance || 0) > 0
+                        ? "text-emerald-600 dark:text-emerald-400 font-bold"
+                        : "text-slate-600 dark:text-slate-400 font-bold"
                     }
                   >
-                    {(selectedPartner.balance || 0) > 0
-                      ? `Mijoz qarzdor: +${formatUSD(selectedPartner.balance)}`
-                      : (selectedPartner.balance || 0) < 0
-                      ? `Biz qarzdormiz: -${formatUSD(Math.abs(selectedPartner.balance))}`
-                      : "Qarz yo‘q ($0)"}
+                    {(selectedPartner.balance || 0) < 0
+                      ? `-${formatUSD(Math.abs(selectedPartner.balance))}`
+                      : (selectedPartner.balance || 0) > 0
+                      ? `+${formatUSD(selectedPartner.balance)}`
+                      : "$0"}
                   </strong>
                 </div>
               )}
@@ -230,22 +230,22 @@ export function PaymentModal({
             </label>
             {selectedPartner && (
               <>
-                {type === "INCOME" && (selectedPartner.balance || 0) > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setAmount(selectedPartner.balance || 0)}
-                    className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500/20 transition-colors cursor-pointer"
-                  >
-                    Qarzni yopish: {formatUSD(selectedPartner.balance || 0)}
-                  </button>
-                )}
-                {type === "EXPENSE" && (selectedPartner.balance || 0) < 0 && (
+                {type === "INCOME" && (selectedPartner.balance || 0) < 0 && (
                   <button
                     type="button"
                     onClick={() => setAmount(Math.abs(selectedPartner.balance || 0))}
                     className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500/20 transition-colors cursor-pointer"
                   >
-                    Qarzni to‘lash: {formatUSD(Math.abs(selectedPartner.balance || 0))}
+                    Qarzni yopish: {formatUSD(Math.abs(selectedPartner.balance || 0))}
+                  </button>
+                )}
+                {type === "EXPENSE" && (selectedPartner.balance || 0) > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setAmount(selectedPartner.balance || 0)}
+                    className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500/20 transition-colors cursor-pointer"
+                  >
+                    Haqni to‘lash: {formatUSD(selectedPartner.balance || 0)}
                   </button>
                 )}
               </>

@@ -394,13 +394,13 @@ export function calculateEnrichedData(data: AviakassaData) {
     // Net calculations (DebtOffset included, aligned with backend Partner model):
     const clientDebt = totalBoughtFromUs - totalPaidToUs;
     const supplierDebt = totalSoldToUs - totalPaidByUs;
-    // balance > 0: Partner owes us (Biz haqdormiz / Hamkor qarzdor)
-    // balance < 0: We owe partner (Biz qarzdormiz / Hamkor haqdor)
-    // balance === 0: Closed / 0
-    const balance = clientDebt - supplierDebt - offsetFrom + offsetTo;
+    // Foydalanuvchi qoidasi:
+    // Hamkor bizdan qarzdor bo'lsa: manfiy (-)
+    // Hamkorning bizda haqi bo'lsa: musbat (+)
+    const balance = supplierDebt - clientDebt + offsetFrom - offsetTo;
 
-    const theyOweUs = balance > 0 ? balance : 0;
-    const weOweThem = balance < 0 ? Math.abs(balance) : 0;
+    const theyOweUs = balance < 0 ? Math.abs(balance) : 0;
+    const weOweThem = balance > 0 ? balance : 0;
 
     const totalDeal = totalBoughtFromUs + totalSoldToUs;
     const totalPaid = totalPaidToUs + totalPaidByUs;
@@ -440,13 +440,13 @@ export function calculateEnrichedData(data: AviakassaData) {
   );
   const activeBatchesCount = batches.filter((b) => b.status === "ACTIVE").length;
 
-  let ourDebtToSuppliers = 0;
-  let clientDebtToUs = 0;
+  let ourDebtToSuppliers = 0; // Hamkorlar haqi (+)
+  let clientDebtToUs = 0;     // Hamkorlar qarzi (-)
   for (const p of enrichedPartners) {
     if ((p.balance || 0) < 0) {
-      ourDebtToSuppliers += Math.abs(p.balance || 0);
+      clientDebtToUs += Math.abs(p.balance || 0);
     } else if ((p.balance || 0) > 0) {
-      clientDebtToUs += p.balance || 0;
+      ourDebtToSuppliers += p.balance || 0;
     }
   }
 

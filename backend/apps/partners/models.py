@@ -66,21 +66,20 @@ class Partner(models.Model):
     @property
     def net_balance(self) -> float:
         """
-        O'zaro sal'do (DebtOffset - qarz surishlar hisobga olingan):
-        they_owe_us - we_owe_them
-        > 0 bo'lsa: Hamkor bizdan qarzdor.
-        < 0 bo'lsa: Biz hamkordan qarzdormiz.
+        Hamkor balansi (DebtOffset - qarz surishlar hisobga olingan):
+        Bizdan qarzi bo'lsa: manfiy (-)
+        Haqi bo'lsa: musbat (+)
         """
         client_debt = self.total_bought_from_us - self.total_paid_to_us
         supplier_debt = self.total_sold_to_us - self.total_paid_by_us
-        return (client_debt - supplier_debt) - self.total_offset_from + self.total_offset_to
+        return float(supplier_debt - client_debt + self.total_offset_from - self.total_offset_to)
 
     @property
     def they_owe_us(self) -> float:
         bal = self.net_balance
-        return bal if bal > 0 else 0
+        return abs(bal) if bal < 0 else 0
 
     @property
     def we_owe_them(self) -> float:
         bal = self.net_balance
-        return abs(bal) if bal < 0 else 0
+        return bal if bal > 0 else 0

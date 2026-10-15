@@ -145,16 +145,16 @@ export function DashboardView({
           </div>
         </div>
 
-        {/* Card 2: Bizning haqimiz (Debitorlik) */}
+        {/* Card 2: Hamkorlar qarzi (Olinishi kerak) */}
         <div
           onClick={() => onNavigateTab && onNavigateTab("cash")}
           className="bg-white dark:bg-[#111726] rounded-2xl p-5 sm:p-6 border border-slate-200/70 dark:border-white/[0.07] shadow-xs relative flex flex-col justify-between min-h-[155px] hover:border-blue-400 dark:hover:border-blue-500/50 cursor-pointer hover:scale-[1.015] active:scale-[0.99] transition-all group"
         >
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-              Bizning haqimiz (Hamkorlardan)
+              Hamkorlar qarzi (Olinishi kerak)
             </span>
-            <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+            <div className="w-9 h-9 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
               <Users className="w-4 h-4" />
             </div>
           </div>
@@ -162,10 +162,10 @@ export function DashboardView({
           <div className="my-2">
             <div className="flex items-baseline gap-2">
               <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-                {formatUSD(stats?.clientDebtToUs)}
+                {stats?.clientDebtToUs ? `-${formatUSD(stats.clientDebtToUs)}` : "$0"}
               </span>
-              <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-lg bg-amber-500/10 text-amber-700 dark:text-amber-400 text-[11px] font-semibold">
-                Debitorlik
+              <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-lg bg-rose-500/10 text-rose-700 dark:text-rose-400 text-[11px] font-semibold">
+                Qarzdorlik
               </span>
             </div>
           </div>
@@ -176,16 +176,16 @@ export function DashboardView({
           </div>
         </div>
 
-        {/* Card 3: Bizning qarzimiz (Kreditorlik) */}
+        {/* Card 3: Hamkorlar haqi (To‘lanishi kerak) */}
         <div
           onClick={() => onNavigateTab && onNavigateTab("purchases")}
           className="bg-white dark:bg-[#111726] rounded-2xl p-5 sm:p-6 border border-slate-200/70 dark:border-white/[0.07] shadow-xs relative flex flex-col justify-between min-h-[155px] hover:border-blue-400 dark:hover:border-blue-500/50 cursor-pointer hover:scale-[1.015] active:scale-[0.99] transition-all group"
         >
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-              Bizning qarzimiz (Hamkorlarga)
+              Hamkorlar haqi (To‘lanishi kerak)
             </span>
-            <div className="w-9 h-9 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+            <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
               <Layers className="w-4 h-4" />
             </div>
           </div>
@@ -193,16 +193,16 @@ export function DashboardView({
           <div className="my-2">
             <div className="flex items-baseline gap-2">
               <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-                {formatUSD(stats?.ourDebtToSuppliers)}
+                {stats?.ourDebtToSuppliers ? `+${formatUSD(stats.ourDebtToSuppliers)}` : "$0"}
               </span>
-              <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 text-[11px] font-semibold">
-                Kreditorlik
+              <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-lg bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-[11px] font-semibold">
+                Haqdorlik
               </span>
             </div>
           </div>
 
           <div className="text-[11px] text-slate-400 dark:text-slate-500 flex items-center justify-between">
-            <span>Hamkorlarga to‘lov</span>
+            <span>Ta‘minotchilarga to‘lov</span>
             <span className="font-medium text-slate-500 dark:text-slate-400">To‘lanishi kerak</span>
           </div>
         </div>
