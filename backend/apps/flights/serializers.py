@@ -3,7 +3,7 @@ from .models import Batch
 from apps.partners.models import Partner
 
 class BatchSerializer(serializers.ModelSerializer):
-    batchNumber = serializers.CharField(source='batch_number')
+    batchNumber = serializers.CharField(source='batch_number', required=False, allow_blank=True)
     flightDate = serializers.DateField(source='flight_date')
     flightNumber = serializers.CharField(source='flight_number', required=False, allow_blank=True)
     departureTime = serializers.CharField(source='departure_time', required=False, allow_blank=True)
@@ -51,6 +51,12 @@ class BatchSerializer(serializers.ModelSerializer):
         ]
 
     def create(self, validated_data):
+        if not validated_data.get('batch_number'):
+            validated_data['batch_number'] = Batch.generate_next_batch_number()
+        else:
+            if Batch.objects.filter(batch_number=validated_data['batch_number']).exists():
+                validated_data['batch_number'] = Batch.generate_next_batch_number()
+
         if 'remaining_qty' not in validated_data:
             validated_data['remaining_qty'] = validated_data['total_qty']
         if 'total_cost' not in validated_data:

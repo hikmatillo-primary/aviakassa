@@ -482,3 +482,22 @@ export function calculateEnrichedData(data: AviakassaData) {
     debtOffsets: enrichedOffsets,
   };
 }
+
+export function getNextBatchNumber(existingBatches?: Array<{ batchNumber?: string }>, offset = 0): string {
+  let maxNum = 0;
+  if (existingBatches && existingBatches.length > 0) {
+    for (const b of existingBatches) {
+      if (b?.batchNumber) {
+        const m = String(b.batchNumber).trim().match(/^P(\d+)$/i);
+        if (m) {
+          const n = parseInt(m[1], 10);
+          if (!isNaN(n) && n > maxNum) maxNum = n;
+        }
+      }
+    }
+    maxNum = Math.max(maxNum, existingBatches.length);
+  }
+  const next = maxNum + 1 + offset;
+  return `P${String(next).padStart(5, "0")}`;
+}
+

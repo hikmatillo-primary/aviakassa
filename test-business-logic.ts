@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { calculateEnrichedData } from "./src/lib/storage.ts";
+import { calculateEnrichedData, getNextBatchNumber } from "./src/lib/storage.ts";
 import type {
   AviakassaData,
   Partner,
@@ -910,6 +910,58 @@ test("18. Kassa to'liq hisoboti: Kirim, Chiqim va Kassa sof balansi", () => {
   assert.equal(enriched.stats.totalIncome, 8500, "Jami kirim: 5000 + 3500 = 8500");
   assert.equal(enriched.stats.totalExpense, 3500, "Jami chiqim: 2000 + 1500 = 3500");
   assert.equal(enriched.stats.cashBalance, 5000, "Kassa qoldig'i: 8500 - 3500 = 5000");
+});
+
+// ----------------------------------------------------
+// 19. Unikal partiya raqamini ketma-ket generatsiya qilish (P00001, P00002...)
+// ----------------------------------------------------
+test("19. Partiya raqamlari tartibli va unikal (P00001, P00002) generatsiya bo'lishi", () => {
+  // Bo'sh ro'yxatda dastlabki partiya P00001 bo'lishi kerak
+  const initial = getNextBatchNumber([]);
+  assert.equal(initial, "P00001", "Dastlabki partiya P00001 bo'lishi kerak");
+
+  // Mavjud partiyalar bo'lganda eng kattasidan keyingisini olishi kerak
+  const existing = [
+    { batchNumber: "P00001" },
+    { batchNumber: "P00002" },
+  ];
+  const next = getNextBatchNumber(existing);
+  assert.equal(next, "P00003", "Mavjud P00001 va P00002 dan keyin P00003 bo'lishi kerak");
+
+  // Eski noan'anaviy formatlar aralashganda ham to'g'ri ishlashi
+  const mixed = [
+    { batchNumber: "P-DXB-101" },
+    { batchNumber: "P00005" },
+  ];
+  const nextMixed = getNextBatchNumber(mixed);
+  assert.equal(nextMixed, "P00006", "P00005 mavjud bo'lganda keyingisi P00006 bo'lishi kerak");
+});
+
+// ----------------------------------------------------
+// 20. Bitta xaridda bir nechta partiya kiritilganda yoki turli ta'minotchilar uchun unikal partiya
+// ----------------------------------------------------
+test("20. Ko'p qatorli xaridda partiyalar takrorlanmasligi (offset va unikal raqamlar)", () => {
+  const currentBatches = [{ batchNumber: "P00001" }];
+
+  // 1-ta'minotchidan 3 ta partiya
+  const batch1 = getNextBatchNumber(currentBatches, 0); // P00002
+  const batch2 = getNextBatchNumber(currentBatches, 1); // P00003
+  const batch3 = getNextBatchNumber(currentBatches, 2); // P00004
+
+  assert.equal(batch1, "P00002");
+  assert.equal(batch2, "P00003");
+  assert.equal(batch3, "P00004");
+
+  // Ular qo'shilgandan keyin yangi ta'minotchi xarid qilsa
+  const updatedBatches = [
+    ...currentBatches,
+    { batchNumber: batch1 },
+    { batchNumber: batch2 },
+    { batchNumber: batch3 },
+  ];
+
+  const supplier2Batch = getNextBatchNumber(updatedBatches, 0);
+  assert.equal(supplier2Batch, "P00005", "Yangi ta'minotchi uchun partiya P00005 bo'lib davom etishi kerak");
 });
 
 console.log("\n==========================================");

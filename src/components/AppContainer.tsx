@@ -9,7 +9,7 @@ import { PartnersView } from "./PartnersView";
 import { SalesView } from "./SalesView";
 import { PaymentsView } from "./PaymentsView";
 import { SaleModal } from "./SaleModal";
-import { BatchModal } from "./BatchModal";
+import { BatchModal, getNextBatchNumber } from "./BatchModal";
 import { PaymentModal } from "./PaymentModal";
 import { PartnerModal } from "./PartnerModal";
 import { PartnerHistoryModal } from "./PartnerHistoryModal";
@@ -432,13 +432,11 @@ export function AppContainer() {
     const baseId = Date.now();
 
     batchInput.items.forEach((item, index) => {
-      // Auto-generate batch number if empty
-      let batchNum = item.batchNumber;
-      if (!batchNum || !batchNum.trim()) {
-        const dest = item.route.includes("—") ? item.route.split("—")[1].trim() : item.route;
-        const code = dest.slice(0, 3).toUpperCase();
-        const rand = Math.floor(100 + Math.random() * 900);
-        batchNum = `P-${code}-${rand}`;
+      // Auto-generate batch number if empty or duplicate
+      let batchNum = item.batchNumber?.trim();
+      const allKnown = [...data.batches, ...newBatches];
+      if (!batchNum || allKnown.some((b) => b.batchNumber === batchNum)) {
+        batchNum = getNextBatchNumber(allKnown, 0);
       }
 
       const fullNotes = [
@@ -502,7 +500,9 @@ export function AppContainer() {
 
     (async () => {
       try {
-        for (const item of batchInput.items) {
+        for (let i = 0; i < batchInput.items.length; i++) {
+          const item = batchInput.items[i];
+          const createdBatch = newBatches[i];
           await apiCreateBatch({
             supplierId: batchInput.supplierId,
             route: item.route,
@@ -522,7 +522,7 @@ export function AppContainer() {
             buyPrice: item.buyPrice,
             status: "ACTIVE",
             notes: item.notes,
-            batchNumber: item.batchNumber,
+            batchNumber: createdBatch?.batchNumber || item.batchNumber,
           });
         }
         if (batchInput.paidNow && batchInput.paidNow > 0) {
@@ -976,6 +976,7 @@ export function AppContainer() {
         isOpen={isBatchModalOpen}
         onClose={() => setIsBatchModalOpen(false)}
         suppliers={partners}
+        existingBatches={batches}
         onSave={handleAddBatch}
         newlyCreatedPartnerId={lastCreatedPartnerId}
         onOpenSupplierModal={() => {

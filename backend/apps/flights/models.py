@@ -45,7 +45,33 @@ class Batch(models.Model):
     def __str__(self):
         return f"{self.batch_number} - {self.route} ({self.flight_date})"
 
+    @classmethod
+    def generate_next_batch_number(cls):
+        import re
+        all_numbers = []
+        for bn in cls.objects.values_list('batch_number', flat=True):
+            if bn:
+                m = re.match(r'^P(\d+)$', str(bn).strip())
+                if m:
+                    try:
+                        all_numbers.append(int(m.group(1)))
+                    except ValueError:
+                        pass
+        max_num = max(all_numbers) if all_numbers else 0
+        total_count = cls.objects.count()
+        next_num = max(max_num, total_count) + 1
+        return f"P{next_num:05d}"
+
     def save(self, *args, **kwargs):
+        if not self.batch_number or not str(self.batch_number).strip():
+            self.batch_number = self.generate_next_batch_number()
+        else:
+            existing = Batch.objects.filter(batch_number=self.batch_number)
+            if self.pk:
+                existing = existing.exclude(pk=self.pk)
+            if existing.exists():
+                self.batch_number = self.generate_next_batch_number()
+
         self.total_cost = self.buy_price * self.total_qty
         if self.remaining_qty is None:
             self.remaining_qty = self.total_qty

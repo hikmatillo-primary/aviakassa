@@ -53,16 +53,15 @@ interface BatchModalProps {
   }) => void;
   onOpenSupplierModal?: () => void;
   newlyCreatedPartnerId?: number | null;
+  existingBatches?: any[];
 }
 
 import { DatePicker } from "./DatePicker";
 import { PartnerSelect } from "./PartnerSelect";
 
-function getAutoBatchCode(toCity: string, index: number): string {
-  const clean = (toCity || "BLK").trim();
-  const code = clean.slice(0, 3).toUpperCase() || "BLK";
-  return `P-${code}-${101 + index}`;
-}
+import { getNextBatchNumber } from "../lib/storage";
+export { getNextBatchNumber };
+
 
 export function BatchModal({
   isOpen,
@@ -71,6 +70,7 @@ export function BatchModal({
   onSave,
   onOpenSupplierModal,
   newlyCreatedPartnerId,
+  existingBatches = [],
 }: BatchModalProps) {
   const [error, setError] = useState<string | null>(null);
   const [supplierId, setSupplierId] = useState<string>("");
@@ -224,7 +224,7 @@ export function BatchModal({
             totalQty: Number(it.totalQty),
             buyPrice: Number(it.buyPrice),
             baggage: it.baggage,
-            batchNumber: getAutoBatchCode(it.toCity, idx),
+            batchNumber: getNextBatchNumber(existingBatches, idx),
           };
         }),
       });
@@ -306,7 +306,7 @@ export function BatchModal({
           <div className="space-y-3 pb-2">
             {items.map((item, index) => {
               const itemTotal = (Number(item.totalQty) || 0) * (Number(item.buyPrice) || 0);
-              const autoBatchNumber = getAutoBatchCode(item.toCity, index);
+              const autoBatchNumber = getNextBatchNumber(existingBatches, index);
 
               return (
                 <div
