@@ -54,7 +54,6 @@ interface BatchModalProps {
   onOpenSupplierModal?: () => void;
 }
 
-import { AirportPicker } from "./AirportPicker";
 import { DatePicker } from "./DatePicker";
 import { PartnerSelect } from "./PartnerSelect";
 
@@ -255,6 +254,27 @@ export function BatchModal({
       }
     >
       <form id="batch-form" onSubmit={handleSubmit} className="space-y-4">
+        {/* Tezkor takliflar uchun datalist */}
+        <datalist id="cities-suggestions">
+          <option value="Toshkent (TAS)" />
+          <option value="Samarqand (SKD)" />
+          <option value="Farg'ona (FEG)" />
+          <option value="Namangan (NMA)" />
+          <option value="Buxoro (BHK)" />
+          <option value="Urganch (UGC)" />
+          <option value="Termiz (TMJ)" />
+          <option value="Nukus (NCU)" />
+          <option value="Dubay (DXB)" />
+          <option value="Sharja (SHJ)" />
+          <option value="Abu Dabi (AUH)" />
+          <option value="Jidda (JED)" />
+          <option value="Madina (MED)" />
+          <option value="Istanbul (IST)" />
+          <option value="Antaliya (AYT)" />
+          <option value="Doha (DOH)" />
+          <option value="Maskat (MCT)" />
+        </datalist>
+
         {error && (
           <div className="p-2.5 text-xs bg-red-50 dark:bg-red-950/50 text-red-600 dark:text-red-400 rounded-xl border border-red-200 dark:border-red-800 font-medium">
             {error}
@@ -305,19 +325,37 @@ export function BatchModal({
                   {/* AVIASALES USLUBIDAGI 1-QATOR: [Qayerdan] | [Qayerga] | [Qachon] | [Qaytish (Obratno)] */}
                   <div className="flex items-stretch gap-1.5 flex-col sm:flex-row">
                     <div className="grid grid-cols-2 sm:grid-cols-4 flex-1 bg-white dark:bg-slate-900 rounded-xl border border-slate-300 dark:border-slate-700 divide-y sm:divide-y-0 divide-x divide-slate-200 dark:divide-slate-700/80 shadow-2xs">
-                      {/* Qayerdan (Ticker katta, shahar kichik) */}
-                      <AirportPicker
-                        label="Qayerdan:"
-                        value={item.fromCity}
-                        onChange={(code) => handleUpdateItem(index, "fromCity", code)}
-                      />
+                      {/* Qayerdan */}
+                      <div className="p-2 sm:p-2.5 flex flex-col justify-between">
+                        <label className="block text-[10px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">
+                          Qayerdan:
+                        </label>
+                        <input
+                          type="text"
+                          list="cities-suggestions"
+                          placeholder="Toshkent yoki TAS"
+                          value={item.fromCity}
+                          onChange={(e) => handleUpdateItem(index, "fromCity", e.target.value)}
+                          className="w-full px-2.5 py-1.5 text-xs sm:text-sm bg-transparent text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold"
+                          required
+                        />
+                      </div>
 
-                      {/* Qayerga (Ticker katta, shahar kichik) */}
-                      <AirportPicker
-                        label="Qayerga:"
-                        value={item.toCity}
-                        onChange={(code) => handleUpdateItem(index, "toCity", code)}
-                      />
+                      {/* Qayerga */}
+                      <div className="p-2 sm:p-2.5 flex flex-col justify-between">
+                        <label className="block text-[10px] sm:text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">
+                          Qayerga:
+                        </label>
+                        <input
+                          type="text"
+                          list="cities-suggestions"
+                          placeholder="Dubay yoki DXB"
+                          value={item.toCity}
+                          onChange={(e) => handleUpdateItem(index, "toCity", e.target.value)}
+                          className="w-full px-2.5 py-1.5 text-xs sm:text-sm bg-transparent text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold"
+                          required
+                        />
+                      </div>
 
                       {/* Qachon (Borish sanasi) */}
                       <div className="p-1.5 flex flex-col justify-between">
