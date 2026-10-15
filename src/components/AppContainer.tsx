@@ -16,6 +16,8 @@ import { PartnerHistoryModal } from "./PartnerHistoryModal";
 import { DebtOffsetModal } from "./DebtOffsetModal";
 import { EditPriceModal } from "./EditPriceModal";
 import { BatchDetailView } from "./BatchDetailView";
+import { PartnersListView } from "./PartnersListView";
+import { PartnerDetailView } from "./PartnerDetailView";
 import {
   AviakassaData,
   EMPTY_AVIAKASSA_DATA,
@@ -48,6 +50,7 @@ export function AppContainer() {
 
   const [activeTab, setActiveTab] = useState("dashboard");
   const [detailBatchId, setDetailBatchId] = useState<number | null>(null);
+  const [detailPartnerId, setDetailPartnerId] = useState<number | null>(null);
   const [isDark, setIsDark] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -166,6 +169,8 @@ export function AppContainer() {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [paymentModalType, setPaymentModalType] = useState<"INCOME" | "EXPENSE">("INCOME");
   const [paymentModalPartnerId, setPaymentModalPartnerId] = useState<number | null>(null);
+  const [paymentModalNotes, setPaymentModalNotes] = useState<string>("");
+  const [paymentModalAmount, setPaymentModalAmount] = useState<number | undefined>(undefined);
 
   const [isPartnerModalOpen, setIsPartnerModalOpen] = useState(false);
   const [partnerModalType, setPartnerModalType] = useState<"CLIENT" | "SUPPLIER">("CLIENT");
@@ -210,9 +215,16 @@ export function AppContainer() {
     });
   };
 
-  const handleOpenPaymentModal = (type: "INCOME" | "EXPENSE" = "INCOME", partnerId?: number) => {
+  const handleOpenPaymentModal = (
+    type: "INCOME" | "EXPENSE" = "INCOME",
+    partnerId?: number,
+    defaultNotes?: string,
+    defaultAmount?: number
+  ) => {
     setPaymentModalType(type);
     setPaymentModalPartnerId(partnerId || null);
+    setPaymentModalNotes(defaultNotes || "");
+    setPaymentModalAmount(defaultAmount);
     setIsPaymentModalOpen(true);
   };
 
@@ -221,9 +233,13 @@ export function AppContainer() {
     setIsPartnerModalOpen(true);
   };
 
+  const handleOpenPartnerDetail = (partnerId: number) => {
+    setDetailPartnerId(partnerId);
+    setActiveTab("partners");
+  };
+
   const handleOpenHistoryModal = (partnerId: number) => {
-    setHistoryPartnerId(partnerId);
-    setIsHistoryModalOpen(true);
+    handleOpenPartnerDetail(partnerId);
   };
 
   const handleOpenDebtOffsetModal = (fromPartnerId?: number, toPartnerId?: number) => {
@@ -852,6 +868,7 @@ export function AppContainer() {
         setActiveTab={(tab) => {
           setActiveTab(tab);
           setDetailBatchId(null);
+          setDetailPartnerId(null);
         }}
         isDark={isDark}
         currentUser={currentUser}
@@ -879,7 +896,10 @@ export function AppContainer() {
               setActiveTab("inventory");
               setDetailBatchId(null);
             }}
-            onViewAllPartners={() => setActiveTab("purchases")}
+            onViewAllPartners={() => {
+              setActiveTab("partners");
+              setDetailPartnerId(null);
+            }}
             onSelectBatch={(batchId) => {
               setActiveTab("inventory");
               setDetailBatchId(batchId);
@@ -888,6 +908,7 @@ export function AppContainer() {
             onNavigateTab={(tab) => {
               setActiveTab(tab);
               setDetailBatchId(null);
+              setDetailPartnerId(null);
             }}
           />
         )}
@@ -921,6 +942,7 @@ export function AppContainer() {
               onEditBatch={handleOpenEditBatch}
               onEditSale={handleOpenEditSale}
               onOpenHistoryModal={handleOpenHistoryModal}
+              onOpenPaymentModal={handleOpenPaymentModal}
             />
           ) : (
             <BatchesView
@@ -945,7 +967,40 @@ export function AppContainer() {
           />
         )}
 
-        {/* Tab 5: Kassa (Kassa kirim/chiqim, hamkorlar otchyoti va to'lovlar) */}
+        {/* Tab 5: Hamkorlar (Mijozlar va ta'minotchilar to'liq ro'yxati va Batafsil sahifasi) */}
+        {activeTab === "partners" && (
+          detailPartnerId !== null && partners.find((p) => p.id === detailPartnerId) ? (
+            <PartnerDetailView
+              partnerId={detailPartnerId}
+              partners={partners}
+              batches={batches}
+              sales={sales}
+              payments={payments}
+              debtOffsets={debtOffsets}
+              onBack={() => setDetailPartnerId(null)}
+              onOpenPaymentModal={handleOpenPaymentModal}
+              onOpenDebtOffsetModal={handleOpenDebtOffsetModal}
+              onEditBatch={handleOpenEditBatch}
+              onEditSale={handleOpenEditSale}
+              onSelectBatch={(batchId) => {
+                setActiveTab("inventory");
+                setDetailBatchId(batchId);
+              }}
+            />
+          ) : (
+            <PartnersListView
+              partners={partners}
+              batches={batches}
+              sales={sales}
+              payments={payments}
+              onSelectPartner={(partnerId) => setDetailPartnerId(partnerId)}
+              onOpenPartnerModal={handleOpenPartnerModal}
+              onOpenPaymentModal={handleOpenPaymentModal}
+            />
+          )
+        )}
+
+        {/* Tab 6: Kassa (Kassa kirim/chiqim, hamkorlar otchyoti va to'lovlar) */}
         {activeTab === "cash" && (
           <PaymentsView
             payments={payments}
@@ -990,6 +1045,8 @@ export function AppContainer() {
         partners={partners}
         defaultType={paymentModalType}
         defaultPartnerId={paymentModalPartnerId}
+        defaultNotes={paymentModalNotes}
+        defaultAmount={paymentModalAmount}
         onSave={handleAddPayment}
       />
 

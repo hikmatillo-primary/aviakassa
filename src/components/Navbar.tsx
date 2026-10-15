@@ -13,6 +13,7 @@ import {
   Layers,
   ShoppingBag,
   Wallet,
+  Users,
   LogOut,
   Smartphone,
 } from "lucide-react";
@@ -126,6 +127,7 @@ export function Navbar({
     { id: "purchases", label: "Xarid", icon: PackagePlus },
     { id: "inventory", label: "Ombor", icon: Layers },
     { id: "sales", label: "Sotuv", icon: ShoppingBag },
+    { id: "partners", label: "Hamkorlar", icon: Users },
     { id: "cash", label: "Kassa", icon: Wallet },
   ];
 
@@ -272,8 +274,8 @@ export function Navbar({
       </header>
 
       {/* Mobile Fixed Bottom Navigation Bar (Apple HIG / Telegram clean tab style) */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-[#111726]/95 backdrop-blur-md border-t border-slate-200/80 dark:border-white/[0.07] px-2 pt-1 pb-[max(0.375rem,env(safe-area-inset-bottom))] shadow-[0_-4px_20px_rgba(0,0,0,0.04)]">
-        <div className="grid grid-cols-5 gap-1 max-w-md mx-auto">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-[#111726]/95 backdrop-blur-md border-t border-slate-200/80 dark:border-white/[0.07] px-1 pt-1 pb-[max(0.375rem,env(safe-area-inset-bottom))] shadow-[0_-4px_20px_rgba(0,0,0,0.04)]">
+        <div className="grid grid-cols-6 gap-0.5 max-w-md mx-auto">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;

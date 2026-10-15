@@ -13,6 +13,8 @@ interface PaymentModalProps {
   partners: any[];
   defaultType?: "INCOME" | "EXPENSE";
   defaultPartnerId?: number | null;
+  defaultNotes?: string;
+  defaultAmount?: number;
   onSave: (paymentData: {
     partnerId: number;
     type: "INCOME" | "EXPENSE";
@@ -29,27 +31,29 @@ export function PaymentModal({
   partners,
   defaultType = "INCOME",
   defaultPartnerId,
+  defaultNotes = "",
+  defaultAmount,
   onSave,
 }: PaymentModalProps) {
   const [error, setError] = useState<string | null>(null);
 
   const [type, setType] = useState<"INCOME" | "EXPENSE">(defaultType);
   const [partnerId, setPartnerId] = useState<string>(defaultPartnerId ? String(defaultPartnerId) : "");
-  const [amount, setAmount] = useState<number | string>(0);
+  const [amount, setAmount] = useState<number | string>(defaultAmount !== undefined ? defaultAmount : 0);
   const [paymentDate, setPaymentDate] = useState<string>("");
   const [paymentMethod, setPaymentMethod] = useState<string>("CASH");
-  const [notes, setNotes] = useState<string>("");
+  const [notes, setNotes] = useState<string>(defaultNotes || "");
 
   React.useEffect(() => {
     if (isOpen) {
       setError(null);
       if (defaultType) setType(defaultType);
       setPartnerId(defaultPartnerId ? String(defaultPartnerId) : "");
-      setAmount(0);
-      setNotes("");
+      setAmount(defaultAmount !== undefined ? defaultAmount : 0);
+      setNotes(defaultNotes || "");
       setPaymentDate(new Date().toISOString().split("T")[0]);
     }
-  }, [isOpen, defaultType, defaultPartnerId]);
+  }, [isOpen, defaultType, defaultPartnerId, defaultNotes, defaultAmount]);
 
   const selectedPartner = partners.find((p) => String(p.id) === partnerId);
 

@@ -8,6 +8,7 @@ import {
   Search,
   UserCheck,
   TrendingUp,
+  ArrowUpRight,
 } from "lucide-react";
 import { formatUSD, formatDate } from "@/lib/format";
 import { FlightBar } from "@/components/FlightBar";
@@ -22,6 +23,12 @@ interface BatchDetailViewProps {
   onEditBatch: (batch: any) => void;
   onEditSale: (sale: any) => void;
   onOpenHistoryModal?: (partnerId: number) => void;
+  onOpenPaymentModal?: (
+    type: "INCOME" | "EXPENSE",
+    partnerId: number,
+    defaultNotes?: string,
+    defaultAmount?: number
+  ) => void;
 }
 
 export function BatchDetailView({
@@ -32,6 +39,7 @@ export function BatchDetailView({
   onEditBatch,
   onEditSale,
   onOpenHistoryModal,
+  onOpenPaymentModal,
 }: BatchDetailViewProps) {
   const [saleSearch, setSaleSearch] = useState("");
 
@@ -166,13 +174,30 @@ export function BatchDetailView({
               <span className="truncate">
                 Kompaniya: <b className="text-slate-700 dark:text-slate-300">{batch.supplierName}</b> • Xarid: <b className="text-slate-700 dark:text-slate-300">{formatDate(batch.purchaseDate)}</b>
               </span>
-              <button
-                type="button"
-                onClick={() => onEditBatch(batch)}
-                className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] text-slate-700 dark:text-slate-200 text-[11px] font-semibold rounded-lg transition-all cursor-pointer"
-              >
-                <Pencil className="w-3.5 h-3.5 text-slate-400" /> Narx
-              </button>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {onOpenPaymentModal && batch.supplierId && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onOpenPaymentModal(
+                        "EXPENSE",
+                        batch.supplierId,
+                        `Partiya ${batch.batchNumber || ""} (${batch.route || ""}) xaridi uchun to'lov`
+                      )
+                    }
+                    className="inline-flex items-center gap-1 px-2.5 py-1 bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-700 dark:text-rose-400 text-[11px] font-semibold rounded-lg transition-all cursor-pointer border border-rose-200/80 dark:border-rose-500/20"
+                  >
+                    <ArrowUpRight className="w-3.5 h-3.5 text-rose-500" /> Ta’minotchiga to‘lov
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => onEditBatch(batch)}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] text-slate-700 dark:text-slate-200 text-[11px] font-semibold rounded-lg transition-all cursor-pointer"
+                >
+                  <Pencil className="w-3.5 h-3.5 text-slate-400" /> Narx
+                </button>
+              </div>
             </div>
           </div>
         </div>
