@@ -33,20 +33,8 @@ export function PaymentsView({
 }: PaymentsViewProps) {
   const [activeSubTab, setActiveSubTab] = useState<"CASH" | "PARTNERS" | "OFFSETS">("CASH");
   const [filter, setFilter] = useState<"ALL" | "INCOME" | "EXPENSE">("ALL");
-  const [selectedTag, setSelectedTag] = useState<string>("ALL");
+  const [partnerTypeFilter, setPartnerTypeFilter] = useState<"ALL" | "SUPPLIER" | "CLIENT">("ALL");
   const [search, setSearch] = useState("");
-
-  const availableTags = React.useMemo(() => {
-    const set = new Set<string>();
-    partners.forEach((p) => {
-      if (Array.isArray(p.tags)) {
-        p.tags.forEach((t: string) => {
-          if (t && t.trim()) set.add(t.trim());
-        });
-      }
-    });
-    return Array.from(set);
-  }, [partners]);
 
   const filteredPayments = payments.filter((p) => {
     if (filter === "INCOME" && p.type !== "INCOME") return false;
@@ -61,7 +49,7 @@ export function PaymentsView({
   });
 
   const filteredPartners = partners.filter((pt) => {
-    if (selectedTag !== "ALL" && (!pt.tags || !pt.tags.includes(selectedTag))) {
+    if (partnerTypeFilter !== "ALL" && pt.type !== partnerTypeFilter) {
       return false;
     }
     if (!search.trim()) return true;
@@ -69,8 +57,7 @@ export function PaymentsView({
     return (
       pt.name?.toLowerCase().includes(q) ||
       pt.phone?.toLowerCase().includes(q) ||
-      pt.notes?.toLowerCase().includes(q) ||
-      pt.tags?.some((t: string) => t.toLowerCase().includes(q))
+      pt.notes?.toLowerCase().includes(q)
     );
   });
 
@@ -370,36 +357,39 @@ export function PaymentsView({
           </div>
         )}
 
-        {/* Filter Tabs for Partners (Tags) */}
+        {/* Filter Tabs for Partners */}
         {activeSubTab === "PARTNERS" && (
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 w-full sm:w-auto">
             <button
-              onClick={() => setSelectedTag("ALL")}
+              onClick={() => setPartnerTypeFilter("ALL")}
               className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer shrink-0 ${
-                selectedTag === "ALL"
+                partnerTypeFilter === "ALL"
                   ? "bg-blue-600 text-white shadow-xs"
                   : "bg-slate-100/80 dark:bg-white/[0.05] text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
               }`}
             >
               Barchasi ({partners.length})
             </button>
-            {availableTags.map((tag) => {
-              const count = partners.filter((p) => p.tags?.includes(tag)).length;
-              const isSelected = selectedTag === tag;
-              return (
-                <button
-                  key={tag}
-                  onClick={() => setSelectedTag(tag)}
-                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer shrink-0 ${
-                    isSelected
-                      ? "bg-blue-600 text-white shadow-xs"
-                      : "bg-slate-100/80 dark:bg-white/[0.05] text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-                  }`}
-                >
-                  {tag} ({count})
-                </button>
-              );
-            })}
+            <button
+              onClick={() => setPartnerTypeFilter("SUPPLIER")}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer shrink-0 ${
+                partnerTypeFilter === "SUPPLIER"
+                  ? "bg-blue-600 text-white shadow-xs"
+                  : "bg-slate-100/80 dark:bg-white/[0.05] text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+              }`}
+            >
+              Ta‘minotchilar ({partners.filter((p) => p.type === "SUPPLIER").length})
+            </button>
+            <button
+              onClick={() => setPartnerTypeFilter("CLIENT")}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer shrink-0 ${
+                partnerTypeFilter === "CLIENT"
+                  ? "bg-blue-600 text-white shadow-xs"
+                  : "bg-slate-100/80 dark:bg-white/[0.05] text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+              }`}
+            >
+              Mijozlar ({partners.filter((p) => p.type === "CLIENT").length})
+            </button>
           </div>
         )}
       </div>
@@ -625,20 +615,15 @@ export function PaymentsView({
                 <div className="flex items-start justify-between gap-3">
                   <div className="space-y-1">
                     <div className="flex flex-wrap items-center gap-1.5">
-                      {pt.tags && pt.tags.length > 0 ? (
-                        pt.tags.map((tag: string) => (
-                          <span
-                            key={tag}
-                            className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20"
-                          >
-                            {tag}
-                          </span>
-                        ))
-                      ) : (
-                        <span className="text-[10px] font-medium px-2 py-0.5 rounded-md bg-slate-100 dark:bg-white/[0.06] text-slate-500 dark:text-slate-400">
-                          Hamkor
-                        </span>
-                      )}
+                      <span
+                        className={`text-[10px] font-semibold px-2 py-0.5 rounded-md ${
+                          pt.type === "SUPPLIER"
+                            ? "bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20"
+                            : "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20"
+                        }`}
+                      >
+                        {pt.type === "SUPPLIER" ? "Ta‘minotchi" : "Mijoz"}
+                      </span>
                     </div>
                     <h3 className="font-bold text-slate-900 dark:text-white text-base sm:text-lg mt-1">
                       {pt.name}
@@ -748,12 +733,12 @@ export function PaymentsView({
               <p className="text-xs text-slate-400 dark:text-slate-500">
                 Hamkorlar topilmadi
               </p>
-              {(search || selectedTag !== "ALL") && (
+              {(search || partnerTypeFilter !== "ALL") && (
                 <button
                   type="button"
                   onClick={() => {
                     setSearch("");
-                    setSelectedTag("ALL");
+                    setPartnerTypeFilter("ALL");
                   }}
                   className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
                 >

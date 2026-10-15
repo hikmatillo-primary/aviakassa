@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { Modal } from "./Modal";
-import { ArrowDownLeft, ArrowUpRight, ArrowRightLeft, Pencil, Tag, Layers, ShoppingBag } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, ArrowRightLeft, Pencil, Layers, ShoppingBag } from "lucide-react";
 import { formatUSD, formatDate } from "@/lib/format";
 
 interface PartnerHistoryModalProps {
@@ -84,22 +84,6 @@ export function PartnerHistoryModal({
       maxWidth="max-w-5xl"
     >
       <div className="space-y-4">
-        {/* Partner Tags Header Bar */}
-        {partner.tags && partner.tags.length > 0 && (
-          <div className="flex flex-wrap items-center gap-1.5 pb-1">
-            <span className="text-[11px] text-slate-400 font-medium flex items-center gap-1 mr-1">
-              <Tag className="w-3 h-3" /> Teglar:
-            </span>
-            {partner.tags.map((tag: string) => (
-              <span
-                key={tag}
-                className="text-[10px] font-semibold px-2.5 py-0.5 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20"
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
-        )}
 
         {/* Top Universal Balance Summary Cards (3 cards) */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3 p-3.5 bg-slate-50/60 dark:bg-white/[0.03] border border-slate-200/70 dark:border-white/[0.07] rounded-2xl tabular-nums">

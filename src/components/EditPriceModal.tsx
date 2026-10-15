@@ -99,52 +99,52 @@ export function EditPriceModal({
           ? "Kompaniyadan olingan narxni o‘zgartirish"
           : "Mijozga sotilgan narxni o‘zgartirish"
       }
-      maxWidth="max-w-md"
+      maxWidth="max-w-xl md:max-w-2xl"
       footer={
-        <div className="flex items-center justify-end w-full gap-2">
+        <div className="flex items-center justify-end w-full gap-3">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/[0.06] rounded-xl transition-colors cursor-pointer"
+            className="px-5 py-2.5 text-xs sm:text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/[0.06] rounded-xl transition-colors cursor-pointer"
           >
             Bekor qilish
           </button>
           <button
             type="submit"
             form="edit-price-form"
-            className="inline-flex items-center gap-1.5 px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm shadow-blue-500/20 transition-all cursor-pointer"
+            className="inline-flex items-center gap-2 px-6 py-2.5 text-xs sm:text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm shadow-blue-500/20 transition-all cursor-pointer"
           >
-            <Check className="w-3.5 h-3.5" />
+            <Check className="w-4 h-4" />
             Yangi narxni saqlash
           </button>
         </div>
       }
     >
-      <form id="edit-price-form" onSubmit={handleSubmit} className="space-y-4">
+      <form id="edit-price-form" onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
         {error && (
-          <div className="p-2.5 text-xs bg-red-50 dark:bg-red-950/50 text-red-600 dark:text-red-400 rounded-xl border border-red-200 dark:border-red-800 font-medium">
+          <div className="p-3 sm:p-4 text-xs sm:text-sm bg-red-50 dark:bg-red-950/50 text-red-600 dark:text-red-400 rounded-xl border border-red-200 dark:border-red-800 font-medium">
             {error}
           </div>
         )}
 
         {/* Top Info Banner */}
-        <div className="p-3 bg-slate-50 dark:bg-slate-800/70 rounded-2xl border border-slate-200/70 dark:border-slate-700 space-y-1 text-xs">
+        <div className="p-4 sm:p-5 bg-slate-50 dark:bg-slate-800/70 rounded-2xl border border-slate-200/70 dark:border-slate-700 space-y-2 text-xs sm:text-sm">
           <div className="flex items-center justify-between">
             <span className="text-slate-400">
               {isBatch ? "Kompaniya (Ta’minotchi):" : "Xaridor (Mijoz):"}
             </span>
-            <strong className="text-slate-900 dark:text-white font-bold">
+            <strong className="text-slate-900 dark:text-white font-bold text-sm sm:text-base">
               {isBatch ? item.supplierName : item.clientName}
             </strong>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-slate-400">Yo‘nalish:</span>
-            <span className="font-semibold text-blue-600 dark:text-blue-400">
+            <span className="font-semibold text-blue-600 dark:text-blue-400 text-xs sm:text-sm">
               {item.route} {item.batchNumber ? `(${item.batchNumber})` : ""}
             </span>
           </div>
           {!isBatch && (
-            <div className="flex items-center justify-between pt-1 border-t border-slate-200/60 dark:border-slate-700/60">
+            <div className="flex items-center justify-between pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
               <span className="text-slate-400">Kompaniyadan olingan tannarx:</span>
               <strong className="font-mono text-slate-700 dark:text-slate-300">
                 {formatUSD(buyPriceForSale)} (1 dona)
@@ -154,13 +154,13 @@ export function EditPriceModal({
         </div>
 
         {/* Price and Qty Inputs */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1">
+            <label className="block text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 mb-1.5">
               {isBatch ? "1 dona olingan narx ($) *" : "1 dona sotilgan narx ($) *"}
             </label>
             <div className="relative">
-              <span className="absolute left-3 top-2.5 text-slate-400 text-sm font-bold">$</span>
+              <span className="absolute left-3.5 top-3 text-slate-400 text-base sm:text-lg font-bold">$</span>
               <input
                 type="number"
                 min="0"
@@ -168,17 +168,17 @@ export function EditPriceModal({
                 value={price}
                 onChange={(e) => setPrice(parseFloat(e.target.value) || 0)}
                 autoFocus
-                className="w-full pl-7 pr-3 py-2 text-base bg-white dark:bg-slate-800 text-slate-900 dark:text-white border-2 border-blue-500 dark:border-blue-500 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-black font-mono"
+                className="w-full pl-8 pr-3 py-2.5 sm:py-3 text-lg sm:text-2xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white border-2 border-blue-500 dark:border-blue-500 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-black font-mono"
                 required
               />
             </div>
-            <span className="text-[11px] text-slate-400 mt-0.5 block">
+            <span className="text-xs text-slate-400 mt-1 block">
               Avvalgi narx: <b className="font-mono">{formatUSD(oldPrice)}</b>
             </span>
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-200 mb-1">
+            <label className="block text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 mb-1.5">
               Chiptalar soni (dona) *
             </label>
             <input
@@ -186,10 +186,10 @@ export function EditPriceModal({
               min={isBatch ? Math.max(1, soldQtyInBatch) : 1}
               value={qty}
               onChange={(e) => setQty(Math.max(1, parseInt(e.target.value) || 0))}
-              className="w-full px-3 py-2 text-base bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-black font-mono"
+              className="w-full px-3.5 py-2.5 sm:py-3 text-lg sm:text-2xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-black font-mono"
               required
             />
-            <span className="text-[11px] text-slate-400 mt-0.5 block">
+            <span className="text-xs text-slate-400 mt-1 block">
               Avvalgi soni: <b className="font-mono">{oldQty} ta</b>
             </span>
           </div>
@@ -197,7 +197,7 @@ export function EditPriceModal({
 
         {!isBatch && (
           <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+            <label className="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
               Yo‘lovchi / PNR (ixtiyoriy)
             </label>
             <input
@@ -205,33 +205,33 @@ export function EditPriceModal({
               value={passengerNames}
               onChange={(e) => setPassengerNames(e.target.value)}
               placeholder="Masalan: Karim Aliyev"
-              className="w-full px-3 py-2 text-xs sm:text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3.5 py-2.5 text-sm sm:text-base bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
         )}
 
         {/* Live Calculation Comparison Box */}
-        <div className="p-3.5 bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200/80 dark:border-blue-800/70 rounded-2xl space-y-2">
-          <div className="text-[11px] font-bold text-blue-900 dark:text-blue-300 uppercase tracking-wider">
+        <div className="p-4 sm:p-5 bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200/80 dark:border-blue-800/70 rounded-2xl space-y-2.5">
+          <div className="text-xs sm:text-sm font-bold text-blue-900 dark:text-blue-300 uppercase tracking-wider">
             Hisob-kitob (Otchyot) qanday o‘zgaradi:
           </div>
 
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-slate-500 dark:text-slate-400">Jami summa:</span>
-            <div className="flex items-center gap-2 font-mono">
-              <span className="line-through text-slate-400">{formatUSD(oldTotal)}</span>
-              <ArrowRight className="w-3.5 h-3.5 text-blue-500" />
-              <strong className="text-sm font-black text-slate-900 dark:text-white">
+          <div className="flex items-center justify-between text-xs sm:text-sm">
+            <span className="text-slate-500 dark:text-slate-400 font-medium">Jami summa:</span>
+            <div className="flex items-center gap-2.5 font-mono">
+              <span className="line-through text-slate-400 text-sm sm:text-base">{formatUSD(oldTotal)}</span>
+              <ArrowRight className="w-4 h-4 text-blue-500" />
+              <strong className="text-base sm:text-xl font-black text-slate-900 dark:text-white">
                 {formatUSD(newTotal)}
               </strong>
             </div>
           </div>
 
           {!isBatch && (
-            <div className="flex items-center justify-between text-xs pt-1.5 border-t border-blue-200/60 dark:border-blue-800/60">
-              <span className="text-slate-500 dark:text-slate-400">Sizga qoladigan sof foyda:</span>
+            <div className="flex items-center justify-between text-xs sm:text-sm pt-2 border-t border-blue-200/60 dark:border-blue-800/60">
+              <span className="text-slate-500 dark:text-slate-400 font-medium">Sizga qoladigan sof foyda:</span>
               <strong
-                className={`font-mono text-sm font-black ${
+                className={`font-mono text-base sm:text-xl font-black ${
                   newProfitForSale >= 0
                     ? "text-emerald-600 dark:text-emerald-400"
                     : "text-rose-600 dark:text-rose-400"
@@ -240,7 +240,7 @@ export function EditPriceModal({
                 {newProfitForSale >= 0
                   ? `+${formatUSD(newProfitForSale)}`
                   : `-${formatUSD(Math.abs(newProfitForSale))}`}{" "}
-                <span className="text-[11px] font-normal">
+                <span className="text-xs sm:text-sm font-normal">
                   (1 donadan {unitProfitForSale >= 0 ? `+$${unitProfitForSale}` : `-$${Math.abs(unitProfitForSale)}`})
                 </span>
               </strong>
