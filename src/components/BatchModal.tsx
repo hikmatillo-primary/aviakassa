@@ -18,8 +18,8 @@ export interface BatchItemInput {
   returnFlightNumber: string;
   returnDepartureTime: string;
   returnArrivalTime: string;
-  totalQty: number;
-  buyPrice: number;
+  totalQty: number | string;
+  buyPrice: number | string;
   baggage: string;
 }
 
@@ -73,7 +73,7 @@ export function BatchModal({
   const [error, setError] = useState<string | null>(null);
   const [supplierId, setSupplierId] = useState<string>("");
   const [purchaseDate, setPurchaseDate] = useState<string>("");
-  const [paidNow, setPaidNow] = useState<number>(0);
+  const [paidNow, setPaidNow] = useState<number | string>(0);
   const [paymentMethod, setPaymentMethod] = useState<string>("CASH");
   const [notes, setNotes] = useState<string>("");
 
@@ -151,11 +151,11 @@ export function BatchModal({
 
   // Calculations
   const totalCost = items.reduce(
-    (sum, it) => sum + (it.totalQty || 0) * (it.buyPrice || 0),
+    (sum, it) => sum + (Number(it.totalQty) || 0) * (Number(it.buyPrice) || 0),
     0
   );
-  const totalTickets = items.reduce((sum, it) => sum + (it.totalQty || 0), 0);
-  const remainingDebt = Math.max(0, totalCost - (paidNow || 0));
+  const totalTickets = items.reduce((sum, it) => sum + (Number(it.totalQty) || 0), 0);
+  const remainingDebt = Math.max(0, totalCost - (Number(paidNow) || 0));
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -176,11 +176,11 @@ export function BatchModal({
         setError(`${i + 1}-qatorda uchish sanasi tanlanmagan!`);
         return;
       }
-      if (it.totalQty <= 0) {
+      if (Number(it.totalQty) <= 0) {
         setError(`${i + 1}-qatorda chiptalar soni kamida 1 ta bo'lishi kerak!`);
         return;
       }
-      if (it.buyPrice <= 0) {
+      if (Number(it.buyPrice) <= 0) {
         setError(`${i + 1}-qatorda tannarx 0 dan katta bo'lishi kerak!`);
         return;
       }
@@ -314,7 +314,7 @@ export function BatchModal({
 
           <div className="space-y-3 pb-2">
             {items.map((item, index) => {
-              const itemTotal = (item.totalQty || 0) * (item.buyPrice || 0);
+              const itemTotal = (Number(item.totalQty) || 0) * (Number(item.buyPrice) || 0);
               const autoBatchNumber = getAutoBatchCode(item.toCity, index);
 
               return (
@@ -454,7 +454,7 @@ export function BatchModal({
                             handleUpdateItem(
                               index,
                               "totalQty",
-                              Math.max(1, (item.totalQty || 1) - 1)
+                              Math.max(1, (Number(item.totalQty) || 1) - 1)
                             )
                           }
                           className="w-6 h-[30px] flex items-center justify-center bg-slate-100 hover:bg-slate-200 dark:bg-slate-700/70 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-l-xl font-bold text-xs cursor-pointer border border-r-0 border-slate-300 dark:border-slate-700 shrink-0"
@@ -469,9 +469,14 @@ export function BatchModal({
                             handleUpdateItem(
                               index,
                               "totalQty",
-                              Math.max(1, parseInt(e.target.value) || 0)
+                              e.target.value === "" ? "" : Math.max(1, parseInt(e.target.value) || 0)
                             )
                           }
+                          onBlur={() => {
+                            if (item.totalQty === "" || Number(item.totalQty) < 1) {
+                              handleUpdateItem(index, "totalQty", 1);
+                            }
+                          }}
                           className="w-full text-center py-1.5 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white border-y border-slate-300 dark:border-slate-700 focus:outline-none font-bold tabular-nums"
                           required
                         />
@@ -481,7 +486,7 @@ export function BatchModal({
                             handleUpdateItem(
                               index,
                               "totalQty",
-                              (item.totalQty || 0) + 1
+                              (Number(item.totalQty) || 0) + 1
                             )
                           }
                           className="w-6 h-[30px] flex items-center justify-center bg-slate-100 hover:bg-slate-200 dark:bg-slate-700/70 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-r-xl font-bold text-xs cursor-pointer border border-l-0 border-slate-300 dark:border-slate-700 shrink-0"
@@ -506,9 +511,16 @@ export function BatchModal({
                             handleUpdateItem(
                               index,
                               "buyPrice",
-                              parseFloat(e.target.value) || 0
+                              e.target.value === "" ? "" : e.target.value
                             )
                           }
+                          onBlur={() => {
+                            if (item.buyPrice === "" || isNaN(Number(item.buyPrice))) {
+                              handleUpdateItem(index, "buyPrice", 0);
+                            } else {
+                              handleUpdateItem(index, "buyPrice", Number(item.buyPrice));
+                            }
+                          }}
                           className="w-full pl-5 pr-2 py-1.5 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold tabular-nums"
                           required
                         />
@@ -527,14 +539,23 @@ export function BatchModal({
                           value={
                             item.baggage === "Bagajsiz"
                               ? "0"
-                              : (item.baggage ? item.baggage.replace(/[^0-9]/g, "") : "20")
+                              : item.baggage !== undefined
+                              ? item.baggage.replace(/[^0-9]/g, "")
+                              : "20"
                           }
                           onChange={(e) => {
                             const val = e.target.value;
-                            if (val === "" || val === "0") {
-                              handleUpdateItem(index, "baggage", val === "0" ? "0 kg" : "");
+                            if (val === "") {
+                              handleUpdateItem(index, "baggage", "");
+                            } else if (val === "0") {
+                              handleUpdateItem(index, "baggage", "0 kg");
                             } else {
                               handleUpdateItem(index, "baggage", `${val} kg`);
+                            }
+                          }}
+                          onBlur={() => {
+                            if (item.baggage === "") {
+                              handleUpdateItem(index, "baggage", "20 kg");
                             }
                           }}
                           placeholder="20"
@@ -666,8 +687,15 @@ export function BatchModal({
                 min="0"
                 max={totalCost}
                 step="any"
-                value={paidNow || ""}
-                onChange={(e) => setPaidNow(parseFloat(e.target.value) || 0)}
+                value={paidNow}
+                onChange={(e) => setPaidNow(e.target.value === "" ? "" : e.target.value)}
+                onBlur={() => {
+                  if (paidNow === "" || isNaN(Number(paidNow))) {
+                    setPaidNow(0);
+                  } else {
+                    setPaidNow(Math.max(0, Math.min(totalCost, Number(paidNow))));
+                  }
+                }}
                 placeholder="0"
                 className="w-full pl-7 pr-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium tabular-nums"
               />

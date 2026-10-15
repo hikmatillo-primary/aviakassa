@@ -24,6 +24,7 @@ interface DashboardViewProps {
   onViewAllPartners?: () => void;
   onSelectBatch?: (batchId: number) => void;
   onOpenSaleModal?: (batchId: number) => void;
+  onNavigateTab?: (tab: string) => void;
   onRefresh?: () => void;
 }
 
@@ -35,6 +36,7 @@ export function DashboardView({
   onViewAllBatches,
   onSelectBatch,
   onOpenSaleModal,
+  onNavigateTab,
 }: DashboardViewProps) {
   const [search, setSearch] = useState("");
   const [period, setPeriod] = useState("Bu oy");
@@ -109,14 +111,17 @@ export function DashboardView({
       {/* 2. Top 4 KPI Cards Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 tabular-nums">
         {/* Card 1: Sof Foyda */}
-        <div className="bg-gradient-to-r from-blue-600 via-blue-600 to-sky-500 rounded-2xl p-5 sm:p-6 text-white shadow-lg shadow-blue-500/20 relative overflow-hidden flex flex-col justify-between min-h-[155px]">
+        <div
+          onClick={() => onNavigateTab && onNavigateTab("sales")}
+          className="bg-gradient-to-r from-blue-600 via-blue-600 to-sky-500 rounded-2xl p-5 sm:p-6 text-white shadow-lg shadow-blue-500/20 relative overflow-hidden flex flex-col justify-between min-h-[155px] cursor-pointer hover:scale-[1.015] active:scale-[0.99] transition-all group"
+        >
           <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-white/10 rounded-full blur-2xl pointer-events-none" />
 
           <div className="flex items-center justify-between relative z-10">
             <span className="text-xs font-semibold text-blue-100">
               Sof foyda
             </span>
-            <div className="w-9 h-9 rounded-xl bg-white/20 backdrop-blur-xs text-white flex items-center justify-center shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-white/20 backdrop-blur-xs text-white flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
               <ShoppingBag className="w-4 h-4" />
             </div>
           </div>
@@ -141,12 +146,15 @@ export function DashboardView({
         </div>
 
         {/* Card 2: Bizning haqimiz (Debitorlik) */}
-        <div className="bg-white dark:bg-[#111726] rounded-2xl p-5 sm:p-6 border border-slate-200/70 dark:border-white/[0.07] shadow-xs relative flex flex-col justify-between min-h-[155px] hover:border-slate-300 dark:hover:border-white/[0.14] transition-all">
+        <div
+          onClick={() => onNavigateTab && onNavigateTab("cash")}
+          className="bg-white dark:bg-[#111726] rounded-2xl p-5 sm:p-6 border border-slate-200/70 dark:border-white/[0.07] shadow-xs relative flex flex-col justify-between min-h-[155px] hover:border-blue-400 dark:hover:border-blue-500/50 cursor-pointer hover:scale-[1.015] active:scale-[0.99] transition-all group"
+        >
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
               Bizning haqimiz (Mijozlardan)
             </span>
-            <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
               <Users className="w-4 h-4" />
             </div>
           </div>
@@ -169,12 +177,15 @@ export function DashboardView({
         </div>
 
         {/* Card 3: Bizning qarzimiz (Kreditorlik) */}
-        <div className="bg-white dark:bg-[#111726] rounded-2xl p-5 sm:p-6 border border-slate-200/70 dark:border-white/[0.07] shadow-xs relative flex flex-col justify-between min-h-[155px] hover:border-slate-300 dark:hover:border-white/[0.14] transition-all">
+        <div
+          onClick={() => onNavigateTab && onNavigateTab("purchases")}
+          className="bg-white dark:bg-[#111726] rounded-2xl p-5 sm:p-6 border border-slate-200/70 dark:border-white/[0.07] shadow-xs relative flex flex-col justify-between min-h-[155px] hover:border-blue-400 dark:hover:border-blue-500/50 cursor-pointer hover:scale-[1.015] active:scale-[0.99] transition-all group"
+        >
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
               Bizning qarzimiz (Kompaniyalarga)
             </span>
-            <div className="w-9 h-9 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
               <Layers className="w-4 h-4" />
             </div>
           </div>
@@ -197,12 +208,15 @@ export function DashboardView({
         </div>
 
         {/* Card 4: Ombordagi Chiptalar */}
-        <div className="bg-white dark:bg-[#111726] rounded-2xl p-5 sm:p-6 border border-slate-200/70 dark:border-white/[0.07] shadow-xs relative flex flex-col justify-between min-h-[155px] hover:border-slate-300 dark:hover:border-white/[0.14] transition-all">
+        <div
+          onClick={() => onNavigateTab && onNavigateTab("inventory")}
+          className="bg-white dark:bg-[#111726] rounded-2xl p-5 sm:p-6 border border-slate-200/70 dark:border-white/[0.07] shadow-xs relative flex flex-col justify-between min-h-[155px] hover:border-blue-400 dark:hover:border-blue-500/50 cursor-pointer hover:scale-[1.015] active:scale-[0.99] transition-all group"
+        >
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
               Ombordagi chiptalar
             </span>
-            <div className="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
               <TrendingUp className="w-4 h-4" />
             </div>
           </div>
@@ -218,12 +232,7 @@ export function DashboardView({
 
           <div className="text-[11px] text-slate-400 dark:text-slate-500 flex items-center justify-between">
             <span>{batches.length} ta partiyada</span>
-            <button
-              onClick={onViewAllBatches}
-              className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
-            >
-              Omborga o‘tish →
-            </button>
+            <span className="text-xs font-bold text-blue-600 dark:text-blue-400 group-hover:underline">Omborga o‘tish →</span>
           </div>
         </div>
       </div>

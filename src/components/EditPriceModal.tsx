@@ -27,8 +27,8 @@ export function EditPriceModal({
   onSaveBatch,
   onSaveSale,
 }: EditPriceModalProps) {
-  const [price, setPrice] = useState<number>(0);
-  const [qty, setQty] = useState<number>(1);
+  const [price, setPrice] = useState<number | string>(0);
+  const [qty, setQty] = useState<number | string>(1);
   const [passengerNames, setPassengerNames] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
 
@@ -54,28 +54,31 @@ export function EditPriceModal({
   const oldPrice = isBatch ? item.buyPrice || 0 : item.sellPrice || 0;
   const oldQty = isBatch ? item.totalQty || 0 : item.qty || 0;
   const oldTotal = oldQty * oldPrice;
-  const newTotal = (qty || 0) * (price || 0);
+
+  const numPrice = price === "" ? 0 : Number(price);
+  const numQty = qty === "" ? 0 : Number(qty);
+  const newTotal = numQty * numPrice;
 
   // For Sale mode: calculate new profit based on batch buyPrice
   const buyPriceForSale = !isBatch ? item.buyPrice || 0 : 0;
-  const newProfitForSale = !isBatch ? newTotal - (qty || 0) * buyPriceForSale : 0;
-  const unitProfitForSale = !isBatch ? (price || 0) - buyPriceForSale : 0;
+  const newProfitForSale = !isBatch ? newTotal - numQty * buyPriceForSale : 0;
+  const unitProfitForSale = !isBatch ? numPrice - buyPriceForSale : 0;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    if (price <= 0) {
+    if (numPrice <= 0) {
       setError("Narx 0 dan katta bo‘lishi kerak!");
       return;
     }
 
-    if (qty <= 0) {
+    if (numQty <= 0) {
       setError("Chipta soni kamida 1 ta bo‘lishi kerak!");
       return;
     }
 
-    if (isBatch && qty < soldQtyInBatch) {
+    if (isBatch && numQty < soldQtyInBatch) {
       setError(
         `Ushbu partiyadan allaqachon ${soldQtyInBatch} ta chipta sotilgan! Jami soni ${soldQtyInBatch} tadan kam bo‘la olmaydi.`
       );
@@ -83,9 +86,9 @@ export function EditPriceModal({
     }
 
     if (isBatch && onSaveBatch) {
-      onSaveBatch(item.id, Number(price), Number(qty));
+      onSaveBatch(item.id, numPrice, numQty);
     } else if (!isBatch && onSaveSale) {
-      onSaveSale(item.id, Number(price), Number(qty), passengerNames.trim());
+      onSaveSale(item.id, numPrice, numQty, passengerNames.trim());
     }
     onClose();
   };
@@ -166,7 +169,15 @@ export function EditPriceModal({
                 min="0"
                 step="any"
                 value={price}
-                onChange={(e) => setPrice(parseFloat(e.target.value) || 0)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setPrice(val === "" ? "" : val);
+                }}
+                onBlur={() => {
+                  if (price === "" || isNaN(Number(price))) {
+                    setPrice(0);
+                  }
+                }}
                 autoFocus
                 className="w-full pl-8 pr-3 py-2.5 sm:py-3 text-lg sm:text-2xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white border-2 border-blue-500 dark:border-blue-500 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-black font-mono"
                 required
@@ -185,7 +196,21 @@ export function EditPriceModal({
               type="number"
               min={isBatch ? Math.max(1, soldQtyInBatch) : 1}
               value={qty}
-              onChange={(e) => setQty(Math.max(1, parseInt(e.target.value) || 0))}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val === "") {
+                  setQty("");
+                } else {
+                  const parsed = parseInt(val, 10);
+                  setQty(isNaN(parsed) ? "" : parsed);
+                }
+              }}
+              onBlur={() => {
+                const minQty = isBatch ? Math.max(1, soldQtyInBatch) : 1;
+                if (qty === "" || Number(qty) < minQty) {
+                  setQty(minQty);
+                }
+              }}
               className="w-full px-3.5 py-2.5 sm:py-3 text-lg sm:text-2xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-black font-mono"
               required
             />

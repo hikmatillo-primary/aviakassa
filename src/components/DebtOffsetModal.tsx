@@ -37,7 +37,7 @@ export function DebtOffsetModal({
   const [toPartnerId, setToPartnerId] = useState<string>(
     defaultToPartnerId ? String(defaultToPartnerId) : ""
   );
-  const [amount, setAmount] = useState<number>(0);
+  const [amount, setAmount] = useState<number | string>(0);
   const [date, setDate] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
@@ -97,7 +97,7 @@ export function DebtOffsetModal({
       setError("Bir xil hamkor tanlandi. Ikkita har xil tomonni tanlang!");
       return;
     }
-    if (!amount || amount <= 0) {
+    if (!amount || Number(amount) <= 0) {
       setError("Suriladigan summani 0 dan katta qilib kiriting!");
       return;
     }
@@ -213,8 +213,15 @@ export function DebtOffsetModal({
               type="number"
               min="1"
               step="any"
-              value={amount || ""}
-              onChange={(e) => setAmount(Number(e.target.value))}
+              value={amount}
+              onChange={(e) => setAmount(e.target.value === "" ? "" : e.target.value)}
+              onBlur={() => {
+                if (amount === "" || isNaN(Number(amount))) {
+                  setAmount(0);
+                } else {
+                  setAmount(Number(amount));
+                }
+              }}
               placeholder="0"
               className="w-full pl-8 pr-3 py-2 text-sm font-mono font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white"
             />
@@ -228,7 +235,7 @@ export function DebtOffsetModal({
                 type="button"
                 onClick={() => handleQuickAmount(val)}
                 className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg border transition-all cursor-pointer ${
-                  amount === val
+                  Number(amount) === val
                     ? "bg-blue-600 text-white border-blue-600 shadow-xs"
                     : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-200"
                 }`}
@@ -265,7 +272,7 @@ export function DebtOffsetModal({
         </div>
 
         {/* Live Calculation Preview Card */}
-        {fromPartner && toPartner && amount > 0 && (
+        {fromPartner && toPartner && (Number(amount) || 0) > 0 && (
           <div className="p-3.5 bg-slate-100/80 dark:bg-slate-800/80 rounded-2xl border border-slate-200/80 dark:border-slate-700 text-xs">
             <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
               Kutilayotgan o&apos;zgarishlar natijasi:
@@ -276,7 +283,7 @@ export function DebtOffsetModal({
                 <span className="font-mono">
                   {formatUSD(fromPartner.balance)} ➔{" "}
                   <strong className="text-emerald-600 dark:text-emerald-400">
-                    {formatUSD(Math.max(0, (fromPartner.balance || 0) - amount))}
+                    {formatUSD(Math.max(0, (fromPartner.balance || 0) - (Number(amount) || 0)))}
                   </strong>
                 </span>
               </div>
@@ -285,7 +292,7 @@ export function DebtOffsetModal({
                 <span className="font-mono">
                   {formatUSD(toPartner.balance)} ➔{" "}
                   <strong className="text-emerald-600 dark:text-emerald-400">
-                    {formatUSD(Math.max(0, (toPartner.balance || 0) - amount))}
+                    {formatUSD(Math.max(0, (toPartner.balance || 0) - (Number(amount) || 0)))}
                   </strong>
                 </span>
               </div>

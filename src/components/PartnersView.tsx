@@ -12,6 +12,7 @@ interface PartnersViewProps {
   onOpenPartnerModal?: (type?: "SUPPLIER") => void;
   onEditBatch?: (batch: any) => void;
   onOpenHistoryModal?: (partnerId: number) => void;
+  onSelectBatch?: (batchId: number) => void;
 }
 
 export function PartnersView({
@@ -21,6 +22,7 @@ export function PartnersView({
   onOpenPartnerModal,
   onEditBatch,
   onOpenHistoryModal,
+  onSelectBatch,
 }: PartnersViewProps) {
   const [search, setSearch] = useState("");
 
@@ -94,7 +96,8 @@ export function PartnersView({
         {filteredBatches.map((batch) => (
           <div
             key={batch.id}
-            className="bg-white dark:bg-[#111726] p-3.5 sm:p-4 rounded-2xl border border-slate-200/70 dark:border-white/[0.07] shadow-2xs space-y-3.5"
+            onClick={() => onSelectBatch?.(batch.id)}
+            className="bg-white dark:bg-[#111726] p-3.5 sm:p-4 rounded-2xl border border-slate-200/70 dark:border-white/[0.07] shadow-2xs space-y-3.5 cursor-pointer hover:border-blue-400 dark:hover:border-blue-500/50 transition-all"
           >
             <div className="flex items-start justify-between gap-2">
               <div className="flex-1 min-w-0">
@@ -136,7 +139,10 @@ export function PartnersView({
                 </span>
                 <button
                   type="button"
-                  onClick={() => onOpenHistoryModal && onOpenHistoryModal(batch.supplierId)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onOpenHistoryModal?.(batch.supplierId);
+                  }}
                   className="font-semibold text-slate-800 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 hover:underline block truncate mt-0.5 text-left cursor-pointer"
                 >
                   {batch.supplierName}
@@ -158,7 +164,10 @@ export function PartnersView({
               {onEditBatch && (
                 <button
                   type="button"
-                  onClick={() => onEditBatch(batch)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEditBatch(batch);
+                  }}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200/80 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] text-slate-700 dark:text-slate-200 text-xs font-medium rounded-xl border border-slate-200/60 dark:border-white/[0.08] transition-colors cursor-pointer"
                 >
                   <Pencil className="w-3 h-3 text-slate-400" /> Narxni o‘zgartirish
@@ -202,7 +211,8 @@ export function PartnersView({
               {filteredBatches.map((batch) => (
                 <tr
                   key={batch.id}
-                  className="hover:bg-slate-50/70 dark:hover:bg-white/[0.02] transition-colors"
+                  onClick={() => onSelectBatch?.(batch.id)}
+                  className="hover:bg-blue-50/50 dark:hover:bg-blue-900/10 cursor-pointer transition-colors group"
                 >
                   {/* Aviation Product Title */}
                   <td className="py-4 px-5">
@@ -213,7 +223,10 @@ export function PartnersView({
                   <td className="py-4 px-5">
                     <button
                       type="button"
-                      onClick={() => onOpenHistoryModal && onOpenHistoryModal(batch.supplierId)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onOpenHistoryModal?.(batch.supplierId);
+                      }}
                       title="Kompaniya bilan hisob-kitob (otchyot) oynasini ochish"
                       className="font-semibold text-slate-800 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 hover:underline cursor-pointer text-left transition-colors"
                     >
@@ -241,7 +254,10 @@ export function PartnersView({
                     {onEditBatch && (
                       <button
                         type="button"
-                        onClick={() => onEditBatch(batch)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onEditBatch(batch);
+                        }}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200/80 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] text-slate-700 dark:text-slate-200 text-xs font-medium rounded-xl border border-slate-200/60 dark:border-white/[0.08] transition-all cursor-pointer"
                       >
                         <Pencil className="w-3 h-3 text-slate-400" /> Narxni o‘zgartirish

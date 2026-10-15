@@ -35,7 +35,7 @@ export function PaymentModal({
 
   const [type, setType] = useState<"INCOME" | "EXPENSE">(defaultType);
   const [partnerId, setPartnerId] = useState<string>(defaultPartnerId ? String(defaultPartnerId) : "");
-  const [amount, setAmount] = useState<number>(0);
+  const [amount, setAmount] = useState<number | string>(0);
   const [paymentDate, setPaymentDate] = useState<string>("");
   const [paymentMethod, setPaymentMethod] = useState<string>("CASH");
   const [notes, setNotes] = useState<string>("");
@@ -57,7 +57,7 @@ export function PaymentModal({
     e.preventDefault();
     setError(null);
 
-    if (!partnerId || !amount || amount <= 0) {
+    if (!partnerId || !amount || Number(amount) <= 0) {
       setError("Iltimos, hamkor va summani to'g'ri kiriting!");
       return;
     }
@@ -66,7 +66,7 @@ export function PaymentModal({
       onSave({
         partnerId: Number(partnerId),
         type,
-        amount,
+        amount: Number(amount),
         paymentDate: paymentDate || new Date().toISOString().split("T")[0],
         paymentMethod,
         notes,
@@ -212,8 +212,15 @@ export function PaymentModal({
               type="number"
               min="1"
               step="any"
-              value={amount || ""}
-              onChange={(e) => setAmount(parseFloat(e.target.value) || 0)}
+              value={amount}
+              onChange={(e) => setAmount(e.target.value === "" ? "" : e.target.value)}
+              onBlur={() => {
+                if (amount === "" || isNaN(Number(amount))) {
+                  setAmount(0);
+                } else {
+                  setAmount(Number(amount));
+                }
+              }}
               placeholder="Masalan: 1500"
               className="w-full pl-7 pr-3 py-2 text-base bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold tabular-nums"
               required

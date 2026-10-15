@@ -49,9 +49,9 @@ export function SaleModal({
   const [currentBatchId, setCurrentBatchId] = useState<string>("");
   const [clientId, setClientId] = useState<string>("");
   const [saleDate, setSaleDate] = useState<string>("");
-  const [qty, setQty] = useState<number>(1);
-  const [sellPrice, setSellPrice] = useState<number>(0);
-  const [paidNow, setPaidNow] = useState<number>(0);
+  const [qty, setQty] = useState<number | string>(1);
+  const [sellPrice, setSellPrice] = useState<number | string>(0);
+  const [paidNow, setPaidNow] = useState<number | string>(0);
   const [paymentMethod, setPaymentMethod] = useState<string>("CASH");
   const [notes, setNotes] = useState<string>("");
 
@@ -89,11 +89,14 @@ export function SaleModal({
   const selectedBatch = batches.find((b) => String(b.id) === currentBatchId);
   const isLocked = Boolean(selectedBatchId);
 
-  // Hisob-kitoblar
-  const totalAmount = (qty || 0) * (sellPrice || 0);
-  const totalCost = (qty || 0) * (selectedBatch?.buyPrice || 0);
+  // Hisob-kitoblar (bo'sh qatorda ham xatoliksiz)
+  const numQty = qty === "" ? 0 : Number(qty);
+  const numSellPrice = sellPrice === "" ? 0 : Number(sellPrice);
+  const numPaidNow = paidNow === "" ? 0 : Number(paidNow);
+  const totalAmount = numQty * numSellPrice;
+  const totalCost = numQty * (selectedBatch?.buyPrice || 0);
   const profit = totalAmount - totalCost;
-  const remainingDebt = Math.max(0, totalAmount - (paidNow || 0));
+  const remainingDebt = Math.max(0, totalAmount - numPaidNow);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -109,19 +112,19 @@ export function SaleModal({
       return;
     }
 
-    if (qty <= 0) {
+    if (numQty <= 0) {
       setError("Chipta soni kamida 1 ta bo'lishi kerak!");
       return;
     }
 
-    if (qty > selectedBatch.remainingQty) {
+    if (numQty > selectedBatch.remainingQty) {
       setError(
-        `"${selectedBatch.route}" partiyasida faqat ${selectedBatch.remainingQty} ta chipta mavjud! (${qty} ta so'ralgan)`
+        `"${selectedBatch.route}" partiyasida faqat ${selectedBatch.remainingQty} ta chipta mavjud! (${numQty} ta so'ralgan)`
       );
       return;
     }
 
-    if (sellPrice <= 0) {
+    if (numSellPrice <= 0) {
       setError("Sotish narxi 0 dan katta bo'lishi kerak!");
       return;
     }
@@ -130,14 +133,14 @@ export function SaleModal({
       onSave({
         clientId: Number(clientId),
         saleDate: saleDate || new Date().toISOString().split("T")[0],
-        paidNow: Number(paidNow) || 0,
+        paidNow: numPaidNow,
         paymentMethod,
         notes,
         items: [
           {
             batchId: Number(selectedBatch.id),
-            qty: Number(qty),
-            sellPrice: Number(sellPrice),
+            qty: numQty,
+            sellPrice: numSellPrice,
             passengerNames: "",
             departureTime: selectedBatch.departureTime || "",
             arrivalTime: selectedBatch.arrivalTime || "",
@@ -168,7 +171,7 @@ export function SaleModal({
             <strong className="text-sm sm:text-lg font-bold text-emerald-500 font-mono">
               {formatUSD(totalAmount)}
             </strong>{" "}
-            <span className="text-slate-400 font-normal">({qty} ta chipta)</span>
+            <span className="text-slate-400 font-normal">({numQty} ta chipta)</span>
           </div>
           <div className="flex items-center gap-2.5">
             <button
@@ -301,7 +304,7 @@ export function SaleModal({
             <div className="flex items-center">
               <button
                 type="button"
-                onClick={() => setQty(Math.max(1, (qty || 1) - 1))}
+                onClick={() => setQty(Math.max(1, (Number(qty) || 1) - 1))}
                 className="w-10 h-10 flex items-center justify-center bg-slate-100 hover:bg-slate-200 dark:bg-slate-700/70 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-l-xl font-bold text-sm cursor-pointer border border-r-0 border-slate-300 dark:border-slate-700 shrink-0"
               >
                 -
@@ -311,14 +314,22 @@ export function SaleModal({
                 min="1"
                 max={selectedBatch?.remainingQty || 9999}
                 value={qty}
-                onChange={(e) =>
-                  setQty(
-                    Math.min(
-                      selectedBatch?.remainingQty || 9999,
-                      Math.max(1, parseInt(e.target.value) || 1)
-                    )
-                  )
-                }
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === "") {
+                    setQty("");
+                  } else {
+                    const parsed = parseInt(val, 10);
+                    setQty(isNaN(parsed) ? "" : parsed);
+                  }
+                }}
+                onBlur={() => {
+                  if (qty === "" || Number(qty) < 1) {
+                    setQty(1);
+                  } else if (selectedBatch && Number(qty) > selectedBatch.remainingQty) {
+                    setQty(selectedBatch.remainingQty);
+                  }
+                }}
                 className="w-full text-center py-2 text-sm sm:text-base bg-white dark:bg-slate-800 text-slate-900 dark:text-white border-y border-slate-300 dark:border-slate-700 focus:outline-none font-black tabular-nums"
                 required
               />
@@ -328,7 +339,7 @@ export function SaleModal({
                   setQty(
                     Math.min(
                       selectedBatch?.remainingQty || 9999,
-                      (qty || 0) + 1
+                      (Number(qty) || 0) + 1
                     )
                   )
                 }
@@ -354,8 +365,16 @@ export function SaleModal({
                 type="number"
                 min="0"
                 step="any"
-                value={sellPrice || ""}
-                onChange={(e) => setSellPrice(parseFloat(e.target.value) || 0)}
+                value={sellPrice}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setSellPrice(val === "" ? "" : val);
+                }}
+                onBlur={() => {
+                  if (sellPrice === "" || isNaN(Number(sellPrice))) {
+                    setSellPrice(0);
+                  }
+                }}
                 className="w-full pl-8 pr-3 py-2 text-sm sm:text-base bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold tabular-nums"
                 required
               />
@@ -372,7 +391,7 @@ export function SaleModal({
         <div className="flex items-center justify-between px-4 py-3 bg-slate-100 dark:bg-slate-800/90 rounded-2xl border border-slate-200/80 dark:border-slate-700 text-xs sm:text-sm tabular-nums">
           <div className="flex items-center gap-1.5">
             <span className="text-slate-500 dark:text-slate-400 font-medium">
-              Jami ({qty} ta chipta):
+              Jami ({numQty} ta chipta):
             </span>
             <span className="font-extrabold text-slate-900 dark:text-white text-sm sm:text-base">
               {formatUSD(totalAmount)}
@@ -423,8 +442,16 @@ export function SaleModal({
                 min="0"
                 max={totalAmount}
                 step="any"
-                value={paidNow || ""}
-                onChange={(e) => setPaidNow(parseFloat(e.target.value) || 0)}
+                value={paidNow}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setPaidNow(val === "" ? "" : val);
+                }}
+                onBlur={() => {
+                  if (paidNow === "" || isNaN(Number(paidNow))) {
+                    setPaidNow(0);
+                  }
+                }}
                 placeholder="0"
                 className="w-full pl-7 pr-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium tabular-nums"
               />

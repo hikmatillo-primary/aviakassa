@@ -864,6 +864,10 @@ export function AppContainer() {
               setDetailBatchId(batchId);
             }}
             onOpenSaleModal={(batchId) => handleOpenSaleModal(batchId)}
+            onNavigateTab={(tab) => {
+              setActiveTab(tab);
+              setDetailBatchId(null);
+            }}
           />
         )}
 
@@ -876,6 +880,10 @@ export function AppContainer() {
             onOpenPartnerModal={() => handleOpenPartnerModal("SUPPLIER")}
             onEditBatch={handleOpenEditBatch}
             onOpenHistoryModal={handleOpenHistoryModal}
+            onSelectBatch={(batchId) => {
+              setActiveTab("inventory");
+              setDetailBatchId(batchId);
+            }}
           />
         )}
 
