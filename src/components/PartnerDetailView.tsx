@@ -477,45 +477,64 @@ export function PartnerDetailView({
             {filteredBatches.map((b) => (
               <div
                 key={b.id}
-                className="bg-slate-50/60 dark:bg-white/[0.02] p-3.5 sm:p-4 rounded-xl border border-slate-200/70 dark:border-white/[0.06] flex flex-col sm:flex-row items-stretch justify-between gap-3 hover:border-slate-300 dark:hover:border-white/[0.12] transition-colors"
+                className="group relative overflow-hidden bg-slate-50/60 dark:bg-white/[0.02] p-3.5 sm:p-4 rounded-xl border border-slate-200/70 dark:border-white/[0.06] flex flex-col sm:flex-row items-stretch justify-between gap-3 hover:border-blue-300/70 dark:hover:border-blue-500/30 hover:bg-slate-100/60 dark:hover:bg-white/[0.04] hover:shadow-sm transition-all"
               >
-                <div className="flex-1 min-w-0 space-y-1.5">
-                  <div className="flex items-center gap-2 flex-wrap text-xs">
-                    <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400">
-                      {b.batchNumber || "---"}
-                    </span>
-                    <strong className="text-slate-900 dark:text-white font-bold">
-                      {b.route || "---"}
-                    </strong>
-                    <span className="text-slate-400">• Parvoz: {formatDate(b.flightDate, false)}</span>
+                <div className="flex-1 min-w-0 flex items-start gap-3">
+                  <div className="hidden sm:flex shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500/15 to-blue-500/[0.04] text-blue-600 dark:text-blue-400 items-center justify-center ring-1 ring-inset ring-blue-500/15">
+                    <Package className="w-5 h-5" />
                   </div>
 
-                  <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 flex-wrap pt-0.5 tabular-nums">
-                    <span>
-                      Jami: <b className="text-slate-800 dark:text-slate-200 font-bold">{b.totalQty} ta</b>
-                    </span>
-                    <span>
-                      Omborda qoldiq:{" "}
-                      <b className={b.remainingQty > 0 ? "text-blue-600 dark:text-blue-400 font-bold" : "text-slate-400"}>
-                        {b.remainingQty} ta
-                      </b>
-                    </span>
-                    {b.departureTime && (
-                      <span>
-                        Vaqti: <b className="font-mono text-slate-700 dark:text-slate-300">{b.departureTime}{b.arrivalTime ? `–${b.arrivalTime}` : ""}</b>
+                  <div className="flex-1 min-w-0 space-y-2">
+                    <div className="flex items-center gap-2 flex-wrap text-xs">
+                      <span className="font-mono text-[11px] font-bold px-2 py-0.5 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 ring-1 ring-inset ring-blue-500/20">
+                        {b.batchNumber || "---"}
                       </span>
-                    )}
+                      <strong className="text-sm text-slate-900 dark:text-white font-bold">
+                        {b.route || "---"}
+                      </strong>
+                      <span className="inline-flex items-center gap-1 text-slate-400">
+                        <Calendar className="w-3 h-3" />
+                        {formatDate(b.flightDate, false)}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 flex-wrap pt-0.5 tabular-nums text-xs">
+                      <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white/80 dark:bg-white/[0.04] border border-slate-200/70 dark:border-white/[0.06] text-slate-500 dark:text-slate-400">
+                        Jami:{" "}
+                        <b className="text-slate-800 dark:text-slate-200 font-bold">{b.totalQty} ta</b>
+                      </span>
+                      <span
+                        className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-lg border ${
+                          b.remainingQty > 0
+                            ? "bg-blue-500/[0.07] border-blue-500/20 text-blue-600 dark:text-blue-400"
+                            : "bg-white/80 dark:bg-white/[0.04] border-slate-200/70 dark:border-white/[0.06] text-slate-400"
+                        }`}
+                      >
+                        Omborda: <b className="font-bold">{b.remainingQty} ta</b>
+                      </span>
+                      {b.departureTime && (
+                        <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white/80 dark:bg-white/[0.04] border border-slate-200/70 dark:border-white/[0.06] text-slate-500 dark:text-slate-400">
+                          Vaqti:{" "}
+                          <b className="font-mono text-slate-700 dark:text-slate-300">
+                            {b.departureTime}{b.arrivalTime ? `–${b.arrivalTime}` : ""}
+                          </b>
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
 
-                <div className="sm:w-52 p-3 sm:p-0 sm:pl-4 bg-white/70 dark:bg-white/[0.02] sm:bg-transparent border-t sm:border-t-0 sm:border-l border-slate-200/70 dark:border-white/[0.06] flex sm:flex-col items-center sm:items-end justify-between gap-2 shrink-0 tabular-nums">
+                <div className="sm:w-52 p-3 sm:p-0 sm:pl-4 bg-white/70 dark:bg-white/[0.02] sm:bg-transparent border-t sm:border-t-0 sm:border-l border-slate-200/70 dark:border-white/[0.06] flex sm:flex-col items-center sm:items-end justify-between gap-2.5 shrink-0 tabular-nums">
                   <div className="sm:text-right">
-                    <span className="text-xs text-slate-400 block">
-                      Tannarx: {formatUSD(b.buyPrice)}
+                    <span className="text-[11px] uppercase tracking-wide text-slate-400 font-medium block">
+                      Tannarx
                     </span>
-                    <strong className="text-base font-black text-slate-900 dark:text-white block mt-0.5">
+                    <strong className="text-lg font-black text-slate-900 dark:text-white block leading-tight">
                       {formatUSD(b.totalCost)}
                     </strong>
+                    <span className="text-xs text-slate-400 block">
+                      1 dona: {formatUSD(b.buyPrice)}
+                    </span>
                   </div>
 
                   <div className="flex items-center gap-1.5">
@@ -523,9 +542,9 @@ export function PartnerDetailView({
                       <button
                         type="button"
                         onClick={() => onSelectBatch(b.id)}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 hover:bg-blue-100 dark:bg-blue-500/10 dark:hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 text-xs font-semibold rounded-lg transition-all cursor-pointer"
+                        className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold rounded-lg shadow-sm shadow-blue-500/20 transition-all cursor-pointer"
                       >
-                        Ombor <ChevronRight className="w-3 h-3" />
+                        Ombor <ChevronRight className="w-3.5 h-3.5" />
                       </button>
                     )}
                     {onEditBatch && (
