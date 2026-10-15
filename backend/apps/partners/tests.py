@@ -91,3 +91,30 @@ class PartnerModelTests(TestCase):
         # Centrum Air ning bizdan qarzdorligi $2000 dan $1000 ga tushishi kerak (-$1000)
         self.assertEqual(self.supplier.total_offset_to, 1000.0)
         self.assertEqual(self.supplier.net_balance, -1000.0)
+
+    def test_universal_partner_dual_role(self):
+        # Universal hamkor Oasis Travel: ham partiya sotadi, ham chipta oladi
+        batch = Batch.objects.create(
+            batch_number="TEST-P-OASIS",
+            route="Toshkent - Dubay",
+            flight_date="2026-10-20",
+            supplier=self.universal,
+            total_qty=10,
+            buy_price=Decimal("300.00")
+        )
+        Sale.objects.create(
+            batch=batch,
+            client=self.universal,
+            qty=4,
+            sell_price=Decimal("500.00"),
+            sale_date="2026-10-21"
+        )
+        # Hisob-kitob:
+        # total_sold_to_us = 3000
+        # total_bought_from_us = 2000
+        # net_balance = 2000 - 3000 = -1000
+        self.assertEqual(self.universal.total_sold_to_us, 3000.0)
+        self.assertEqual(self.universal.total_bought_from_us, 2000.0)
+        self.assertEqual(self.universal.net_balance, -1000.0)
+        self.assertEqual(self.universal.we_owe_them, 1000.0)
+        self.assertEqual(self.universal.they_owe_us, 0.0)

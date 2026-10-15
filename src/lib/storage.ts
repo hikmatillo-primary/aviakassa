@@ -391,17 +391,16 @@ export function calculateEnrichedData(data: AviakassaData) {
       .filter((o) => o.toPartnerId === partner.id)
       .reduce((sum, o) => sum + (o.amount || 0), 0);
 
-    // Net calculations:
-    // What partner owes us for tickets they bought:
-    const theyOweUs = totalBoughtFromUs - totalPaidToUs - offsetFrom + offsetTo;
-    // What we owe partner for batches we bought:
-    const weOweThem = totalSoldToUs - totalPaidByUs - offsetTo + offsetFrom;
-
-    // Net balance:
-    // balance > 0: Partner owes us (Biz haqdormiz / Mijoz qarzdor)
-    // balance < 0: We owe partner (Biz qarzdormiz / Ta'minotchi haqdor)
+    // Net calculations (DebtOffset included, aligned with backend Partner model):
+    const clientDebt = totalBoughtFromUs - totalPaidToUs;
+    const supplierDebt = totalSoldToUs - totalPaidByUs;
+    // balance > 0: Partner owes us (Biz haqdormiz / Hamkor qarzdor)
+    // balance < 0: We owe partner (Biz qarzdormiz / Hamkor haqdor)
     // balance === 0: Closed / 0
-    const balance = theyOweUs - weOweThem;
+    const balance = clientDebt - supplierDebt - offsetFrom + offsetTo;
+
+    const theyOweUs = balance > 0 ? balance : 0;
+    const weOweThem = balance < 0 ? Math.abs(balance) : 0;
 
     const totalDeal = totalBoughtFromUs + totalSoldToUs;
     const totalPaid = totalPaidToUs + totalPaidByUs;

@@ -72,9 +72,9 @@ export function PartnerHistoryModal({
     .reduce((sum, o) => sum + (o.amount || 0), 0);
 
   // Unified net balance (Sal'do)
-  const theyOweUs = totalBoughtFromUs - totalPaidToUs - offsetFrom + offsetTo;
-  const weOweThem = totalSoldToUs - totalPaidByUs - offsetTo + offsetFrom;
-  const netBalance = theyOweUs - weOweThem;
+  const clientDebt = totalBoughtFromUs - totalPaidToUs;
+  const supplierDebt = totalSoldToUs - totalPaidByUs;
+  const netBalance = clientDebt - supplierDebt - offsetFrom + offsetTo;
 
   return (
     <Modal
@@ -126,7 +126,7 @@ export function PartnerHistoryModal({
             <div>
               <span className="text-xs block font-medium">
                 {netBalance > 0
-                  ? "Mijozning qarzi (Ular to‘lashi kerak)"
+                  ? "Hamkorning qarzi (Ular to‘lashi kerak)"
                   : netBalance < 0
                   ? "Bizning qarzimiz (Biz to‘lashimiz kerak)"
                   : "O‘zaro hisob-kitob teng"}
