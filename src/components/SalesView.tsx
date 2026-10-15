@@ -53,7 +53,7 @@ export function SalesView({
             >
               <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-500 dark:text-slate-400 shrink-0" />
               <span className="sm:hidden truncate">+ Hamkor</span>
-              <span className="hidden sm:inline">Yangi Hamkor (Mijoz)</span>
+              <span className="hidden sm:inline">+ Yangi hamkor</span>
             </button>
           )}
 
@@ -73,7 +73,7 @@ export function SalesView({
           <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3.5 top-2.5" />
           <input
             type="text"
-            placeholder="Yo‘lovchi ismi, mijoz, yo‘nalish yoki reys..."
+            placeholder="Yo‘lovchi ismi, hamkor, yo‘nalish yoki reys..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50/80 dark:bg-white/[0.04] border border-slate-200/70 dark:border-white/[0.08] rounded-xl focus:bg-white dark:focus:bg-white/[0.06] focus:outline-none focus:ring-2 focus:ring-blue-500/40 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all"
@@ -128,7 +128,7 @@ export function SalesView({
               </div>
               <div>
                 <span className="text-[11px] text-slate-400 dark:text-slate-500 block">
-                  Xaridor (Mijoz)
+                  Hamkor
                 </span>
                 <button
                   type="button"
@@ -192,7 +192,7 @@ export function SalesView({
                 <th className="py-3.5 px-5 font-medium">Sana</th>
                 <th className="py-3.5 px-5 font-medium">Mahsulot / Reys</th>
                 <th className="py-3.5 px-5 font-medium">Yo‘lovchi</th>
-                <th className="py-3.5 px-5 font-medium">Mijoz (Xaridor)</th>
+                <th className="py-3.5 px-5 font-medium">Hamkor</th>
                 <th className="py-3.5 px-5 font-medium text-center">Soni</th>
                 <th className="py-3.5 px-5 font-medium text-right">Tannarx</th>
                 <th className="py-3.5 px-5 font-medium text-right">Sotish narxi</th>
@@ -229,7 +229,7 @@ export function SalesView({
                     <button
                       type="button"
                       onClick={() => onOpenHistoryModal && onOpenHistoryModal(sale.clientId)}
-                      title="Mijoz bilan hisob-kitob (otchyot) oynasini ochish"
+                      title="Hamkor bilan hisob-kitob (otchyot) oynasini ochish"
                       className="font-semibold text-slate-800 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 hover:underline cursor-pointer text-left transition-colors"
                     >
                       {sale.clientName}

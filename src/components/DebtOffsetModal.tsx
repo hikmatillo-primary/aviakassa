@@ -58,15 +58,16 @@ export function DebtOffsetModal({
   }, [defaultFromPartnerId, defaultToPartnerId]);
 
   // If no initial selection, choose reasonable defaults:
-  // e.g., first client with positive balance as fromPartner, first supplier with debt as toPartner
   useEffect(() => {
     if (isOpen && !fromPartnerId && partners.length > 0) {
-      const clientWithDebt = partners.find((p) => p.type === "CLIENT" && (p.balance || 0) > 0);
-      if (clientWithDebt) setFromPartnerId(String(clientWithDebt.id));
+      const pWithDebt = partners.find((p) => (p.balance || 0) > 0);
+      if (pWithDebt) setFromPartnerId(String(pWithDebt.id));
     }
     if (isOpen && !toPartnerId && partners.length > 0) {
-      const supplierWithDebt = partners.find((p) => p.type === "SUPPLIER" && (p.balance || 0) > 0);
-      if (supplierWithDebt) setToPartnerId(String(supplierWithDebt.id));
+      const pOther = partners.find(
+        (p) => String(p.id) !== fromPartnerId && (p.balance || 0) > 0
+      );
+      if (pOther) setToPartnerId(String(pOther.id));
     }
   }, [isOpen, partners, fromPartnerId, toPartnerId]);
 

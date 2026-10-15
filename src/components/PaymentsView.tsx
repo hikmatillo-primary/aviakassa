@@ -33,7 +33,7 @@ export function PaymentsView({
 }: PaymentsViewProps) {
   const [activeSubTab, setActiveSubTab] = useState<"CASH" | "PARTNERS" | "OFFSETS">("CASH");
   const [filter, setFilter] = useState<"ALL" | "INCOME" | "EXPENSE">("ALL");
-  const [partnerTypeFilter, setPartnerTypeFilter] = useState<"ALL" | "SUPPLIER" | "CLIENT">("ALL");
+  const [partnerBalanceFilter, setPartnerBalanceFilter] = useState<"ALL" | "DEBT_US" | "DEBT_THEM">("ALL");
   const [search, setSearch] = useState("");
 
   const filteredPayments = payments.filter((p) => {
@@ -49,9 +49,8 @@ export function PaymentsView({
   });
 
   const filteredPartners = partners.filter((pt) => {
-    if (partnerTypeFilter !== "ALL" && pt.type !== partnerTypeFilter) {
-      return false;
-    }
+    if (partnerBalanceFilter === "DEBT_US" && (pt.balance || 0) <= 0) return false;
+    if (partnerBalanceFilter === "DEBT_THEM" && (pt.balance || 0) >= 0) return false;
     if (!search.trim()) return true;
     const q = search.toLowerCase();
     return (
@@ -189,7 +188,7 @@ export function PaymentsView({
         {/* Kirim */}
         <div className="bg-white dark:bg-[#111726] p-5 rounded-2xl border border-slate-200/70 dark:border-white/[0.07] shadow-xs">
           <div className="flex items-center justify-between text-xs text-slate-400 font-medium">
-            <span>Jami kirim (Mijozlar)</span>
+            <span>Jami kirim</span>
             <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
               <ArrowDownLeft className="w-3.5 h-3.5" />
             </div>
@@ -202,7 +201,7 @@ export function PaymentsView({
         {/* Chiqim */}
         <div className="bg-white dark:bg-[#111726] p-5 rounded-2xl border border-slate-200/70 dark:border-white/[0.07] shadow-xs">
           <div className="flex items-center justify-between text-xs text-slate-400 font-medium">
-            <span>Jami chiqim (Ta&apos;minotchilar)</span>
+            <span>Jami chiqim</span>
             <div className="w-7 h-7 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center">
               <ArrowUpRight className="w-3.5 h-3.5" />
             </div>
@@ -312,7 +311,7 @@ export function PaymentsView({
               activeSubTab === "CASH"
                 ? "Hamkor nomi yoki izoh..."
                 : activeSubTab === "PARTNERS"
-                ? "Mijoz yoki kompaniya nomi..."
+                ? "Hamkor nomi bo‘yicha qidirish..."
                 : "Qarz beruvchi, oluvchi yoki izoh..."
             }
             value={search}
@@ -361,9 +360,9 @@ export function PaymentsView({
         {activeSubTab === "PARTNERS" && (
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 w-full sm:w-auto">
             <button
-              onClick={() => setPartnerTypeFilter("ALL")}
+              onClick={() => setPartnerBalanceFilter("ALL")}
               className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer shrink-0 ${
-                partnerTypeFilter === "ALL"
+                partnerBalanceFilter === "ALL"
                   ? "bg-blue-600 text-white shadow-xs"
                   : "bg-slate-100/80 dark:bg-white/[0.05] text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
               }`}
@@ -371,24 +370,24 @@ export function PaymentsView({
               Barchasi ({partners.length})
             </button>
             <button
-              onClick={() => setPartnerTypeFilter("SUPPLIER")}
+              onClick={() => setPartnerBalanceFilter("DEBT_US")}
               className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer shrink-0 ${
-                partnerTypeFilter === "SUPPLIER"
-                  ? "bg-blue-600 text-white shadow-xs"
+                partnerBalanceFilter === "DEBT_US"
+                  ? "bg-amber-600 text-white shadow-xs"
                   : "bg-slate-100/80 dark:bg-white/[0.05] text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
               }`}
             >
-              Ta‘minotchilar ({partners.filter((p) => p.type === "SUPPLIER").length})
+              Bizning haqimiz ({partners.filter((p) => (p.balance || 0) > 0).length})
             </button>
             <button
-              onClick={() => setPartnerTypeFilter("CLIENT")}
+              onClick={() => setPartnerBalanceFilter("DEBT_THEM")}
               className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer shrink-0 ${
-                partnerTypeFilter === "CLIENT"
-                  ? "bg-blue-600 text-white shadow-xs"
+                partnerBalanceFilter === "DEBT_THEM"
+                  ? "bg-rose-600 text-white shadow-xs"
                   : "bg-slate-100/80 dark:bg-white/[0.05] text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
               }`}
             >
-              Mijozlar ({partners.filter((p) => p.type === "CLIENT").length})
+              Bizning qarzimiz ({partners.filter((p) => (p.balance || 0) < 0).length})
             </button>
           </div>
         )}
@@ -615,14 +614,8 @@ export function PaymentsView({
                 <div className="flex items-start justify-between gap-3">
                   <div className="space-y-1">
                     <div className="flex flex-wrap items-center gap-1.5">
-                      <span
-                        className={`text-[10px] font-semibold px-2 py-0.5 rounded-md ${
-                          pt.type === "SUPPLIER"
-                            ? "bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20"
-                            : "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20"
-                        }`}
-                      >
-                        {pt.type === "SUPPLIER" ? "Ta‘minotchi" : "Mijoz"}
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                        Hamkor
                       </span>
                     </div>
                     <h3 className="font-bold text-slate-900 dark:text-white text-base sm:text-lg mt-1">
@@ -636,7 +629,7 @@ export function PaymentsView({
                   <div className="text-right shrink-0 tabular-nums">
                     <span className="text-[11px] text-slate-400 font-medium block">
                       {debt > 0
-                        ? "Mijozning qarzi"
+                        ? "Hamkorning qarzi"
                         : debt < 0
                         ? "Bizning qarzimiz"
                         : "Hisob-kitob teng"}
@@ -733,12 +726,12 @@ export function PaymentsView({
               <p className="text-xs text-slate-400 dark:text-slate-500">
                 Hamkorlar topilmadi
               </p>
-              {(search || partnerTypeFilter !== "ALL") && (
+              {(search || partnerBalanceFilter !== "ALL") && (
                 <button
                   type="button"
                   onClick={() => {
                     setSearch("");
-                    setPartnerTypeFilter("ALL");
+                    setPartnerBalanceFilter("ALL");
                   }}
                   className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
                 >

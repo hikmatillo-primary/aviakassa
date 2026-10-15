@@ -54,7 +54,7 @@ export function PartnersView({
             >
               <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-500 dark:text-slate-400 shrink-0" />
               <span className="sm:hidden truncate">+ Hamkor</span>
-              <span className="hidden sm:inline">Yangi Hamkor (Vendor)</span>
+              <span className="hidden sm:inline">+ Yangi hamkor</span>
             </button>
           )}
 
@@ -76,7 +76,7 @@ export function PartnersView({
           <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3.5 top-2.5" />
           <input
             type="text"
-            placeholder="Partiya kodi, yo‘nalish, reys yoki kompaniya..."
+            placeholder="Partiya kodi, yo‘nalish, reys yoki hamkor..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50/80 dark:bg-white/[0.04] border border-slate-200/70 dark:border-white/[0.08] rounded-xl focus:bg-white dark:focus:bg-white/[0.06] focus:outline-none focus:ring-2 focus:ring-blue-500/40 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all"
@@ -135,7 +135,7 @@ export function PartnersView({
               </div>
               <div>
                 <span className="text-[11px] text-slate-400 dark:text-slate-500 block">
-                  Kompaniya
+                  Hamkor
                 </span>
                 <button
                   type="button"
@@ -200,7 +200,7 @@ export function PartnersView({
             <thead>
               <tr className="border-b border-slate-100 dark:border-white/[0.06] text-xs font-medium text-slate-400 dark:text-slate-500">
                 <th className="py-3.5 px-5 font-medium">Mahsulot / Reys</th>
-                <th className="py-3.5 px-5 font-medium">Kompaniya (Ta‘minotchi)</th>
+                <th className="py-3.5 px-5 font-medium">Hamkor</th>
                 <th className="py-3.5 px-5 font-medium text-center">Chiptalar soni</th>
                 <th className="py-3.5 px-5 font-medium text-right">1 dona narxi</th>
                 <th className="py-3.5 px-5 font-medium text-right">Jami hisob</th>
@@ -227,7 +227,7 @@ export function PartnersView({
                         e.stopPropagation();
                         onOpenHistoryModal?.(batch.supplierId);
                       }}
-                      title="Kompaniya bilan hisob-kitob (otchyot) oynasini ochish"
+                      title="Hamkor bilan hisob-kitob (otchyot) oynasini ochish"
                       className="font-semibold text-slate-800 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 hover:underline cursor-pointer text-left transition-colors"
                     >
                       {batch.supplierName}

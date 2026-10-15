@@ -162,7 +162,7 @@ export function BatchModal({
     setError(null);
 
     if (!supplierId) {
-      setError("Iltimos, ta'minotchini tanlang!");
+      setError("Iltimos, hamkorni tanlang!");
       return;
     }
 
@@ -254,38 +254,17 @@ export function BatchModal({
       }
     >
       <form id="batch-form" onSubmit={handleSubmit} className="space-y-4">
-        {/* Tezkor takliflar uchun datalist */}
-        <datalist id="cities-suggestions">
-          <option value="Toshkent (TAS)" />
-          <option value="Samarqand (SKD)" />
-          <option value="Farg'ona (FEG)" />
-          <option value="Namangan (NMA)" />
-          <option value="Buxoro (BHK)" />
-          <option value="Urganch (UGC)" />
-          <option value="Termiz (TMJ)" />
-          <option value="Nukus (NCU)" />
-          <option value="Dubay (DXB)" />
-          <option value="Sharja (SHJ)" />
-          <option value="Abu Dabi (AUH)" />
-          <option value="Jidda (JED)" />
-          <option value="Madina (MED)" />
-          <option value="Istanbul (IST)" />
-          <option value="Antaliya (AYT)" />
-          <option value="Doha (DOH)" />
-          <option value="Maskat (MCT)" />
-        </datalist>
-
         {error && (
           <div className="p-2.5 text-xs bg-red-50 dark:bg-red-950/50 text-red-600 dark:text-red-400 rounded-xl border border-red-200 dark:border-red-800 font-medium">
             {error}
           </div>
         )}
 
-        {/* 1. Ta'minotchi va Xarid Sanasi */}
+        {/* 1. Hamkor va Xarid Sanasi */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <PartnerSelect
-              label="Hamkor (Ta'minotchi / Vendor)"
+              label="Hamkor *"
               value={supplierId}
               onChange={(val) => setSupplierId(val)}
               partners={suppliers}
@@ -332,11 +311,12 @@ export function BatchModal({
                         </label>
                         <input
                           type="text"
-                          list="cities-suggestions"
-                          placeholder="Toshkent yoki TAS"
+                          placeholder="TAS"
                           value={item.fromCity}
-                          onChange={(e) => handleUpdateItem(index, "fromCity", e.target.value)}
-                          className="w-full px-2.5 py-1.5 text-xs sm:text-sm bg-transparent text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold"
+                          onChange={(e) =>
+                            handleUpdateItem(index, "fromCity", e.target.value.toUpperCase())
+                          }
+                          className="w-full px-2.5 py-1.5 text-xs sm:text-sm bg-transparent text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase font-bold tracking-wider"
                           required
                         />
                       </div>
@@ -348,11 +328,12 @@ export function BatchModal({
                         </label>
                         <input
                           type="text"
-                          list="cities-suggestions"
-                          placeholder="Dubay yoki DXB"
+                          placeholder="DXB"
                           value={item.toCity}
-                          onChange={(e) => handleUpdateItem(index, "toCity", e.target.value)}
-                          className="w-full px-2.5 py-1.5 text-xs sm:text-sm bg-transparent text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold"
+                          onChange={(e) =>
+                            handleUpdateItem(index, "toCity", e.target.value.toUpperCase())
+                          }
+                          className="w-full px-2.5 py-1.5 text-xs sm:text-sm bg-transparent text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase font-bold tracking-wider"
                           required
                         />
                       </div>
@@ -437,7 +418,7 @@ export function BatchModal({
                         placeholder="FZ-780"
                         value={item.flightNumber}
                         onChange={(e) =>
-                          handleUpdateItem(index, "flightNumber", e.target.value)
+                          handleUpdateItem(index, "flightNumber", e.target.value.toUpperCase())
                         }
                         className="w-full px-2 py-1.5 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase font-mono font-bold"
                       />
@@ -608,7 +589,7 @@ export function BatchModal({
                           placeholder="Masalan: FZ-781"
                           value={item.returnFlightNumber}
                           onChange={(e) =>
-                            handleUpdateItem(index, "returnFlightNumber", e.target.value)
+                            handleUpdateItem(index, "returnFlightNumber", e.target.value.toUpperCase())
                           }
                           className="w-full px-2.5 py-1.5 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-indigo-300 dark:border-indigo-700 rounded-xl uppercase font-mono font-bold"
                         />

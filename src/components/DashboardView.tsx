@@ -152,7 +152,7 @@ export function DashboardView({
         >
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-              Bizning haqimiz (Mijozlardan)
+              Bizning haqimiz (Hamkorlardan)
             </span>
             <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
               <Users className="w-4 h-4" />
@@ -171,7 +171,7 @@ export function DashboardView({
           </div>
 
           <div className="text-[11px] text-slate-400 dark:text-slate-500 flex items-center justify-between">
-            <span>Mijozlar umumiy qarzi</span>
+            <span>Hamkorlar umumiy qarzi</span>
             <span className="font-medium text-slate-500 dark:text-slate-400">Olinishi kerak</span>
           </div>
         </div>
@@ -183,7 +183,7 @@ export function DashboardView({
         >
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-              Bizning qarzimiz (Kompaniyalarga)
+              Bizning qarzimiz (Hamkorlarga)
             </span>
             <div className="w-9 h-9 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
               <Layers className="w-4 h-4" />
@@ -202,7 +202,7 @@ export function DashboardView({
           </div>
 
           <div className="text-[11px] text-slate-400 dark:text-slate-500 flex items-center justify-between">
-            <span>Ta‘minotchilarga to‘lov</span>
+            <span>Hamkorlarga to‘lov</span>
             <span className="font-medium text-slate-500 dark:text-slate-400">To‘lanishi kerak</span>
           </div>
         </div>

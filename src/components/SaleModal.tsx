@@ -108,7 +108,7 @@ export function SaleModal({
     }
 
     if (!clientId) {
-      setError("Iltimos, mijoz yoki sub-agentni tanlang!");
+      setError("Iltimos, hamkorni tanlang!");
       return;
     }
 
@@ -271,16 +271,16 @@ export function SaleModal({
           </div>
         )}
 
-        {/* 3. MIJOZ VA SOTUV SANASI */}
+        {/* 3. HAMKOR VA SOTUV SANASI */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <PartnerSelect
-              label="Mijoz / Hamkor"
+              label="Hamkor *"
               value={clientId}
               onChange={(val) => setClientId(val)}
               partners={clients}
               onAddNew={onOpenClientModal}
-              placeholder="-- Mijoz yoki Hamkorni tanlang --"
+              placeholder="-- Hamkorni tanlang --"
               required
             />
           </div>
@@ -457,7 +457,7 @@ export function SaleModal({
               />
             </div>
             <div className="text-[11px] text-slate-400 mt-1 px-0.5 tabular-nums">
-              Mijoz qarzi:{" "}
+              Hamkor qarzi:{" "}
               <strong
                 className={
                   remainingDebt > 0
