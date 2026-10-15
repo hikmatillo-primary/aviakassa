@@ -15,17 +15,28 @@ sys.path.insert(0, str(BASE_DIR / "apps"))
 load_dotenv(BASE_DIR / ".env")
 
 # Xavfsizlik sozlamalari
-SECRET_KEY = os.environ.get(
-    "SECRET_KEY",
-    "django-insecure-aviakassa-pro-super-secret-key-change-in-production"
-)
+DEBUG = os.environ.get("DEBUG", "False").lower() in ("true", "1", "yes")
 
-DEBUG = os.environ.get("DEBUG", "True").lower() in ("true", "1", "yes")
+SECRET_KEY = os.environ.get("SECRET_KEY")
+if not SECRET_KEY:
+    if DEBUG:
+        SECRET_KEY = "django-insecure-dev-only-change-me"
+    else:
+        raise RuntimeError(
+            "SECRET_KEY environment variable majburiy (DEBUG=False holatida)!"
+        )
 
 ALLOWED_HOSTS = [
     host.strip()
-    for host in os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1,0.0.0.0,*").split(",")
+    for host in os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
     if host.strip()
+] or ["localhost", "127.0.0.1"]
+
+# Non-standard port / HTTPS orqali keladigan so'rovlar uchun ishonchli manbalar
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip()
+    for origin in os.environ.get("CSRF_TRUSTED_ORIGINS", "").split(",")
+    if origin.strip()
 ]
 
 # Ilovalar
@@ -143,7 +154,7 @@ REST_FRAMEWORK = {
         "rest_framework.authentication.SessionAuthentication",
     ),
     "DEFAULT_PERMISSION_CLASSES": [
-        "rest_framework.permissions.AllowAny",
+        "rest_framework.permissions.IsAuthenticated",
     ],
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 100,
@@ -158,6 +169,20 @@ SIMPLE_JWT = {
 }
 
 
-# CORS sozlamalari
-CORS_ALLOW_ALL_ORIGINS = True
+# CORS sozlamalari (faqat ruxsat etilgan manbalar)
+CORS_ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in os.environ.get(
+        "CORS_ALLOWED_ORIGINS",
+        "http://localhost:3002,http://127.0.0.1:3002,http://185.241.151.30:3002",
+    ).split(",")
+    if origin.strip()
+]
 CORS_ALLOW_CREDENTIALS = True
+
+# Production xavfsizlik sarlavhalari
+if not DEBUG:
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_REFERRER_POLICY = "same-origin"
+    X_FRAME_OPTIONS = "DENY"
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")

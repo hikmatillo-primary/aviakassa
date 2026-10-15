@@ -4,3 +4,7 @@ out
 .git
 backend
 *.log
+.env
+_backup_*
+venv
+*.sqlite3

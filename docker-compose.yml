@@ -4,21 +4,26 @@ services:
     container_name: aviakassa_db
     restart: unless-stopped
     environment:
-      POSTGRES_DB: aviakassa_db
-      POSTGRES_USER: aviakassa_user
-      POSTGRES_PASSWORD: aviakassa_secure_password_2026
+      POSTGRES_DB: ${DB_NAME:-aviakassa_db}
+      POSTGRES_USER: ${DB_USER:-aviakassa_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      # Host port 5433 ga yo'naltirilgan (serverdagi 5432 porti bilan to'qnashmasligi uchun)
-      - "5433:5432"
+      # Faqat localhostga ochiq (internetdan yopiq). Serverdagi 5432 bilan to'qnashmasin.
+      - "127.0.0.1:5433:5432"
     networks:
       - aviakassa_net
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U aviakassa_user -d aviakassa_db"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-aviakassa_user} -d ${DB_NAME:-aviakassa_db}"]
       interval: 5s
       timeout: 5s
       retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   backend:
     build:
@@ -28,25 +33,39 @@ services:
     restart: unless-stopped
     command: >
       sh -c "python manage.py migrate &&
+             python manage.py collectstatic --noinput &&
              gunicorn core.wsgi:application --bind 0.0.0.0:8000 --workers 3"
     volumes:
       - ./backend:/app
     ports:
-      - "8000:8000"
+      # Faqat localhostga ochiq. Tashqi kirish frontend nginx /api proksisi orqali bo'ladi.
+      - "127.0.0.1:8000:8000"
     environment:
-      - DEBUG=True
-      - SECRET_KEY=django-insecure-aviakassa-pro-super-secret-key-change-in-production
-      - ALLOWED_HOSTS=*
+      - DEBUG=${DEBUG:-False}
+      - SECRET_KEY=${SECRET_KEY}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS}
+      - CSRF_TRUSTED_ORIGINS=${CSRF_TRUSTED_ORIGINS}
       - DB_ENGINE=django.db.backends.postgresql
-      - DB_NAME=aviakassa_db
-      - DB_USER=aviakassa_user
-      - DB_PASSWORD=aviakassa_secure_password_2026
+      - DB_NAME=${DB_NAME:-aviakassa_db}
+      - DB_USER=${DB_USER:-aviakassa_user}
+      - DB_PASSWORD=${DB_PASSWORD}
       - DB_HOST=db
       - DB_PORT=5432
-      - CORS_ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,http://185.241.151.30:3000,http://185.241.151.30:3002,https://avia.al-anba.uz
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}
     depends_on:
       db:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8000/api/health/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - aviakassa_net
 
@@ -60,6 +79,16 @@ services:
       - "3002:80"
     depends_on:
       - backend
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - aviakassa_net
 
