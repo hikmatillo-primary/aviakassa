@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect } from "react";
 import { Modal } from "./Modal";
-import { Plane, ArrowRightLeft } from "lucide-react";
 import { formatUSD, formatDate } from "@/lib/format";
 import { DatePicker } from "./DatePicker";
 import { PartnerSelect } from "./PartnerSelect";
+import { FlightBar } from "./FlightBar";
 
 interface SaleModalProps {
   isOpen: boolean;
@@ -234,33 +234,14 @@ export function SaleModal({
           </div>
         )}
 
-        {/* 2. REYS VA PARTIYA HAQIDA TUSHUNARLI MA'LUMOT KARTASI */}
+        {/* 2. REYS VA PARTIYA HAQIDA GDS FORMATIDAGI ANIQ MA'LUMOT KARTASI */}
         {selectedBatch && (
           <div className="bg-slate-50 dark:bg-slate-800/80 p-3.5 sm:p-4 rounded-2xl border border-slate-200/90 dark:border-slate-700 space-y-2.5 shadow-2xs">
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <div className="flex items-center gap-2.5">
-                <span className="p-2 sm:p-2.5 rounded-xl bg-blue-600 text-white shadow-xs">
-                  <Plane className="w-5 h-5" />
-                </span>
-                <div>
-                  <div className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
-                    {selectedBatch.route}
-                    {selectedBatch.isRoundTrip && (
-                      <span className="inline-flex items-center gap-1 text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-md bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300">
-                        <ArrowRightLeft className="w-3 h-3" /> Qaytish bilan
-                      </span>
-                    )}
-                  </div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400 font-medium flex items-center gap-2.5 flex-wrap mt-0.5">
-                    {selectedBatch.flightNumber && (
-                      <span>Reys: <b className="font-mono text-slate-700 dark:text-slate-200">{selectedBatch.flightNumber}</b></span>
-                    )}
-                    <span>Uchish: <b className="font-mono text-slate-700 dark:text-slate-200">{selectedBatch.departureTime || "--:--"}</b></span>
-                    <span>Qo‘nish: <b className="font-mono text-slate-700 dark:text-slate-200">{selectedBatch.arrivalTime || "--:--"}</b></span>
-                  </div>
-                </div>
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div className="min-w-0">
+                <FlightBar batch={selectedBatch} size="md" showSubtitle={false} />
               </div>
-              <div className="text-right">
+              <div className="text-right shrink-0">
                 <div className="text-[11px] text-slate-400 font-medium">Ombordagi qoldiq:</div>
                 <div className="text-base sm:text-xl font-black text-blue-600 dark:text-blue-400 tabular-nums">
                   {selectedBatch.remainingQty} <span className="text-xs font-semibold text-slate-500">ta</span>
@@ -268,17 +249,13 @@ export function SaleModal({
               </div>
             </div>
 
-            {selectedBatch.isRoundTrip && selectedBatch.returnDate && (
-              <div className="pt-2 border-t border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between text-xs text-indigo-700 dark:text-indigo-300">
-                <span className="flex items-center gap-1.5 font-semibold">
-                  <ArrowRightLeft className="w-3.5 h-3.5" /> Qaytish reysi: {selectedBatch.returnFlightNumber || "Mavjud"} ({formatDate(selectedBatch.returnDate, false)})
+            <div className="pt-2 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 font-medium border-t border-slate-200/40 dark:border-slate-700/40 flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-slate-700 dark:text-slate-300 font-bold bg-slate-200/70 dark:bg-white/[0.08] px-2 py-0.5 rounded">
+                  {selectedBatch.batchNumber || "---"}
                 </span>
-                <span className="font-mono">{selectedBatch.returnDepartureTime || "--:--"} → {selectedBatch.returnArrivalTime || "--:--"}</span>
+                <span>Marshrut: <strong className="text-slate-800 dark:text-slate-200">{selectedBatch.route}</strong></span>
               </div>
-            )}
-
-            <div className="pt-1.5 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 font-medium border-t border-slate-200/40 dark:border-slate-700/40">
-              <span>Parvoz sanasi: <strong className="text-slate-800 dark:text-slate-200">{formatDate(selectedBatch.flightDate, false)}</strong></span>
               <span>Tannarx: <strong className="text-slate-800 dark:text-slate-200 font-mono">{formatUSD(selectedBatch.buyPrice)}</strong></span>
             </div>
           </div>
