@@ -1,4 +1,5 @@
 from decimal import Decimal
+from django.contrib.auth import get_user_model
 from django.test import TestCase
 from rest_framework.test import APITestCase
 from rest_framework import status
@@ -123,6 +124,10 @@ class PartnerModelTests(TestCase):
 
 class PartnerAPITests(APITestCase):
     def setUp(self):
+        user = get_user_model().objects.create_user(
+            username="tester", password="test-pass-12345"
+        )
+        self.client.force_authenticate(user=user)
         self.client_partner = Partner.objects.create(
             name="Madina Tour",
             type=Partner.PartnerType.CLIENT

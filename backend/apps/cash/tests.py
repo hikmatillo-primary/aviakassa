@@ -1,4 +1,5 @@
 from decimal import Decimal
+from django.contrib.auth import get_user_model
 from django.test import TestCase
 from rest_framework.test import APITestCase
 from rest_framework import status
@@ -55,6 +56,10 @@ class CashModelTests(TestCase):
 
 class CashAPITests(APITestCase):
     def setUp(self):
+        user = get_user_model().objects.create_user(
+            username="tester", password="test-pass-12345"
+        )
+        self.client.force_authenticate(user=user)
         self.supplier = Partner.objects.create(
             name="Uzbekistan Airways",
             type=Partner.PartnerType.SUPPLIER
@@ -115,7 +120,7 @@ class CashAPITests(APITestCase):
             "type": "EXPENSE",
             "amount": 3000.0,
             "paymentDate": "2026-10-12",
-            "paymentMethod": "BANK_HISOB",
+            "paymentMethod": "BANK",
             "notes": "Partiya uchun to'lov"
         }
         res = self.client.post("/api/cash/payments/", payload, format="json")

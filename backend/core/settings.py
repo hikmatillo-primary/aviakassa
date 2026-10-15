@@ -160,6 +160,9 @@ REST_FRAMEWORK = {
     "PAGE_SIZE": 100,
     "DATETIME_FORMAT": "%Y-%m-%d %H:%M:%S",
     "DATE_FORMAT": "%Y-%m-%d",
+    "DEFAULT_THROTTLE_RATES": {
+        "login": os.environ.get("LOGIN_THROTTLE_RATE", "10/min"),
+    },
 }
 
 SIMPLE_JWT = {

@@ -16,10 +16,11 @@ class BatchSerializer(serializers.ModelSerializer):
     purchaseDate = serializers.DateField(source='purchase_date', required=False, allow_null=True)
     supplierId = serializers.PrimaryKeyRelatedField(source='supplier', queryset=Partner.objects.all())
     supplierName = serializers.CharField(source='supplier.name', read_only=True)
-    totalQty = serializers.IntegerField(source='total_qty')
-    remainingQty = serializers.IntegerField(source='remaining_qty', required=False)
-    buyPrice = serializers.FloatField(source='buy_price')
-    totalCost = serializers.FloatField(source='total_cost', required=False)
+    totalQty = serializers.IntegerField(source='total_qty', min_value=1)
+    remainingQty = serializers.IntegerField(source='remaining_qty', read_only=True)
+    buyPrice = serializers.FloatField(source='buy_price', min_value=0)
+    totalCost = serializers.FloatField(source='total_cost', read_only=True)
+    status = serializers.ChoiceField(choices=Batch.Status.choices, required=False)
     createdAt = serializers.DateTimeField(source='created_at', read_only=True)
 
     class Meta:
@@ -57,8 +58,14 @@ class BatchSerializer(serializers.ModelSerializer):
             if Batch.objects.filter(batch_number=validated_data['batch_number']).exists():
                 validated_data['batch_number'] = Batch.generate_next_batch_number()
 
-        if 'remaining_qty' not in validated_data:
-            validated_data['remaining_qty'] = validated_data['total_qty']
-        if 'total_cost' not in validated_data:
-            validated_data['total_cost'] = validated_data['buy_price'] * validated_data['total_qty']
+        validated_data['remaining_qty'] = validated_data['total_qty']
+        validated_data['total_cost'] = validated_data['buy_price'] * validated_data['total_qty']
         return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        # total_qty o'zgarsa, qoldiqni shu farqqa moslab o'zgartiramiz (sotilganlar saqlanadi)
+        if 'total_qty' in validated_data:
+            delta = validated_data['total_qty'] - instance.total_qty
+            if delta:
+                validated_data['remaining_qty'] = max(0, instance.remaining_qty + delta)
+        return super().update(instance, validated_data)

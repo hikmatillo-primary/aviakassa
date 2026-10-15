@@ -19,9 +19,9 @@ class SaleSerializer(serializers.ModelSerializer):
     returnDepartureTime = serializers.CharField(source='return_departure_time', required=False, allow_blank=True)
     returnArrivalTime = serializers.CharField(source='return_arrival_time', required=False, allow_blank=True)
 
-    buyPrice = serializers.FloatField(source='buy_price', required=False)
-    sellPrice = serializers.FloatField(source='sell_price')
-    totalAmount = serializers.FloatField(source='total_amount', required=False)
+    buyPrice = serializers.FloatField(source='buy_price', required=False, min_value=0)
+    sellPrice = serializers.FloatField(source='sell_price', min_value=0.01)
+    totalAmount = serializers.FloatField(source='total_amount', required=False, read_only=True)
     profit = serializers.FloatField(read_only=True)
     passengerNames = serializers.CharField(source='passenger_names', required=False, allow_blank=True)
     saleDate = serializers.DateField(source='sale_date')

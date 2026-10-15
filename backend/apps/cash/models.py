@@ -7,6 +7,8 @@ class Payment(models.Model):
         EXPENSE = 'EXPENSE', 'Chiqim (Vendor to\'lovi)'
 
     class PaymentMethod(models.TextChoices):
+        CASH = 'CASH', 'Naqd (Cash)'
+        BANK = 'BANK', 'Bank hisob raqami'
         NAQD_USD = 'NAQD_USD', 'Naqd ($ USD)'
         NAQD_UZS = 'NAQD_UZS', 'Naqd (UZS so\'m)'
         BANK_KARTA = 'BANK_KARTA', 'Bank / Karta'
@@ -28,7 +30,7 @@ class Payment(models.Model):
     payment_method = models.CharField(
         max_length=50,
         choices=PaymentMethod.choices,
-        default=PaymentMethod.NAQD_USD,
+        default=PaymentMethod.CASH,
         verbose_name="To'lov usuli"
     )
     notes = models.TextField(blank=True, null=True, verbose_name="Izoh")

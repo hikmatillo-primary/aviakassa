@@ -4,21 +4,79 @@ import { AviakassaData, Batch, DebtOffset, Partner, Payment, Sale } from "./stor
 // Kerak bo'lsa NEXT_PUBLIC_API_URL orqali to'liq manzil beriladi.
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
 
+const ACCESS_TOKEN_KEY = "aviakassa_access_token";
+const REFRESH_TOKEN_KEY = "aviakassa_refresh_token";
 
-async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
-  const url = `${API_BASE_URL}${endpoint}`;
-  const token = typeof window !== "undefined" ? localStorage.getItem("aviakassa_access_token") : null;
+export const UNAUTHORIZED_EVENT = "aviakassa:unauthorized";
+
+function getAccessToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(ACCESS_TOKEN_KEY);
+}
+
+function clearTokens(): void {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(ACCESS_TOKEN_KEY);
+  localStorage.removeItem(REFRESH_TOKEN_KEY);
+  localStorage.removeItem("aviakassa_user_info");
+}
+
+// Bir vaqtda bir nechta 401 kelganda faqat bitta refresh so'rovi yuboriladi.
+let refreshPromise: Promise<string | null> | null = null;
+
+async function refreshAccessToken(): Promise<string | null> {
+  if (typeof window === "undefined") return null;
+  const refresh = localStorage.getItem(REFRESH_TOKEN_KEY);
+  if (!refresh) return null;
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/auth/refresh/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ refresh }),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!data?.access) return null;
+    localStorage.setItem(ACCESS_TOKEN_KEY, data.access);
+    if (data.refresh) localStorage.setItem(REFRESH_TOKEN_KEY, data.refresh);
+    return data.access as string;
+  } catch {
+    return null;
+  }
+}
+
+async function rawRequest<T>(url: string, options: RequestInit, token: string | null): Promise<Response> {
   const authHeaders: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
-
-  const res = await fetch(url, {
+  return fetch(url, {
     ...options,
     headers: {
       "Content-Type": "application/json",
       Accept: "application/json",
       ...authHeaders,
-      ...(options?.headers || {}),
+      ...(options.headers || {}),
     },
   });
+}
+
+async function request<T>(endpoint: string, options?: RequestInit, allowRetry = true): Promise<T> {
+  const url = endpoint.startsWith("http") ? endpoint : `${API_BASE_URL}${endpoint}`;
+  const res = await rawRequest(url, options || {}, getAccessToken());
+
+  // Access token muddati o'tgan bo'lsa — refresh qilib, bir marta qayta urinamiz.
+  if (res.status === 401 && allowRetry && typeof window !== "undefined") {
+    if (!refreshPromise) {
+      refreshPromise = refreshAccessToken().finally(() => {
+        refreshPromise = null;
+      });
+    }
+    const newToken = await refreshPromise;
+    if (newToken) {
+      return request<T>(endpoint, options, false);
+    }
+    clearTokens();
+    window.dispatchEvent(new Event(UNAUTHORIZED_EVENT));
+  }
 
   if (!res.ok) {
     const errorText = await res.text().catch(() => "");
@@ -30,6 +88,28 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
   }
 
   return (await res.json()) as T;
+}
+
+/**
+ * DRF pagination'ini to'liq aylanib chiqadi (faqat birinchi sahifani emas).
+ */
+async function requestAll<T>(endpoint: string): Promise<T[]> {
+  const out: T[] = [];
+  let url: string | null = endpoint;
+  while (url) {
+    const data: T[] | { results?: T[]; next?: string | null } = await request(url);
+    if (Array.isArray(data)) {
+      out.push(...data);
+      break;
+    }
+    if (data && Array.isArray(data.results)) {
+      out.push(...data.results);
+      url = data.next ?? null;
+    } else {
+      break;
+    }
+  }
+  return out;
 }
 
 export async function checkBackendHealth(): Promise<boolean> {
@@ -46,31 +126,19 @@ export async function checkBackendHealth(): Promise<boolean> {
   }
 }
 
-function extractList<T>(data: any): T[] {
-  if (Array.isArray(data)) return data;
-  if (data && Array.isArray(data.results)) return data.results;
-  return [];
-}
-
 /**
  * Butun ma'lumotlar bazasini backenddan yuklash (Partners, Batches, Sales, Payments, DebtOffsets)
  */
 export async function apiFetchAll(): Promise<AviakassaData> {
-  const [partnersRes, batchesRes, salesRes, paymentsRes, debtOffsetsRes] = await Promise.all([
-    request<any>("/partners/"),
-    request<any>("/batches/"),
-    request<any>("/sales/"),
-    request<any>("/cash/payments/"),
-    request<any>("/cash/offsets/"),
+  const [partners, batches, sales, payments, debtOffsets] = await Promise.all([
+    requestAll<Partner>("/partners/"),
+    requestAll<Batch>("/batches/"),
+    requestAll<Sale>("/sales/"),
+    requestAll<Payment>("/cash/payments/"),
+    requestAll<DebtOffset>("/cash/offsets/"),
   ]);
 
-  return {
-    partners: extractList<Partner>(partnersRes),
-    batches: extractList<Batch>(batchesRes),
-    sales: extractList<Sale>(salesRes),
-    payments: extractList<Payment>(paymentsRes),
-    debtOffsets: extractList<DebtOffset>(debtOffsetsRes),
-  };
+  return { partners, batches, sales, payments, debtOffsets };
 }
 
 
@@ -153,4 +221,18 @@ export async function apiCreateDebtOffset(offset: Partial<DebtOffset>): Promise<
 
 export async function apiDeleteDebtOffset(id: number): Promise<void> {
   await request<void>(`/cash/offsets/${id}/`, { method: "DELETE" });
+}
+
+// ================= Backup / Restore =================
+export async function apiImportData(
+  payload: AviakassaData
+): Promise<{ created: Record<string, number> }> {
+  return request<{ created: Record<string, number> }>("/data/import/", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function apiResetData(): Promise<void> {
+  await request<void>("/data/reset/", { method: "POST" });
 }

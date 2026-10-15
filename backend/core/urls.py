@@ -3,10 +3,23 @@ from django.urls import path, include
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
+from rest_framework.throttling import AnonRateThrottle
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
 )
+
+from .data_views import import_data, reset_data
+
+
+class LoginRateThrottle(AnonRateThrottle):
+    scope = "login"
+
+
+class ThrottledTokenObtainPairView(TokenObtainPairView):
+    """Brute-force hujumlariga qarshi login endpointi uchun rate-limit."""
+    throttle_classes = [LoginRateThrottle]
+
 
 @api_view(["GET"])
 @permission_classes([AllowAny])
@@ -30,12 +43,14 @@ def current_user(request):
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/health/", health_check, name="health-check"),
-    path("api/auth/login/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
+    path("api/auth/login/", ThrottledTokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("api/auth/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("api/auth/user/", current_user, name="current_user"),
     path("api/partners/", include("apps.partners.urls")),
     path("api/batches/", include("apps.flights.urls")),
     path("api/sales/", include("apps.sales.urls")),
     path("api/cash/", include("apps.cash.urls")),
+    path("api/data/import/", import_data, name="data-import"),
+    path("api/data/reset/", reset_data, name="data-reset"),
 ]
 

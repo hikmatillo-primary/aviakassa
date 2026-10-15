@@ -1,4 +1,5 @@
 from decimal import Decimal
+from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.core.exceptions import ValidationError
 from rest_framework.test import APITestCase
@@ -114,6 +115,10 @@ class SaleModelTests(TestCase):
 
 class SaleAPITests(APITestCase):
     def setUp(self):
+        user = get_user_model().objects.create_user(
+            username="tester", password="test-pass-12345"
+        )
+        self.client.force_authenticate(user=user)
         self.supplier = Partner.objects.create(
             name="Air Arabia",
             type=Partner.PartnerType.SUPPLIER

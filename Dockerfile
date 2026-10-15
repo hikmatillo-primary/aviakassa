@@ -4,8 +4,8 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 # Keshdan unumli foydalanish uchun dependency fayllarini alohida nusxalash
-COPY package.json package-lock.json* ./
-RUN npm install
+COPY package.json package-lock.json ./
+RUN npm ci
 
 # Barcha frontend fayllarini ko'chirish va yig'ish
 COPY . .

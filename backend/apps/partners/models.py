@@ -1,5 +1,4 @@
 from django.db import models
-from django.db.models import Sum
 
 class Partner(models.Model):
     class PartnerType(models.TextChoices):
@@ -27,41 +26,38 @@ class Partner(models.Model):
     def __str__(self):
         return self.name
 
+    # Eslatma: bu xossalar Python tomonida hisoblanadi (prefetch_related bilan N+1
+    # so'rovlarning oldi olinadi). ViewSet'da `prefetch_related` ishlatiladi.
+
     @property
     def total_sold_to_us(self) -> float:
         """Ushbu hamkordan sotib olingan partiyalar summasi (Vendor sifatida)."""
-        val = self.batches.aggregate(total=Sum('total_cost'))['total']
-        return float(val or 0)
+        return float(sum((b.total_cost or 0) for b in self.batches.all()))
 
     @property
     def total_paid_by_us(self) -> float:
         """Biz ushbu hamkorga to'lagan xarajatlarimiz (Vendor ga to'lov)."""
-        val = self.payments.filter(type='EXPENSE').aggregate(total=Sum('amount'))['total']
-        return float(val or 0)
+        return float(sum((p.amount or 0) for p in self.payments.all() if p.type == 'EXPENSE'))
 
     @property
     def total_bought_from_us(self) -> float:
         """Ushbu hamkor bizdan xarid qilgan chiptalar summasi (Mijoz sifatida)."""
-        val = self.sales.aggregate(total=Sum('total_amount'))['total']
-        return float(val or 0)
+        return float(sum((s.total_amount or 0) for s in self.sales.all()))
 
     @property
     def total_paid_to_us(self) -> float:
         """Ushbu hamkor bizga to'lagan tushumlar (Mijoz to'lovi)."""
-        val = self.payments.filter(type='INCOME').aggregate(total=Sum('amount'))['total']
-        return float(val or 0)
+        return float(sum((p.amount or 0) for p in self.payments.all() if p.type == 'INCOME'))
 
     @property
     def total_offset_from(self) -> float:
         """Ushbu hamkordan boshqa hamkorga surilgan qarz summasi."""
-        val = self.offsets_from.aggregate(total=Sum('amount'))['total']
-        return float(val or 0)
+        return float(sum((o.amount or 0) for o in self.offsets_from.all()))
 
     @property
     def total_offset_to(self) -> float:
         """Boshqa hamkordan ushbu hamkor foydasiga o'tkazilgan qarz summasi."""
-        val = self.offsets_to.aggregate(total=Sum('amount'))['total']
-        return float(val or 0)
+        return float(sum((o.amount or 0) for o in self.offsets_to.all()))
 
     @property
     def net_balance(self) -> float:

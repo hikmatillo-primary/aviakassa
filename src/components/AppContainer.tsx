@@ -9,7 +9,7 @@ import { PartnersView } from "./PartnersView";
 import { SalesView } from "./SalesView";
 import { PaymentsView } from "./PaymentsView";
 import { SaleModal } from "./SaleModal";
-import { BatchModal, getNextBatchNumber } from "./BatchModal";
+import { BatchModal } from "./BatchModal";
 import { PaymentModal } from "./PaymentModal";
 import { PartnerModal } from "./PartnerModal";
 import { PartnerHistoryModal } from "./PartnerHistoryModal";
@@ -39,6 +39,9 @@ import {
   apiCreatePayment,
   apiCreatePartner,
   apiCreateDebtOffset,
+  apiImportData,
+  apiResetData,
+  UNAUTHORIZED_EVENT,
 } from "@/lib/api";
 import { LoginView } from "./LoginView";
 import { getStoredUser, isAuthenticated, logoutUser, AuthUser } from "@/lib/auth";
@@ -143,10 +146,34 @@ export function AppContainer() {
       });
   }, [currentUser]);
 
+  // Token muddati tugaganda (401) avtomatik chiqarish
+  useEffect(() => {
+    const onUnauthorized = () => {
+      logoutUser();
+      setCurrentUser(null);
+      showToast("Sessiya muddati tugadi. Iltimos, qayta kiring.", "warning");
+    };
+    window.addEventListener(UNAUTHORIZED_EVENT, onUnauthorized);
+    return () => window.removeEventListener(UNAUTHORIZED_EVENT, onUnauthorized);
+  }, []);
+
   const handleLogout = () => {
     logoutUser();
     setCurrentUser(null);
     showToast("Tizimdan muvaffaqiyatli chiqildi!", "info");
+  };
+
+  // Serverdan eng so'nggi holatni yuklash (yagona haqiqat manbai = server)
+  const syncFromServer = async (): Promise<boolean> => {
+    try {
+      const synced = await apiFetchAll();
+      setData(synced);
+      saveData(synced);
+      return true;
+    } catch (e) {
+      console.warn("Serverdan ma'lumot yuklashda xato:", e);
+      return false;
+    }
   };
 
   const updateData = (newData: AviakassaData) => {
@@ -248,48 +275,31 @@ export function AppContainer() {
     setIsDebtOffsetModalOpen(true);
   };
 
-  const handleAddDebtOffset = (offsetInput: {
+  const handleAddDebtOffset = async (offsetInput: {
     fromPartnerId: number;
     toPartnerId: number;
     amount: number;
     date: string;
     notes: string;
   }) => {
-    const newOffset: DebtOffset = {
-      id: Date.now(),
-      fromPartnerId: offsetInput.fromPartnerId,
-      toPartnerId: offsetInput.toPartnerId,
-      amount: offsetInput.amount,
-      date: offsetInput.date,
-      notes: offsetInput.notes,
-      createdAt: new Date().toISOString(),
-    };
-
-    updateData({
-      ...data,
-      debtOffsets: [newOffset, ...(data.debtOffsets || [])],
-    });
-    showToast("O‘zaro qarz muvaffaqiyatli surildi! 🔄");
-
-    (async () => {
-      try {
-        await apiCreateDebtOffset({
-          fromPartnerId: offsetInput.fromPartnerId,
-          toPartnerId: offsetInput.toPartnerId,
-          amount: offsetInput.amount,
-          date: offsetInput.date,
-          notes: offsetInput.notes,
-        });
-        const synced = await apiFetchAll();
-        updateData(synced);
-      } catch (e) {
-        console.warn("Backendga o'zaro qarz saqlashda xato:", e);
-      }
-    })();
+    try {
+      await apiCreateDebtOffset({
+        fromPartnerId: offsetInput.fromPartnerId,
+        toPartnerId: offsetInput.toPartnerId,
+        amount: offsetInput.amount,
+        date: offsetInput.date,
+        notes: offsetInput.notes,
+      });
+      await syncFromServer();
+      showToast("O‘zaro qarz muvaffaqiyatli surildi! 🔄");
+    } catch (e) {
+      console.error("O'zaro qarz saqlashda xato:", e);
+      showToast("O‘zaro qarzni saqlab bo'lmadi. Qayta urinib ko'ring.", "warning");
+    }
   };
 
   // CRUD Operations
-  const handleAddSale = (saleInput: {
+  const handleAddSale = async (saleInput: {
     clientId: number;
     saleDate: string;
     paidNow: number;
@@ -309,117 +319,50 @@ export function AppContainer() {
       returnArrivalTime?: string;
     }>;
   }) => {
-    const newSales: Sale[] = [];
-    let updatedBatches = [...data.batches];
     const routeNames: string[] = [];
+    try {
+      for (const item of saleInput.items) {
+        if (!item.batchId || item.qty <= 0) continue;
+        const targetBatch = data.batches.find((b) => b.id === item.batchId);
+        if (targetBatch) routeNames.push(targetBatch.route);
 
-    saleInput.items.forEach((item, index) => {
-      const targetBatch = updatedBatches.find((b) => b.id === item.batchId);
-      if (!targetBatch || item.qty <= 0) return;
-
-      const totalAmount = item.qty * item.sellPrice;
-      const profit = totalAmount - item.qty * targetBatch.buyPrice;
-      routeNames.push(targetBatch.route);
-
-      const newSale: Sale = {
-        id: Date.now() + index,
-        batchId: item.batchId,
-        clientId: saleInput.clientId,
-        qty: item.qty,
-        sellPrice: item.sellPrice,
-        totalAmount,
-        profit,
-        departureTime: item.departureTime || targetBatch.departureTime || "",
-        arrivalTime: item.arrivalTime || targetBatch.arrivalTime || "",
-        isRoundTrip: item.isRoundTrip ?? targetBatch.isRoundTrip ?? false,
-        returnDate: item.returnDate || targetBatch.returnDate || "",
-        returnFlightNumber: item.returnFlightNumber || targetBatch.returnFlightNumber || "",
-        returnDepartureTime:
-          item.returnDepartureTime || targetBatch.returnDepartureTime || "",
-        returnArrivalTime:
-          item.returnArrivalTime || targetBatch.returnArrivalTime || "",
-        passengerNames: item.passengerNames || "",
-        saleDate: saleInput.saleDate,
-        notes: saleInput.notes,
-        createdAt: new Date().toISOString(),
-      };
-      newSales.push(newSale);
-
-      updatedBatches = updatedBatches.map((b) => {
-        if (b.id === item.batchId) {
-          const remainingQty = Math.max(0, b.remainingQty - item.qty);
-          return {
-            ...b,
-            remainingQty,
-            status: remainingQty === 0 ? ("COMPLETED" as const) : b.status,
-          };
-        }
-        return b;
-      });
-    });
-
-    const newPayments = [...data.payments];
-    if (saleInput.paidNow > 0) {
-      newPayments.unshift({
-        id: Date.now() + 100,
-        partnerId: saleInput.clientId,
-        type: "INCOME",
-        amount: saleInput.paidNow,
-        paymentDate: saleInput.saleDate,
-        paymentMethod: saleInput.paymentMethod,
-        notes: `Chiptalar sotuvi uchun to'lov (${routeNames.join(", ")})`,
-        createdAt: new Date().toISOString(),
-      });
-    }
-
-    updateData({
-      ...data,
-      batches: updatedBatches,
-      sales: [...newSales, ...data.sales],
-      payments: newPayments,
-    });
-    showToast("Chipta sotuvi muvaffaqiyatli saqlandi! 🎉");
-
-    (async () => {
-      try {
-        for (const item of saleInput.items) {
-          await apiCreateSale({
-            batchId: item.batchId,
-            clientId: saleInput.clientId,
-            qty: item.qty,
-            sellPrice: item.sellPrice,
-            passengerNames: item.passengerNames || "",
-            saleDate: saleInput.saleDate,
-            departureTime: item.departureTime,
-            arrivalTime: item.arrivalTime,
-            isRoundTrip: item.isRoundTrip,
-            returnDate: item.returnDate,
-            returnFlightNumber: item.returnFlightNumber,
-            returnDepartureTime: item.returnDepartureTime,
-            returnArrivalTime: item.returnArrivalTime,
-            notes: saleInput.notes,
-          });
-        }
-        if (saleInput.paidNow > 0) {
-          await apiCreatePayment({
-            partnerId: saleInput.clientId,
-            type: "INCOME",
-            amount: saleInput.paidNow,
-            paymentDate: saleInput.saleDate,
-            paymentMethod: saleInput.paymentMethod,
-            notes: `Chiptalar sotuvi uchun to'lov (${routeNames.join(", ")})`,
-          });
-        }
-        const synced = await apiFetchAll();
-        updateData(synced);
-      } catch (e) {
-        console.error("Backendga sotuv saqlashda xato:", e);
-        showToast("Server bilan sinxronizatsiyada xatolik yuz berdi!", "warning");
+        await apiCreateSale({
+          batchId: item.batchId,
+          clientId: saleInput.clientId,
+          qty: item.qty,
+          sellPrice: item.sellPrice,
+          passengerNames: item.passengerNames || "",
+          saleDate: saleInput.saleDate,
+          departureTime: item.departureTime,
+          arrivalTime: item.arrivalTime,
+          isRoundTrip: item.isRoundTrip,
+          returnDate: item.returnDate,
+          returnFlightNumber: item.returnFlightNumber,
+          returnDepartureTime: item.returnDepartureTime,
+          returnArrivalTime: item.returnArrivalTime,
+          notes: saleInput.notes,
+        });
       }
-    })();
+      if (saleInput.paidNow > 0) {
+        await apiCreatePayment({
+          partnerId: saleInput.clientId,
+          type: "INCOME",
+          amount: saleInput.paidNow,
+          paymentDate: saleInput.saleDate,
+          paymentMethod: saleInput.paymentMethod,
+          notes: `Chiptalar sotuvi uchun to'lov (${routeNames.join(", ")})`,
+        });
+      }
+      await syncFromServer();
+      showToast("Chipta sotuvi muvaffaqiyatli saqlandi! 🎉");
+    } catch (e) {
+      console.error("Sotuvni saqlashda xato:", e);
+      await syncFromServer();
+      showToast("Sotuvni saqlab bo'lmadi! Ma'lumotlar serverdan yangilandi.", "warning");
+    }
   };
 
-  const handleAddBatch = (batchInput: {
+  const handleAddBatch = async (batchInput: {
     supplierId: number;
     purchaseDate?: string;
     paidNow?: number;
@@ -443,126 +386,60 @@ export function AppContainer() {
       batchNumber?: string;
     }>;
   }) => {
-    const newBatches: Batch[] = [];
     const routeNames: string[] = [];
-    const baseId = Date.now();
+    try {
+      for (const item of batchInput.items) {
+        routeNames.push(item.route);
+        const fullNotes = [
+          item.baggage ? `Bagaj: ${item.baggage}` : null,
+          item.notes ? item.notes.trim() : null,
+        ]
+          .filter(Boolean)
+          .join(" • ");
 
-    batchInput.items.forEach((item, index) => {
-      // Auto-generate batch number if empty or duplicate
-      let batchNum = item.batchNumber?.trim();
-      const allKnown = [...data.batches, ...newBatches];
-      if (!batchNum || allKnown.some((b) => b.batchNumber === batchNum)) {
-        batchNum = getNextBatchNumber(allKnown, 0);
+        await apiCreateBatch({
+          supplierId: batchInput.supplierId,
+          route: item.route,
+          flightDate: item.flightDate,
+          flightNumber: item.flightNumber ? item.flightNumber.trim().toUpperCase() : "",
+          departureTime: item.departureTime,
+          arrivalTime: item.arrivalTime,
+          isRoundTrip: Boolean(item.isRoundTrip),
+          returnDate: item.isRoundTrip ? item.returnDate : undefined,
+          returnFlightNumber: item.isRoundTrip ? item.returnFlightNumber : undefined,
+          returnDepartureTime: item.isRoundTrip ? item.returnDepartureTime : undefined,
+          returnArrivalTime: item.isRoundTrip ? item.returnArrivalTime : undefined,
+          purchaseDate: batchInput.purchaseDate || new Date().toISOString().split("T")[0],
+          baggage: item.baggage,
+          totalQty: item.totalQty,
+          buyPrice: item.buyPrice,
+          notes: fullNotes,
+          batchNumber: item.batchNumber?.trim() || undefined,
+        });
       }
-
-      const fullNotes = [
-        item.baggage ? `Bagaj: ${item.baggage}` : null,
-        item.notes ? item.notes.trim() : null,
-      ]
-        .filter(Boolean)
-        .join(" • ");
-
-      const newBatch: Batch = {
-        id: baseId + index,
-        batchNumber: batchNum,
-        route: item.route,
-        flightDate: item.flightDate,
-        flightNumber: item.flightNumber ? item.flightNumber.trim().toUpperCase() : "",
-        departureTime: item.departureTime,
-        arrivalTime: item.arrivalTime,
-        isRoundTrip: Boolean(item.isRoundTrip),
-        returnDate: item.isRoundTrip ? item.returnDate : undefined,
-        returnFlightNumber: item.isRoundTrip ? item.returnFlightNumber : undefined,
-        returnDepartureTime: item.isRoundTrip ? item.returnDepartureTime : undefined,
-        returnArrivalTime: item.isRoundTrip ? item.returnArrivalTime : undefined,
-        purchaseDate: batchInput.purchaseDate || new Date().toISOString().split("T")[0],
-        baggage: item.baggage,
-        supplierId: batchInput.supplierId,
-        totalQty: item.totalQty,
-        remainingQty: item.totalQty,
-        buyPrice: item.buyPrice,
-        totalCost: item.totalQty * item.buyPrice,
-        status: "ACTIVE",
-        notes: fullNotes,
-        createdAt: new Date().toISOString(),
-      };
-      newBatches.push(newBatch);
-      routeNames.push(item.route);
-    });
-
-    const newPayments = [...data.payments];
-    if (batchInput.paidNow && batchInput.paidNow > 0) {
-      newPayments.unshift({
-        id: baseId + 500,
-        partnerId: batchInput.supplierId,
-        type: "EXPENSE",
-        amount: batchInput.paidNow,
-        paymentDate:
-          batchInput.purchaseDate ||
-          newBatches[0]?.flightDate ||
-          new Date().toISOString().split("T")[0],
-        paymentMethod: batchInput.paymentMethod || "CASH",
-        notes: `Partiyalar xaridi uchun to'lov (${routeNames.join(", ")})`,
-        createdAt: new Date().toISOString(),
-      });
+      if (batchInput.paidNow && batchInput.paidNow > 0) {
+        await apiCreatePayment({
+          partnerId: batchInput.supplierId,
+          type: "EXPENSE",
+          amount: batchInput.paidNow,
+          paymentDate:
+            batchInput.purchaseDate ||
+            batchInput.items[0]?.flightDate ||
+            new Date().toISOString().split("T")[0],
+          paymentMethod: batchInput.paymentMethod || "CASH",
+          notes: `Partiyalar xaridi uchun to'lov (${routeNames.join(", ")})`,
+        });
+      }
+      await syncFromServer();
+      showToast("Yangi partiya omborga kiritildi! ✈️");
+    } catch (e) {
+      console.error("Partiyani saqlashda xato:", e);
+      await syncFromServer();
+      showToast("Partiyani saqlab bo'lmadi! Ma'lumotlar serverdan yangilandi.", "warning");
     }
-
-    updateData({
-      ...data,
-      batches: [...newBatches, ...data.batches],
-      payments: newPayments,
-    });
-    showToast("Yangi partiya omborga kiritildi! ✈️");
-
-    (async () => {
-      try {
-        for (let i = 0; i < batchInput.items.length; i++) {
-          const item = batchInput.items[i];
-          const createdBatch = newBatches[i];
-          await apiCreateBatch({
-            supplierId: batchInput.supplierId,
-            route: item.route,
-            flightDate: item.flightDate,
-            flightNumber: item.flightNumber ? item.flightNumber.trim().toUpperCase() : "",
-            departureTime: item.departureTime,
-            arrivalTime: item.arrivalTime,
-            isRoundTrip: Boolean(item.isRoundTrip),
-            returnDate: item.isRoundTrip ? item.returnDate : undefined,
-            returnFlightNumber: item.isRoundTrip ? item.returnFlightNumber : undefined,
-            returnDepartureTime: item.isRoundTrip ? item.returnDepartureTime : undefined,
-            returnArrivalTime: item.isRoundTrip ? item.returnArrivalTime : undefined,
-            purchaseDate: batchInput.purchaseDate || new Date().toISOString().split("T")[0],
-            baggage: item.baggage,
-            totalQty: item.totalQty,
-            remainingQty: item.totalQty,
-            buyPrice: item.buyPrice,
-            status: "ACTIVE",
-            notes: item.notes,
-            batchNumber: createdBatch?.batchNumber || item.batchNumber,
-          });
-        }
-        if (batchInput.paidNow && batchInput.paidNow > 0) {
-          await apiCreatePayment({
-            partnerId: batchInput.supplierId,
-            type: "EXPENSE",
-            amount: batchInput.paidNow,
-            paymentDate:
-              batchInput.purchaseDate ||
-              newBatches[0]?.flightDate ||
-              new Date().toISOString().split("T")[0],
-            paymentMethod: batchInput.paymentMethod || "CASH",
-            notes: `Partiyalar xaridi uchun to'lov (${routeNames.join(", ")})`,
-          });
-        }
-        const synced = await apiFetchAll();
-        updateData(synced);
-      } catch (e) {
-        console.warn("Backendga partiya saqlashda xato:", e);
-      }
-    })();
   };
 
-  const handleAddPayment = (paymentInput: {
+  const handleAddPayment = async (paymentInput: {
     partnerId: number;
     type: "INCOME" | "EXPENSE";
     amount: number;
@@ -570,207 +447,96 @@ export function AppContainer() {
     paymentMethod: string;
     notes: string;
   }) => {
-    const newPayment: Payment = {
-      id: Date.now(),
-      partnerId: paymentInput.partnerId,
-      type: paymentInput.type,
-      amount: paymentInput.amount,
-      paymentDate: paymentInput.paymentDate,
-      paymentMethod: paymentInput.paymentMethod,
-      notes: paymentInput.notes,
-      createdAt: new Date().toISOString(),
-    };
-
-    updateData({
-      ...data,
-      payments: [newPayment, ...data.payments],
-    });
-    showToast(
-      paymentInput.type === "INCOME"
-        ? "Kassa kirimi muvaffaqiyatli saqlandi! 💵"
-        : "Kassa chiqimi muvaffaqiyatli saqlandi! 💸"
-    );
-
-    (async () => {
-      try {
-        await apiCreatePayment({
-          partnerId: paymentInput.partnerId,
-          type: paymentInput.type,
-          amount: paymentInput.amount,
-          paymentDate: paymentInput.paymentDate,
-          paymentMethod: paymentInput.paymentMethod,
-          notes: paymentInput.notes,
-        });
-        const synced = await apiFetchAll();
-        updateData(synced);
-      } catch (e) {
-        console.warn("Backendga to'lov saqlashda xato:", e);
-      }
-    })();
+    try {
+      await apiCreatePayment({
+        partnerId: paymentInput.partnerId,
+        type: paymentInput.type,
+        amount: paymentInput.amount,
+        paymentDate: paymentInput.paymentDate,
+        paymentMethod: paymentInput.paymentMethod,
+        notes: paymentInput.notes,
+      });
+      await syncFromServer();
+      showToast(
+        paymentInput.type === "INCOME"
+          ? "Kassa kirimi muvaffaqiyatli saqlandi! 💵"
+          : "Kassa chiqimi muvaffaqiyatli saqlandi! 💸"
+      );
+    } catch (e) {
+      console.error("To'lovni saqlashda xato:", e);
+      showToast("To'lovni saqlab bo'lmadi! Qayta urinib ko'ring.", "warning");
+    }
   };
 
-  const handleAddPartner = (partnerInput: {
+  const handleAddPartner = async (partnerInput: {
     name: string;
     type?: "SUPPLIER" | "CLIENT";
     tags?: string[];
     phone: string;
     notes: string;
   }) => {
-    const newPartner: Partner = {
-      id: Date.now(),
-      name: partnerInput.name,
-      type: partnerInput.type || "CLIENT",
-      tags: partnerInput.tags || [],
-      phone: partnerInput.phone,
-      notes: partnerInput.notes,
-      createdAt: new Date().toISOString(),
-    };
-
-    setLastCreatedPartnerId(newPartner.id);
-    updateData({
-      ...data,
-      partners: [...data.partners, newPartner],
-    });
-    showToast("Yangi hamkor muvaffaqiyatli qo‘shildi! 🤝");
-
-    (async () => {
-      try {
-        await apiCreatePartner({
-          name: partnerInput.name,
-          type: partnerInput.type || "CLIENT",
-          tags: partnerInput.tags || [],
-          phone: partnerInput.phone,
-          notes: partnerInput.notes,
-        });
-        const synced = await apiFetchAll();
-        updateData(synced);
-      } catch (e) {
-        console.warn("Backendga hamkor saqlashda xato:", e);
-      }
-    })();
+    try {
+      const created = await apiCreatePartner({
+        name: partnerInput.name,
+        type: partnerInput.type || "CLIENT",
+        tags: partnerInput.tags || [],
+        phone: partnerInput.phone,
+        notes: partnerInput.notes,
+      });
+      setLastCreatedPartnerId(created.id);
+      await syncFromServer();
+      showToast("Yangi hamkor muvaffaqiyatli qo‘shildi! 🤝");
+    } catch (e) {
+      console.error("Hamkorni saqlashda xato:", e);
+      showToast("Hamkorni saqlab bo'lmadi! Qayta urinib ko'ring.", "warning");
+    }
   };
 
-  const handleToggleBatchStatus = (id: number) => {
-    let nextStatus: "ACTIVE" | "COMPLETED" = "ACTIVE";
-    const updatedBatches = data.batches.map((b) => {
-      if (b.id === id) {
-        nextStatus = b.status === "ACTIVE" ? "COMPLETED" : "ACTIVE";
-        return {
-          ...b,
-          status: nextStatus,
-        };
-      }
-      return b;
-    });
-
-    updateData({
-      ...data,
-      batches: updatedBatches,
-    });
-    showToast("Partiya holati yangilandi!");
-
-    (async () => {
-      try {
-        await apiUpdateBatch(id, { status: nextStatus });
-        const synced = await apiFetchAll();
-        updateData(synced);
-      } catch (e) {
-        console.warn("Backendga partiya holati yangilashda xato:", e);
-      }
-    })();
+  const handleToggleBatchStatus = async (id: number) => {
+    const batch = data.batches.find((b) => b.id === id);
+    if (!batch) return;
+    const nextStatus = batch.status === "ACTIVE" ? "COMPLETED" : "ACTIVE";
+    try {
+      await apiUpdateBatch(id, { status: nextStatus });
+      await syncFromServer();
+      showToast("Partiya holati yangilandi!");
+    } catch (e) {
+      console.error("Partiya holatini yangilashda xato:", e);
+      showToast("Partiya holatini o'zgartirib bo'lmadi.", "warning");
+    }
   };
 
   // Xarid narxi va sonini tahrirlash (Kompaniya hisob-kitobi va sof foydani qayta hisoblaydi)
-  const handleUpdateBatchPrice = (batchId: number, newBuyPrice: number, newTotalQty: number) => {
-    const updatedBatches = data.batches.map((b) => {
-      if (b.id === batchId) {
-        return {
-          ...b,
-          buyPrice: newBuyPrice,
-          totalQty: newTotalQty,
-          totalCost: newTotalQty * newBuyPrice,
-        };
-      }
-      return b;
-    });
-
-    const updatedSales = data.sales.map((s) => {
-      if (s.batchId === batchId) {
-        return {
-          ...s,
-          buyPrice: newBuyPrice,
-          profit: s.qty * s.sellPrice - s.qty * newBuyPrice,
-        };
-      }
-      return s;
-    });
-
-    updateData({
-      ...data,
-      batches: updatedBatches,
-      sales: updatedSales,
-    });
-    showToast("Partiya ma'lumotlari yangilandi!");
-
-    (async () => {
-      try {
-        await apiUpdateBatch(batchId, {
-          buyPrice: newBuyPrice,
-          totalQty: newTotalQty,
-          totalCost: newTotalQty * newBuyPrice,
-        });
-        const synced = await apiFetchAll();
-        updateData(synced);
-      } catch (e) {
-        console.warn("Backendga partiya narxi yangilashda xato:", e);
-      }
-    })();
+  const handleUpdateBatchPrice = async (batchId: number, newBuyPrice: number, newTotalQty: number) => {
+    try {
+      await apiUpdateBatch(batchId, { buyPrice: newBuyPrice, totalQty: newTotalQty });
+      await syncFromServer();
+      showToast("Partiya ma'lumotlari yangilandi!");
+    } catch (e) {
+      console.error("Partiya ma'lumotlarini yangilashda xato:", e);
+      showToast("Partiya ma'lumotlarini yangilab bo'lmadi.", "warning");
+    }
   };
 
   // Sotuv narxi va sonini tahrirlash (Mijoz hisob-kitobi va sof foydani qayta hisoblaydi)
-  const handleUpdateSalePrice = (
+  const handleUpdateSalePrice = async (
     saleId: number,
     newSellPrice: number,
     newQty: number,
     newPassengerNames: string
   ) => {
-    const updatedSales = data.sales.map((s) => {
-      if (s.id === saleId) {
-        const currentBatch = data.batches.find((b) => b.id === s.batchId);
-        const currentBuyPrice = currentBatch ? currentBatch.buyPrice : (s.buyPrice || 0);
-        const newTotalAmount = newQty * newSellPrice;
-        return {
-          ...s,
-          sellPrice: newSellPrice,
-          qty: newQty,
-          passengerNames: newPassengerNames,
-          buyPrice: currentBuyPrice,
-          totalAmount: newTotalAmount,
-          profit: newTotalAmount - newQty * currentBuyPrice,
-        };
-      }
-      return s;
-    });
-
-    updateData({
-      ...data,
-      sales: updatedSales,
-    });
-    showToast("Sotuv ma'lumotlari yangilandi!");
-
-    (async () => {
-      try {
-        await apiUpdateSale(saleId, {
-          sellPrice: newSellPrice,
-          qty: newQty,
-          passengerNames: newPassengerNames,
-        });
-        const synced = await apiFetchAll();
-        updateData(synced);
-      } catch (e) {
-        console.warn("Backendga sotuv narxi yangilashda xato:", e);
-      }
-    })();
+    try {
+      await apiUpdateSale(saleId, {
+        sellPrice: newSellPrice,
+        qty: newQty,
+        passengerNames: newPassengerNames,
+      });
+      await syncFromServer();
+      showToast("Sotuv ma'lumotlari yangilandi!");
+    } catch (e) {
+      console.error("Sotuv ma'lumotlarini yangilashda xato:", e);
+      showToast("Sotuv ma'lumotlarini yangilab bo'lmadi.", "warning");
+    }
   };
 
   // Backup & Restore
@@ -792,7 +558,7 @@ export function AppContainer() {
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       try {
         const parsed = JSON.parse(event.target?.result as string);
         if (
@@ -804,27 +570,36 @@ export function AppContainer() {
         ) {
           if (
             window.confirm(
-              "Fayldagi zaxira nusxa yuklansinmi? Hozirgi ma'lumotlar yangilanadi."
+              "Fayldagi zaxira nusxa yuklansinmi? Hozirgi ma'lumotlar serverda yangilanadi."
             )
           ) {
-            updateData(parsed);
+            await apiImportData(parsed as AviakassaData);
+            await syncFromServer();
             showToast("Zaxira nusxa muvaffaqiyatli tiklandi! 📦");
           }
         } else {
           showToast("Fayl formati mos kelmadi! Aviakassa JSON faylini tanlang.", "warning");
         }
       } catch (err) {
-        showToast("Faylni o'qishda xatolik yuz berdi!", "warning");
+        console.error("Zaxira nusxani tiklashda xato:", err);
+        showToast("Zaxira nusxani tiklab bo'lmadi!", "warning");
       }
     };
     reader.readAsText(file);
     e.target.value = "";
   };
 
-  const handleResetDemo = () => {
-    if (window.confirm("Barcha ma'lumotlar tozalanib, bo'sh holatga o'tkazilsinmi?")) {
-      updateData(EMPTY_AVIAKASSA_DATA);
+  const handleResetDemo = async () => {
+    if (!window.confirm("Barcha ma'lumotlar serverdan o'chirilib, bo'sh holatga o'tkazilsinmi?")) {
+      return;
+    }
+    try {
+      await apiResetData();
+      await syncFromServer();
       showToast("Barcha ma'lumotlar tozalandi! 🧹", "info");
+    } catch (err) {
+      console.error("Ma'lumotlarni tozalashda xato:", err);
+      showToast("Ma'lumotlarni tozalab bo'lmadi!", "warning");
     }
   };
 

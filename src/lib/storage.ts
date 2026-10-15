@@ -307,7 +307,8 @@ export function calculateEnrichedData(data: AviakassaData) {
   // Enrich batches with supplier names & live totalCost
   const enrichedBatches = batches.map((b) => {
     const supplier = partners.find((p) => p.id === b.supplierId);
-    const totalCost = (b.totalQty || 0) * (b.buyPrice || 0);
+    const computedCost = (b.totalQty || 0) * (b.buyPrice || 0);
+    const totalCost = typeof b.totalCost === "number" ? b.totalCost : computedCost;
     return {
       ...b,
       purchaseDate: b.purchaseDate || b.createdAt?.split("T")[0] || "-",
@@ -320,9 +321,14 @@ export function calculateEnrichedData(data: AviakassaData) {
   const enrichedSales = sales.map((s) => {
     const client = partners.find((p) => p.id === s.clientId);
     const batch = batches.find((b) => b.id === s.batchId);
-    const buyPrice = batch ? batch.buyPrice : s.buyPrice || 0;
-    const totalAmount = (s.qty || 0) * (s.sellPrice || 0);
-    const profit = totalAmount - (s.qty || 0) * buyPrice;
+    const buyPrice =
+      typeof s.buyPrice === "number" ? s.buyPrice : batch ? batch.buyPrice : 0;
+    const computedAmount = (s.qty || 0) * (s.sellPrice || 0);
+    const totalAmount = typeof s.totalAmount === "number" ? s.totalAmount : computedAmount;
+    const profit =
+      typeof s.profit === "number"
+        ? s.profit
+        : totalAmount - (s.qty || 0) * buyPrice;
     return {
       ...s,
       clientName: client?.name || "Noma'lum",
@@ -367,23 +373,35 @@ export function calculateEnrichedData(data: AviakassaData) {
   const enrichedPartners = partners.map((partner) => {
     // 1. Sales sold to this partner (Partner is buyer)
     const partnerSales = enrichedSales.filter((s) => s.clientId === partner.id);
-    const totalBoughtFromUs = partnerSales.reduce((sum, s) => sum + (s.totalAmount || 0), 0);
+    const computedBoughtFromUs = partnerSales.reduce((sum, s) => sum + (s.totalAmount || 0), 0);
 
     // 2. Batches bought from this partner (Partner is supplier/vendor)
     const partnerBatches = enrichedBatches.filter((b) => b.supplierId === partner.id);
-    const totalSoldToUs = partnerBatches.reduce((sum, b) => sum + (b.totalCost || 0), 0);
+    const computedSoldToUs = partnerBatches.reduce((sum, b) => sum + (b.totalCost || 0), 0);
 
     // 3. Payments received from this partner (Income)
-    const totalPaidToUs = payments
+    const computedPaidToUs = payments
       .filter((p) => p.partnerId === partner.id && p.type === "INCOME")
       .reduce((sum, p) => sum + (p.amount || 0), 0);
 
     // 4. Payments paid by us to this partner (Expense)
-    const totalPaidByUs = payments
+    const computedPaidByUs = payments
       .filter((p) => p.partnerId === partner.id && p.type === "EXPENSE")
       .reduce((sum, p) => sum + (p.amount || 0), 0);
 
-    // 5. Debt offsets
+    // Server hisob-kitobi mavjud bo'lsa undan, aks holda lokal hisobdan foydalanamiz
+    const totalBoughtFromUs =
+      typeof partner.totalBoughtFromUs === "number"
+        ? partner.totalBoughtFromUs
+        : computedBoughtFromUs;
+    const totalSoldToUs =
+      typeof partner.totalSoldToUs === "number" ? partner.totalSoldToUs : computedSoldToUs;
+    const totalPaidToUs =
+      typeof partner.totalPaidToUs === "number" ? partner.totalPaidToUs : computedPaidToUs;
+    const totalPaidByUs =
+      typeof partner.totalPaidByUs === "number" ? partner.totalPaidByUs : computedPaidByUs;
+
+    // 5. Debt offsets (faqat lokal hisob uchun)
     const offsetFrom = debtOffsets
       .filter((o) => o.fromPartnerId === partner.id)
       .reduce((sum, o) => sum + (o.amount || 0), 0);
@@ -397,10 +415,23 @@ export function calculateEnrichedData(data: AviakassaData) {
     // Foydalanuvchi qoidasi:
     // Hamkor bizdan qarzdor bo'lsa: manfiy (-)
     // Hamkorning bizda haqi bo'lsa: musbat (+)
-    const balance = supplierDebt - clientDebt + offsetFrom - offsetTo;
+    const balance =
+      typeof partner.balance === "number"
+        ? partner.balance
+        : supplierDebt - clientDebt + offsetFrom - offsetTo;
 
-    const theyOweUs = balance < 0 ? Math.abs(balance) : 0;
-    const weOweThem = balance > 0 ? balance : 0;
+    const theyOweUs =
+      typeof partner.theyOweUs === "number"
+        ? partner.theyOweUs
+        : balance < 0
+          ? Math.abs(balance)
+          : 0;
+    const weOweThem =
+      typeof partner.weOweThem === "number"
+        ? partner.weOweThem
+        : balance > 0
+          ? balance
+          : 0;
 
     const totalDeal = totalBoughtFromUs + totalSoldToUs;
     const totalPaid = totalPaidToUs + totalPaidByUs;

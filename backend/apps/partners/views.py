@@ -10,7 +10,9 @@ class PartnerViewSet(viewsets.ModelViewSet):
     ordering_fields = ['name', 'created_at']
 
     def get_queryset(self):
-        qs = super().get_queryset()
+        qs = super().get_queryset().prefetch_related(
+            'batches', 'sales', 'payments', 'offsets_from', 'offsets_to',
+        )
         partner_type = self.request.query_params.get('type')
         if partner_type:
             qs = qs.filter(type__in=[partner_type, 'BOTH'])
