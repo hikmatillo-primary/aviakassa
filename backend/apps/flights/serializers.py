@@ -1,6 +1,8 @@
+from decimal import Decimal
 from rest_framework import serializers
 from .models import Batch
 from apps.partners.models import Partner
+from apps.sales.models import Sale
 
 class BatchSerializer(serializers.ModelSerializer):
     batchNumber = serializers.CharField(source='batch_number', required=False, allow_blank=True)
@@ -62,10 +64,32 @@ class BatchSerializer(serializers.ModelSerializer):
         validated_data['total_cost'] = validated_data['buy_price'] * validated_data['total_qty']
         return super().create(validated_data)
 
+    def validate(self, attrs):
+        # Sotilgan chiptadan kam qilib jami sonni o'zgartirib bo'lmaydi
+        total_qty = attrs.get('total_qty', getattr(self.instance, 'total_qty', None))
+        if self.instance is not None and total_qty is not None:
+            sold = self.instance.total_qty - self.instance.remaining_qty
+            if total_qty < sold:
+                raise serializers.ValidationError({
+                    "totalQty": f"Jami son sotilgan ({sold} ta) dan kam bo'lishi mumkin emas."
+                })
+        return attrs
+
     def update(self, instance, validated_data):
         # total_qty o'zgarsa, qoldiqni shu farqqa moslab o'zgartiramiz (sotilganlar saqlanadi)
         if 'total_qty' in validated_data:
             delta = validated_data['total_qty'] - instance.total_qty
             if delta:
                 validated_data['remaining_qty'] = max(0, instance.remaining_qty + delta)
-        return super().update(instance, validated_data)
+
+        old_buy_price = instance.buy_price
+        obj = super().update(instance, validated_data)
+
+        # Tan narx o'zgargan bo'lsa, shu partiyaga tegishli sotuvlarning
+        # tan narxi va sof foydasini qayta hisoblaymiz (total_amount o'zgarmaydi).
+        if 'buy_price' in validated_data and obj.buy_price != old_buy_price:
+            new_price = Decimal(str(obj.buy_price))
+            for sale in obj.sales.all():
+                profit = sale.total_amount - new_price * Decimal(sale.qty)
+                Sale.objects.filter(pk=sale.pk).update(buy_price=new_price, profit=profit)
+        return obj
