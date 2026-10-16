@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     "apps.sales.apps.SalesConfig",
     "apps.cash.apps.CashConfig",
     "apps.control.apps.ControlConfig",
+    "apps.telegram_bot.apps.TelegramBotConfig",
 ]
 
 MIDDLEWARE = [
