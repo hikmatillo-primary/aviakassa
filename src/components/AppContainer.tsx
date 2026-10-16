@@ -45,16 +45,21 @@ import {
   apiDeletePayment,
   apiDeleteDebtOffset,
   apiImportData,
+  apiListDatabases,
+  DatabaseInfo,
   UNAUTHORIZED_EVENT,
 } from "@/lib/api";
 import { LoginView } from "./LoginView";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { DatabaseModal } from "./DatabaseModal";
 import { getStoredUser, isAuthenticated, logoutUser, AuthUser } from "@/lib/auth";
 
 export function AppContainer() {
   const [data, setData] = useState<AviakassaData>(EMPTY_AVIAKASSA_DATA);
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [isAuthChecking, setIsAuthChecking] = useState(true);
+  const [databases, setDatabases] = useState<DatabaseInfo[]>([]);
+  const [isDatabaseModalOpen, setIsDatabaseModalOpen] = useState(false);
 
   const [activeTab, setActiveTab] = useState("dashboard");
   const [detailBatchId, setDetailBatchId] = useState<number | null>(null);
@@ -161,6 +166,26 @@ export function AppContainer() {
     window.addEventListener(UNAUTHORIZED_EVENT, onUnauthorized);
     return () => window.removeEventListener(UNAUTHORIZED_EVENT, onUnauthorized);
   }, []);
+
+  // Admin uchun bazalar ro'yxatini yuklash
+  const loadDatabases = async () => {
+    if (!currentUser?.isStaff) return;
+    try {
+      const res = await apiListDatabases();
+      setDatabases(res.databases);
+    } catch (err) {
+      console.warn("Bazalar ro'yxatini yuklab bo'lmadi:", err);
+    }
+  };
+
+  useEffect(() => {
+    if (currentUser?.isStaff) {
+      loadDatabases();
+    } else {
+      setDatabases([]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser]);
 
   const handleLogout = () => {
     logoutUser();
@@ -716,6 +741,8 @@ export function AppContainer() {
         onOpenPaymentModal={(type) => handleOpenPaymentModal(type)}
         onExportData={handleExportBackup}
         onImportData={() => fileInputRef.current?.click()}
+        onOpenDatabases={() => setIsDatabaseModalOpen(true)}
+        activeDatabaseName={databases.find((d) => d.isActive)?.name}
       />
 
       {/* Main Container */}
@@ -947,6 +974,17 @@ export function AppContainer() {
           if (confirmState) await confirmState.action();
         }}
       />
+
+      {currentUser?.isStaff && (
+        <DatabaseModal
+          isOpen={isDatabaseModalOpen}
+          onClose={() => setIsDatabaseModalOpen(false)}
+          databases={databases}
+          onRefresh={loadDatabases}
+          onSwitch={() => window.location.reload()}
+          showToast={showToast}
+        />
+      )}
 
       {/* Enterprise Toast Notification */}
       {toast && (

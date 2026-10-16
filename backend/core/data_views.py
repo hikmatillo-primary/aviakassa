@@ -9,6 +9,7 @@ from apps.partners.models import Partner
 from apps.flights.models import Batch
 from apps.sales.models import Sale
 from apps.cash.models import Payment, DebtOffset
+from core.db_state import get_active_alias
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +25,7 @@ def _clean_date(value):
 @permission_classes([IsAdminUser])
 def reset_data(request):
     """Barcha ma'lumotlarni (hamkorlar, partiyalar, sotuvlar, to'lovlar) o'chiradi."""
-    with transaction.atomic():
+    with transaction.atomic(using=get_active_alias()):
         counts = {
             "debtOffsets": DebtOffset.objects.count(),
             "payments": Payment.objects.count(),
@@ -54,7 +55,7 @@ def import_data(request):
 
     created = {"partners": 0, "batches": 0, "sales": 0, "payments": 0, "debtOffsets": 0}
 
-    with transaction.atomic():
+    with transaction.atomic(using=get_active_alias()):
         # 1. Avvalgi ma'lumotlarni bog'liqlik tartibida tozalash
         DebtOffset.objects.all().delete()
         Payment.objects.all().delete()

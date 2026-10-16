@@ -57,11 +57,13 @@ INSTALLED_APPS = [
     "apps.flights.apps.FlightsConfig",
     "apps.sales.apps.SalesConfig",
     "apps.cash.apps.CashConfig",
+    "apps.control.apps.ControlConfig",
 ]
 
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",  # CORS birinchi bo'lishi shart
     "django.middleware.security.SecurityMiddleware",
+    "core.db_middleware.ActiveDatabaseMiddleware",  # Faol bazani aniqlash
     "whitenoise.middleware.WhiteNoiseMiddleware",  # Gunicorn / Docker static fayllari uchun
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -114,6 +116,9 @@ else:
             "NAME": BASE_DIR / "db.sqlite3",
         }
     }
+
+# Biznes modellarini faol bazaga yo'naltiruvchi router
+DATABASE_ROUTERS = ["core.db_router.AviakassaRouter"]
 
 # Parol tekshiruvchilari
 AUTH_PASSWORD_VALIDATORS = [

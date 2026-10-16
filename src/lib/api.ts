@@ -369,3 +369,51 @@ export async function apiImportData(
 export async function apiResetData(): Promise<void> {
   await request<void>("/data/reset/", { method: "POST" });
 }
+
+// ================= Databases (multi-DB boshqaruvi, faqat admin) =================
+export interface DatabaseInfo {
+  id: number;
+  name: string;
+  dbName: string;
+  isActive: boolean;
+  isClosed: boolean;
+  createdAt: string;
+  closedAt: string | null;
+}
+
+export interface DatabaseCopySelection {
+  partners?: boolean;
+  batches?: boolean;
+  sales?: boolean;
+  payments?: boolean;
+  debtOffsets?: boolean;
+}
+
+export async function apiListDatabases(): Promise<{
+  databases: DatabaseInfo[];
+  activeId: number | null;
+}> {
+  return request<{ databases: DatabaseInfo[]; activeId: number | null }>("/databases/");
+}
+
+export async function apiCreateDatabase(
+  name: string,
+  copy: DatabaseCopySelection
+): Promise<{ database: DatabaseInfo; copied: Record<string, number> }> {
+  return request<{ database: DatabaseInfo; copied: Record<string, number> }>("/databases/", {
+    method: "POST",
+    body: JSON.stringify({ name, copy }),
+  });
+}
+
+export async function apiActivateDatabase(id: number): Promise<{ database: DatabaseInfo }> {
+  return request<{ database: DatabaseInfo }>(`/databases/${id}/activate/`, {
+    method: "POST",
+  });
+}
+
+export async function apiCloseDatabase(id: number): Promise<{ database: DatabaseInfo }> {
+  return request<{ database: DatabaseInfo }>(`/databases/${id}/close/`, {
+    method: "POST",
+  });
+}

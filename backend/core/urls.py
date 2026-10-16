@@ -70,6 +70,7 @@ urlpatterns = [
     path("api/batches/", include("apps.flights.urls")),
     path("api/sales/", include("apps.sales.urls")),
     path("api/cash/", include("apps.cash.urls")),
+    path("api/databases/", include("apps.control.urls")),
     path("api/data/import/", import_data, name="data-import"),
     path("api/data/reset/", reset_data, name="data-reset"),
 ]

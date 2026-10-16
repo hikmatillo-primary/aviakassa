@@ -5,6 +5,7 @@ from rest_framework.response import Response
 
 from apps.cash.models import Payment
 from apps.cash.serializers import PaymentSerializer
+from core.db_state import get_active_alias
 
 from .models import Batch
 from .serializers import BatchSerializer
@@ -45,7 +46,7 @@ class BatchViewSet(viewsets.ModelViewSet):
 
         created = []
         payment = None
-        with transaction.atomic():
+        with transaction.atomic(using=get_active_alias()):
             for item in items:
                 serializer = self.get_serializer(data={**item, **shared})
                 serializer.is_valid(raise_exception=True)

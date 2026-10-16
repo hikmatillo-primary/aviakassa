@@ -16,6 +16,7 @@ import {
   Users,
   LogOut,
   Smartphone,
+  Database,
 } from "lucide-react";
 import { PwaInstallModal } from "./PwaInstallModal";
 
@@ -31,6 +32,8 @@ interface NavbarProps {
   onOpenPaymentModal?: (type: "INCOME" | "EXPENSE") => void;
   onExportData?: () => void;
   onImportData?: () => void;
+  onOpenDatabases?: () => void;
+  activeDatabaseName?: string;
 }
 
 export function Navbar({
@@ -45,6 +48,8 @@ export function Navbar({
   onOpenPaymentModal,
   onExportData,
   onImportData,
+  onOpenDatabases,
+  activeDatabaseName,
 }: NavbarProps) {
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -223,6 +228,24 @@ export function Navbar({
                       <Settings className="w-3.5 h-3.5 text-slate-400" />
                       Tizim sozlamalari
                     </div>
+
+                    {onOpenDatabases && currentUser?.isStaff && (
+                      <button
+                        onClick={() => {
+                          setShowSettingsMenu(false);
+                          onOpenDatabases();
+                        }}
+                        className="w-full px-3.5 py-2 text-left hover:bg-slate-50 dark:hover:bg-white/[0.05] flex items-center gap-2.5 text-slate-700 dark:text-slate-200 hover:text-blue-600 cursor-pointer"
+                      >
+                        <Database className="w-4 h-4 text-slate-400" />
+                        Bazalar
+                        {activeDatabaseName && (
+                          <span className="ml-auto text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 px-1.5 py-0.5 rounded-md truncate max-w-[6rem]">
+                            {activeDatabaseName}
+                          </span>
+                        )}
+                      </button>
+                    )}
 
                     {!isStandalone && (
                       <button
