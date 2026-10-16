@@ -363,6 +363,7 @@ export function AppContainer() {
     saleDate: string;
     paidNow: number;
     paymentMethod: string;
+    accountId?: number;
     notes: string;
     items: Array<{
       batchId: number;
@@ -391,6 +392,7 @@ export function AppContainer() {
         saleDate: saleInput.saleDate,
         paidNow: saleInput.paidNow,
         paymentMethod: saleInput.paymentMethod,
+        accountId: saleInput.accountId,
         notes: saleInput.notes,
         paymentNotes:
           saleInput.paidNow > 0
@@ -425,6 +427,7 @@ export function AppContainer() {
     purchaseDate?: string;
     paidNow?: number;
     paymentMethod?: string;
+    accountId?: number;
     notes?: string;
     items: Array<{
       route: string;
@@ -479,6 +482,7 @@ export function AppContainer() {
         purchaseDate: batchInput.purchaseDate || new Date().toISOString().split("T")[0],
         paidNow: batchInput.paidNow || 0,
         paymentMethod: batchInput.paymentMethod || "CASH",
+        accountId: batchInput.accountId,
         paymentNotes:
           batchInput.paidNow && batchInput.paidNow > 0
             ? `Partiyalar xaridi uchun to'lov (${routeNames.join(", ")})`
@@ -1054,6 +1058,7 @@ export function AppContainer() {
         }}
         batches={batches}
         clients={partners}
+        accounts={accounts}
         selectedBatchId={selectedBatchId}
         onSave={handleAddSale}
         newlyCreatedPartnerId={lastCreatedPartnerId}
@@ -1069,6 +1074,7 @@ export function AppContainer() {
           setLastCreatedPartnerId(null);
         }}
         suppliers={partners}
+        accounts={accounts}
         existingBatches={batches}
         onSave={handleAddBatch}
         newlyCreatedPartnerId={lastCreatedPartnerId}

@@ -316,8 +316,8 @@ export function BatchDetailView({
                 </div>
               </div>
 
-              {/* Kartaning o'ng qismi: Narxlar va Foyda */}
-              <div className="sm:w-56 p-3 sm:p-0 sm:pl-4 bg-white/70 dark:bg-white/[0.02] sm:bg-transparent border-t sm:border-t-0 sm:border-l border-slate-200/70 dark:border-white/[0.06] flex sm:flex-col items-center sm:items-end justify-between gap-2 shrink-0 tabular-nums">
+              {/* Kartaning o'ng qismi: Narxlar va amallar */}
+              <div className="p-3 sm:p-0 sm:pl-4 bg-white/70 dark:bg-white/[0.02] sm:bg-transparent border-t sm:border-t-0 sm:border-l border-slate-200/70 dark:border-white/[0.06] flex items-center justify-between sm:justify-end gap-3 shrink-0 tabular-nums">
                 <div className="sm:text-right">
                   <span className="text-xs text-slate-400 font-medium block">
                     1 dona: {formatUSD(s.sellPrice)}

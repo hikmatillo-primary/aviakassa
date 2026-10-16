@@ -281,6 +281,7 @@ export interface BatchBulkPayload {
   purchaseDate?: string;
   paidNow?: number;
   paymentMethod?: string;
+  accountId?: number;
   notes?: string;
   paymentNotes?: string;
   items: Array<Record<string, unknown>>;
@@ -319,6 +320,7 @@ export interface SaleBulkPayload {
   saleDate: string;
   paidNow?: number;
   paymentMethod?: string;
+  accountId?: number;
   notes?: string;
   paymentNotes?: string;
   items: Array<Record<string, unknown>>;

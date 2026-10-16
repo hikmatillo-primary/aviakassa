@@ -7,6 +7,7 @@ import { DatePicker } from "./DatePicker";
 import { PartnerSelect } from "./PartnerSelect";
 import { FlightBar } from "./FlightBar";
 import { getValidationMessage } from "@/lib/api";
+import { CashAccount } from "@/lib/storage";
 import { Loader2 } from "lucide-react";
 
 interface SaleModalProps {
@@ -14,12 +15,14 @@ interface SaleModalProps {
   onClose: () => void;
   batches: any[];
   clients: any[];
+  accounts?: CashAccount[];
   selectedBatchId?: number | null;
   onSave: (saleData: {
     clientId: number;
     saleDate: string;
     paidNow: number;
     paymentMethod: string;
+    accountId?: number;
     notes: string;
     items: Array<{
       batchId: number;
@@ -44,6 +47,7 @@ export function SaleModal({
   onClose,
   batches,
   clients,
+  accounts = [],
   selectedBatchId,
   onSave,
   onOpenClientModal,
@@ -58,6 +62,7 @@ export function SaleModal({
   const [sellPrice, setSellPrice] = useState<number | string>(0);
   const [paidNow, setPaidNow] = useState<number | string>(0);
   const [paymentMethod, setPaymentMethod] = useState<string>("CASH");
+  const [accountId, setAccountId] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
 
   const prevIsOpenRef = React.useRef(false);
@@ -83,6 +88,7 @@ export function SaleModal({
       setSaleDate(getTodayISO());
       setPaidNow(0);
       setNotes("");
+      setAccountId("");
       setError(null);
       setIsSubmitting(false);
     }
@@ -170,6 +176,7 @@ export function SaleModal({
         saleDate: saleDate || getTodayISO(),
         paidNow: numPaidNow,
         paymentMethod,
+        accountId: accounts.length > 0 ? Number(accountId || accounts[0].id) : undefined,
         notes,
         items: [
           {
@@ -490,17 +497,31 @@ export function SaleModal({
 
           <div>
             <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-              To&apos;lov usuli
+              {accounts.length > 0 ? "Hisob raqam" : "To‘lov usuli"}
             </label>
-            <select
-              value={paymentMethod}
-              onChange={(e) => setPaymentMethod(e.target.value)}
-              className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
-            >
-              <option value="CASH">Naqd (Cash)</option>
-              <option value="CARD">Karta / O&apos;tkazma</option>
-              <option value="BANK">Bank hisob raqami</option>
-            </select>
+            {accounts.length > 0 ? (
+              <select
+                value={accountId || String(accounts[0].id)}
+                onChange={(e) => setAccountId(e.target.value)}
+                className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+              >
+                {accounts.map((acc) => (
+                  <option key={acc.id} value={String(acc.id)}>
+                    {acc.name}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <select
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value)}
+                className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+              >
+                <option value="CASH">Naqd (Cash)</option>
+                <option value="CARD">Karta / O&apos;tkazma</option>
+                <option value="BANK">Bank hisob raqami</option>
+              </select>
+            )}
           </div>
         </div>
 

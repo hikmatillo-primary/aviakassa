@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { Modal } from "./Modal";
 import { Plus, Trash2, Sparkles, PlaneTakeoff, PlaneLanding, X, Loader2 } from "lucide-react";
 import { formatUSD } from "@/lib/format";
+import { CashAccount } from "@/lib/storage";
 
 export interface BatchItemInput {
   id: string;
@@ -27,11 +28,13 @@ interface BatchModalProps {
   isOpen: boolean;
   onClose: () => void;
   suppliers: any[];
+  accounts?: CashAccount[];
   onSave: (batchData: {
     supplierId: number;
     purchaseDate?: string;
     paidNow?: number;
     paymentMethod?: string;
+    accountId?: number;
     notes?: string;
     items: Array<{
       route: string;
@@ -68,6 +71,7 @@ export function BatchModal({
   isOpen,
   onClose,
   suppliers,
+  accounts = [],
   onSave,
   onOpenSupplierModal,
   newlyCreatedPartnerId,
@@ -79,6 +83,7 @@ export function BatchModal({
   const [purchaseDate, setPurchaseDate] = useState<string>("");
   const [paidNow, setPaidNow] = useState<number | string>(0);
   const [paymentMethod, setPaymentMethod] = useState<string>("CASH");
+  const [accountId, setAccountId] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
 
   const [items, setItems] = useState<BatchItemInput[]>([]);
@@ -110,6 +115,7 @@ export function BatchModal({
       setPurchaseDate(today);
       setPaidNow(0);
       setNotes("");
+      setAccountId("");
       setError(null);
       setIsSubmitting(false);
     }
@@ -208,6 +214,7 @@ export function BatchModal({
         purchaseDate: purchaseDate || new Date().toISOString().split("T")[0],
         paidNow: Number(paidNow) || 0,
         paymentMethod,
+        accountId: accounts.length > 0 ? Number(accountId || accounts[0].id) : undefined,
         notes,
         items: items.map((it, idx) => {
           const fullRoute = `${it.fromCity.trim()} — ${it.toCity.trim()}`;
@@ -717,17 +724,31 @@ export function BatchModal({
 
           <div>
             <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-              To&apos;lov usuli
+              {accounts.length > 0 ? "Hisob raqam" : "To‘lov usuli"}
             </label>
-            <select
-              value={paymentMethod}
-              onChange={(e) => setPaymentMethod(e.target.value)}
-              className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
-            >
-              <option value="CASH">Naqd (Cash)</option>
-              <option value="CARD">Karta / O&apos;tkazma</option>
-              <option value="BANK">Bank hisob raqami</option>
-            </select>
+            {accounts.length > 0 ? (
+              <select
+                value={accountId || String(accounts[0].id)}
+                onChange={(e) => setAccountId(e.target.value)}
+                className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+              >
+                {accounts.map((acc) => (
+                  <option key={acc.id} value={String(acc.id)}>
+                    {acc.name}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <select
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value)}
+                className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+              >
+                <option value="CASH">Naqd (Cash)</option>
+                <option value="CARD">Karta / O&apos;tkazma</option>
+                <option value="BANK">Bank hisob raqami</option>
+              </select>
+            )}
           </div>
         </div>
 
