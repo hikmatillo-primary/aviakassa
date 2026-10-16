@@ -116,7 +116,7 @@ export function PartnerModal({
         </div>
       }
     >
-      <form id="partner-form" onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
+      <form id="partner-form" onSubmit={handleSubmit} className="space-y-4 sm:space-y-5" noValidate>
         {error && (
           <div className="p-3.5 sm:p-4 text-xs sm:text-sm bg-red-50 dark:bg-red-950/50 text-red-600 dark:text-red-400 rounded-xl border border-red-200 dark:border-red-800 font-medium">
             {error}

@@ -70,6 +70,7 @@ class SaleViewSet(viewsets.ModelViewSet):
                     "amount": paid_now,
                     "paymentDate": data.get("saleDate"),
                     "paymentMethod": data.get("paymentMethod") or Payment.PaymentMethod.CASH,
+                    "accountId": data.get("accountId"),
                     "notes": data.get("paymentNotes") or data.get("notes") or "",
                 })
                 payment_serializer.is_valid(raise_exception=True)

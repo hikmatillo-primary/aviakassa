@@ -231,7 +231,7 @@ export function SaleModal({
         </div>
       }
     >
-      <form id="sale-form" onSubmit={handleSubmit} className="space-y-4">
+      <form id="sale-form" onSubmit={handleSubmit} className="space-y-4" noValidate>
         {error && (
           <div className="p-3 text-xs sm:text-sm bg-red-50 dark:bg-red-950/50 text-red-600 dark:text-red-400 rounded-xl border border-red-200 dark:border-red-800 font-medium">
             {error}
@@ -343,23 +343,18 @@ export function SaleModal({
                 onBlur={() => {
                   if (qty === "" || Number(qty) < 1) {
                     setQty(1);
-                  } else if (selectedBatch && Number(qty) > selectedBatch.remainingQty) {
-                    setQty(selectedBatch.remainingQty);
                   }
                 }}
-                className="w-full text-center py-2 text-sm sm:text-base bg-white dark:bg-slate-800 text-slate-900 dark:text-white border-y border-slate-300 dark:border-slate-700 focus:outline-none font-black tabular-nums"
+                className={`w-full text-center py-2 text-sm sm:text-base bg-white dark:bg-slate-800 border-y focus:outline-none font-black tabular-nums ${
+                  selectedBatch && numQty > selectedBatch.remainingQty
+                    ? "border-rose-400 dark:border-rose-500 text-rose-600 dark:text-rose-400"
+                    : "text-slate-900 dark:text-white border-slate-300 dark:border-slate-700"
+                }`}
                 required
               />
               <button
                 type="button"
-                onClick={() =>
-                  setQty(
-                    Math.min(
-                      selectedBatch?.remainingQty || 9999,
-                      (Number(qty) || 0) + 1
-                    )
-                  )
-                }
+                onClick={() => setQty((Number(qty) || 0) + 1)}
                 className="w-10 h-10 flex items-center justify-center bg-slate-100 hover:bg-slate-200 dark:bg-slate-700/70 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-r-xl font-bold text-sm cursor-pointer border border-l-0 border-slate-300 dark:border-slate-700 shrink-0"
               >
                 +
@@ -368,6 +363,12 @@ export function SaleModal({
             {selectedBatch && (
               <span className="text-[11px] text-slate-400 mt-1 block">
                 Maksimal sotish mumkin: <b>{selectedBatch.remainingQty} ta</b>
+              </span>
+            )}
+            {selectedBatch && numQty > selectedBatch.remainingQty && (
+              <span className="text-[11px] text-rose-600 dark:text-rose-400 mt-1 block font-semibold">
+                Omborda faqat {selectedBatch.remainingQty} ta qoldi — {numQty} ta
+                kiritdingiz. Soni kamaytiring yoki boshqa partiya tanlang.
               </span>
             )}
           </div>

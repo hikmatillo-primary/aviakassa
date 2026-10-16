@@ -273,7 +273,7 @@ export function BatchModal({
         </div>
       }
     >
-      <form id="batch-form" onSubmit={handleSubmit} className="space-y-4">
+      <form id="batch-form" onSubmit={handleSubmit} className="space-y-4" noValidate>
         {error && (
           <div className="p-2.5 text-xs bg-red-50 dark:bg-red-950/50 text-red-600 dark:text-red-400 rounded-xl border border-red-200 dark:border-red-800 font-medium">
             {error}

@@ -1,6 +1,19 @@
 from django.db import models
 from apps.partners.models import Partner
 
+class CashAccount(models.Model):
+    name = models.CharField(max_length=100, unique=True, verbose_name="Hisob nomi")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Yaratilgan vaqti")
+
+    class Meta:
+        verbose_name = "Kassa hisobi"
+        verbose_name_plural = "Kassa hisoblari"
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+
 class Payment(models.Model):
     class PaymentType(models.TextChoices):
         INCOME = 'INCOME', 'Kirim (Mijoz to\'lovi)'
@@ -34,6 +47,14 @@ class Payment(models.Model):
         default=PaymentMethod.CASH,
         verbose_name="To'lov usuli"
     )
+    account = models.ForeignKey(
+        CashAccount,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="payments",
+        verbose_name="Hisob"
+    )
     notes = models.TextField(blank=True, null=True, verbose_name="Izoh")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Yaratilgan vaqti")
 
@@ -44,6 +65,14 @@ class Payment(models.Model):
 
     def __str__(self):
         return f"{self.get_type_display()}: {self.partner.name} - ${self.amount:,.2f}"
+
+
+def account_for_payment_method(method):
+    """Eski to'lov usuli bo'yicha standart hisobni topadi (migratsiya/import uchun)."""
+    if not method:
+        return None
+    label = dict(Payment.PaymentMethod.choices).get(method, method)
+    return CashAccount.objects.filter(name=label).first()
 
 
 class DebtOffset(models.Model):

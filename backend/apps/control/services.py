@@ -16,7 +16,7 @@ from django.utils.text import slugify
 from apps.partners.models import Partner
 from apps.flights.models import Batch
 from apps.sales.models import Sale
-from apps.cash.models import Payment, DebtOffset
+from apps.cash.models import Payment, DebtOffset, CashAccount
 
 from .models import DatabaseRegistry
 
@@ -27,6 +27,7 @@ MAINTENANCE_DB = "postgres"
 
 # Ko'chirish tartibi (FK bog'liqlik bo'yicha: ota -> bola)
 CATEGORY_ORDER = [
+    ("accounts", CashAccount),
     ("partners", Partner),
     ("batches", Batch),
     ("sales", Sale),
@@ -68,7 +69,8 @@ def ensure_alias(db_name: str) -> str:
 def normalize_categories(copy: dict) -> set:
     """
     Tanlangan kategoriyalarni tozalaydi va majburiy bog'liqliklarni qo'shadi:
-    sotuvlar -> partiyalar; partiyalar/sotuvlar/to'lovlar/qarz surishlar -> hamkorlar.
+    sotuvlar -> partiyalar; partiyalar/sotuvlar/to'lovlar/qarz surishlar -> hamkorlar;
+    to'lovlar -> kassa hisoblari.
     """
     selected = {key for key in CATEGORY_KEYS if bool((copy or {}).get(key))}
 
@@ -76,6 +78,8 @@ def normalize_categories(copy: dict) -> set:
         selected.add("partners")
     if "sales" in selected:
         selected.add("batches")
+    if "payments" in selected:
+        selected.add("accounts")
 
     return selected
 
@@ -185,6 +189,10 @@ def copy_selected(source_db_name: str, target_db_name: str, categories: set) -> 
 
     copied = {}
     with transaction.atomic(using=target_alias):
+        if "accounts" in categories:
+            # Yangi bazada migratsiya yaratgan standart hisoblarni tozalaymiz:
+            # manba hisoblari PK'larini saqlagan holda ko'chiriladi.
+            CashAccount.objects.using(target_alias).all().delete()
         for key, model in CATEGORY_ORDER:
             if key not in categories:
                 continue

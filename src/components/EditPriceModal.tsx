@@ -134,7 +134,7 @@ export function EditPriceModal({
         </div>
       }
     >
-      <form id="edit-price-form" onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
+      <form id="edit-price-form" onSubmit={handleSubmit} className="space-y-5 sm:space-y-6" noValidate>
         {error && (
           <div className="p-3 sm:p-4 text-xs sm:text-sm bg-red-50 dark:bg-red-950/50 text-red-600 dark:text-red-400 rounded-xl border border-red-200 dark:border-red-800 font-medium">
             {error}

@@ -28,6 +28,7 @@ import {
   Payment,
   Partner,
   DebtOffset,
+  CashAccount,
 } from "@/lib/storage";
 import {
   apiFetchAll,
@@ -44,6 +45,8 @@ import {
   apiDeleteSale,
   apiDeletePayment,
   apiDeleteDebtOffset,
+  apiCreateAccount,
+  apiDeleteAccount,
   apiImportData,
   apiListDatabases,
   DatabaseInfo,
@@ -53,6 +56,7 @@ import { LoginView } from "./LoginView";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { DatabaseModal } from "./DatabaseModal";
 import { getStoredUser, isAuthenticated, logoutUser, AuthUser } from "@/lib/auth";
+import { formatDate } from "@/lib/format";
 
 const ACTIVE_TAB_STORAGE_KEY = "aviakassa_active_tab";
 const VALID_TABS = ["dashboard", "purchases", "inventory", "sales", "partners", "cash"];
@@ -227,6 +231,8 @@ export function AppContainer() {
     [data]
   );
 
+  const accounts: CashAccount[] = data.accounts || [];
+
   // Modals state
   const [isSaleModalOpen, setIsSaleModalOpen] = useState(false);
   const [selectedBatchId, setSelectedBatchId] = useState<number | null>(null);
@@ -246,9 +252,10 @@ export function AppContainer() {
 
   const [confirmState, setConfirmState] = useState<{
     title: string;
-    message: string;
+    message: React.ReactNode;
     confirmLabel?: string;
-    action: () => Promise<void>;
+    variant?: "danger" | "info";
+    action?: () => Promise<void>;
   } | null>(null);
 
   const [isDebtOffsetModalOpen, setIsDebtOffsetModalOpen] = useState(false);
@@ -494,6 +501,7 @@ export function AppContainer() {
     amount: number;
     paymentDate: string;
     paymentMethod: string;
+    accountId?: number;
     notes: string;
   }) => {
     try {
@@ -503,6 +511,7 @@ export function AppContainer() {
         amount: paymentInput.amount,
         paymentDate: paymentInput.paymentDate,
         paymentMethod: paymentInput.paymentMethod,
+        accountId: paymentInput.accountId,
         notes: paymentInput.notes,
       });
       await syncFromServer();
@@ -560,6 +569,40 @@ export function AppContainer() {
 
   // O'chirish amallari (in-app tasdiqlash bilan)
   const handleDeleteBatch = (batch: Batch) => {
+    const relatedSales = sales.filter((s) => s.batchId === batch.id);
+    if (relatedSales.length > 0) {
+      setConfirmState({
+        title: "Partiyani o‘chirib bo‘lmaydi",
+        variant: "info",
+        confirmLabel: "Tushundim",
+        message: (
+          <div className="space-y-3">
+            <p>
+              <b>&quot;{batch.route}&quot;</b> partiyasiga <b>{relatedSales.length} ta sotuv</b> bog‘langan,
+              shuning uchun uni o‘chirish mumkin emas.
+            </p>
+            <ul className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+              {relatedSales.map((s) => (
+                <li
+                  key={s.id}
+                  className="flex items-center justify-between gap-2 text-xs bg-slate-50 dark:bg-white/[0.04] border border-slate-200/70 dark:border-white/[0.08] rounded-lg px-3 py-2"
+                >
+                  <span className="truncate">
+                    {s.clientName} • {formatDate(s.saleDate)}
+                  </span>
+                  <span className="font-semibold shrink-0">{s.qty} ta</span>
+                </li>
+              ))}
+            </ul>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Avval ushbu sotuvlarni o‘chiring yoki boshqa partiyaga o‘tkazing, keyin partiyani
+              o‘chirishingiz mumkin.
+            </p>
+          </div>
+        ),
+      });
+      return;
+    }
     setConfirmState({
       title: "Partiyani o‘chirish",
       message: `"${batch.route}" partiyasini o‘chirmoqchimisiz? Bu amalni qaytarib bo‘lmaydi.`,
@@ -596,6 +639,50 @@ export function AppContainer() {
     });
   };
 
+  const handleAddAccount = async (name: string) => {
+    try {
+      await apiCreateAccount({ name });
+      await syncFromServer();
+      showToast("Yangi hisob qo‘shildi! 🏦");
+    } catch (e) {
+      console.error("Hisobni saqlashda xato:", e);
+      throw e;
+    }
+  };
+
+  const handleDeleteAccount = (account: CashAccount) => {
+    const relatedPayments = payments.filter((p) => p.accountId === account.id);
+    if (relatedPayments.length > 0) {
+      setConfirmState({
+        title: "Hisobni o‘chirib bo‘lmaydi",
+        variant: "info",
+        confirmLabel: "Tushundim",
+        message: (
+          <div className="space-y-3">
+            <p>
+              <b>&quot;{account.name}&quot;</b> hisobiga <b>{relatedPayments.length} ta to‘lov</b> bog‘langan,
+              shuning uchun uni o‘chirish mumkin emas.
+            </p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Avval ushbu to‘lovlarni o‘chiring yoki boshqa hisobga o‘tkazing, keyin hisobni
+              o‘chirishingiz mumkin.
+            </p>
+          </div>
+        ),
+      });
+      return;
+    }
+    setConfirmState({
+      title: "Hisobni o‘chirish",
+      message: `"${account.name}" hisobini o‘chirmoqchimisiz? Bu amalni qaytarib bo‘lmaydi.`,
+      action: async () => {
+        await apiDeleteAccount(account.id);
+        await syncFromServer();
+        showToast("Hisob o‘chirildi!", "info");
+      },
+    });
+  };
+
   const handleDeleteDebtOffset = (offset: DebtOffset) => {
     setConfirmState({
       title: "Qarz surishni o‘chirish",
@@ -609,6 +696,54 @@ export function AppContainer() {
   };
 
   const handleDeletePartner = (partner: Partner) => {
+    const relatedSales = sales.filter((s) => s.clientId === partner.id);
+    const relatedBatches = batches.filter((b) => b.supplierId === partner.id);
+    const relatedPayments = payments.filter((p) => p.partnerId === partner.id);
+    const relatedOffsets = debtOffsets.filter(
+      (o) => o.fromPartnerId === partner.id || o.toPartnerId === partner.id
+    );
+    const totalRelated =
+      relatedSales.length + relatedBatches.length + relatedPayments.length + relatedOffsets.length;
+
+    if (totalRelated > 0) {
+      const items: Array<{ label: string; count: number }> = [
+        { label: "ta sotuv", count: relatedSales.length },
+        { label: "ta partiya", count: relatedBatches.length },
+        { label: "ta kassa to‘lovi", count: relatedPayments.length },
+        { label: "ta o‘zaro qarz surish", count: relatedOffsets.length },
+      ].filter((i) => i.count > 0);
+
+      setConfirmState({
+        title: "Hamkorni o‘chirib bo‘lmaydi",
+        variant: "info",
+        confirmLabel: "Tushundim",
+        message: (
+          <div className="space-y-3">
+            <p>
+              <b>&quot;{partner.name}&quot;</b> hamkoriga bog‘langan yozuvlar mavjud, shuning uchun uni
+              o‘chirish mumkin emas:
+            </p>
+            <ul className="space-y-1.5">
+              {items.map((item) => (
+                <li
+                  key={item.label}
+                  className="flex items-center justify-between gap-2 text-xs bg-slate-50 dark:bg-white/[0.04] border border-slate-200/70 dark:border-white/[0.08] rounded-lg px-3 py-2"
+                >
+                  <span>{item.label}</span>
+                  <span className="font-semibold">{item.count}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Avval ushbu yozuvlarni o‘chiring yoki boshqa hamkorga o‘tkazing, keyin hamkorni
+              o‘chirishingiz mumkin.
+            </p>
+          </div>
+        ),
+      });
+      return;
+    }
+
     setConfirmState({
       title: "Hamkorni o‘chirish",
       message: `"${partner.name}" hamkorini o‘chirmoqchimisiz? Bu amalni qaytarib bo‘lmaydi.`,
@@ -897,11 +1032,14 @@ export function AppContainer() {
             payments={payments}
             debtOffsets={debtOffsets}
             partners={partners}
+            accounts={accounts}
             onOpenPaymentModal={handleOpenPaymentModal}
             onOpenDebtOffsetModal={handleOpenDebtOffsetModal}
             onOpenHistoryModal={handleOpenHistoryModal}
             onDeletePayment={handleDeletePayment}
             onDeleteDebtOffset={handleDeleteDebtOffset}
+            onAddAccount={handleAddAccount}
+            onDeleteAccount={handleDeleteAccount}
           />
         )}
       </main>
@@ -943,6 +1081,7 @@ export function AppContainer() {
         isOpen={isPaymentModalOpen}
         onClose={() => setIsPaymentModalOpen(false)}
         partners={partners}
+        accounts={accounts}
         defaultType={paymentModalType}
         defaultPartnerId={paymentModalPartnerId}
         defaultNotes={paymentModalNotes}
@@ -984,9 +1123,10 @@ export function AppContainer() {
         title={confirmState?.title}
         message={confirmState?.message || ""}
         confirmLabel={confirmState?.confirmLabel}
+        variant={confirmState?.variant}
         onCancel={() => setConfirmState(null)}
         onConfirm={async () => {
-          if (confirmState) await confirmState.action();
+          if (confirmState?.action) await confirmState.action();
         }}
       />
 

@@ -7,11 +7,13 @@ import { formatUSD } from "@/lib/format";
 import { DatePicker } from "./DatePicker";
 import { PartnerSelect } from "./PartnerSelect";
 import { getValidationMessage } from "@/lib/api";
+import { CashAccount } from "@/lib/storage";
 
 interface PaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
   partners: any[];
+  accounts?: CashAccount[];
   defaultType?: "INCOME" | "EXPENSE";
   defaultPartnerId?: number | null;
   defaultNotes?: string;
@@ -22,6 +24,7 @@ interface PaymentModalProps {
     amount: number;
     paymentDate: string;
     paymentMethod: string;
+    accountId?: number;
     notes: string;
   }) => void | Promise<void>;
 }
@@ -30,6 +33,7 @@ export function PaymentModal({
   isOpen,
   onClose,
   partners,
+  accounts = [],
   defaultType = "INCOME",
   defaultPartnerId,
   defaultNotes = "",
@@ -44,6 +48,7 @@ export function PaymentModal({
   const [amount, setAmount] = useState<number | string>(defaultAmount !== undefined ? defaultAmount : 0);
   const [paymentDate, setPaymentDate] = useState<string>("");
   const [paymentMethod, setPaymentMethod] = useState<string>("CASH");
+  const [accountId, setAccountId] = useState<string>("");
   const [notes, setNotes] = useState<string>(defaultNotes || "");
 
   React.useEffect(() => {
@@ -55,6 +60,7 @@ export function PaymentModal({
       setAmount(defaultAmount !== undefined ? defaultAmount : 0);
       setNotes(defaultNotes || "");
       setPaymentDate(new Date().toISOString().split("T")[0]);
+      setAccountId("");
     }
   }, [isOpen, defaultType, defaultPartnerId, defaultNotes, defaultAmount]);
 
@@ -77,6 +83,7 @@ export function PaymentModal({
         amount: Number(amount),
         paymentDate: paymentDate || new Date().toISOString().split("T")[0],
         paymentMethod,
+        accountId: accounts.length > 0 ? Number(accountId || accounts[0].id) : undefined,
         notes,
       });
       onClose();
@@ -118,7 +125,7 @@ export function PaymentModal({
         </div>
       }
     >
-      <form id="payment-form" onSubmit={handleSubmit} className="space-y-4">
+      <form id="payment-form" onSubmit={handleSubmit} className="space-y-4" noValidate>
         {error && (
           <div className="p-3 text-xs bg-red-50 dark:bg-red-950/50 text-red-600 dark:text-red-400 rounded-xl border border-red-200 dark:border-red-800">
             {error}
@@ -297,17 +304,31 @@ export function PaymentModal({
           </div>
           <div>
             <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-              To&apos;lov shakli
+              {accounts.length > 0 ? "Hisob raqam" : "To‘lov shakli"}
             </label>
-            <select
-              value={paymentMethod}
-              onChange={(e) => setPaymentMethod(e.target.value)}
-              className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="CASH">Naqd (Cash)</option>
-              <option value="CARD">Karta / O&apos;tkazma</option>
-              <option value="BANK">Bank hisob raqami</option>
-            </select>
+            {accounts.length > 0 ? (
+              <select
+                value={accountId || String(accounts[0].id)}
+                onChange={(e) => setAccountId(e.target.value)}
+                className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {accounts.map((acc) => (
+                  <option key={acc.id} value={String(acc.id)}>
+                    {acc.name}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <select
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value)}
+                className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="CASH">Naqd (Cash)</option>
+                <option value="CARD">Karta / O&apos;tkazma</option>
+                <option value="BANK">Bank hisob raqami</option>
+              </select>
+            )}
           </div>
         </div>
 

@@ -71,6 +71,12 @@ export interface Sale {
   createdAt: string;
 }
 
+export interface CashAccount {
+  id: number;
+  name: string;
+  createdAt: string;
+}
+
 export interface Payment {
   id: number;
   partnerId: number;
@@ -80,6 +86,8 @@ export interface Payment {
   amount: number;
   paymentDate: string;
   paymentMethod: string;
+  accountId?: number | null;
+  accountName?: string | null;
   notes?: string;
   createdAt: string;
 }
@@ -102,6 +110,7 @@ export interface AviakassaData {
   sales: Sale[];
   payments: Payment[];
   debtOffsets?: DebtOffset[];
+  accounts?: CashAccount[];
 }
 
 const STORAGE_KEY = "aviakassa_pro_data_v1";

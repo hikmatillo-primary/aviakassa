@@ -1,6 +1,32 @@
 from rest_framework import serializers
-from .models import Payment, DebtOffset
+from .models import Payment, DebtOffset, CashAccount, account_for_payment_method
 from apps.partners.models import Partner
+
+class CashAccountSerializer(serializers.ModelSerializer):
+    createdAt = serializers.DateTimeField(source='created_at', read_only=True)
+
+    class Meta:
+        model = CashAccount
+        fields = ['id', 'name', 'createdAt']
+
+    def validate_name(self, value):
+        name = (value or "").strip()
+        if not name:
+            raise serializers.ValidationError("Hisob nomi bo'sh bo'lishi mumkin emas.")
+        return name
+
+    def validate(self, attrs):
+        name = attrs.get('name')
+        if name:
+            qs = CashAccount.objects.filter(name=name)
+            if self.instance:
+                qs = qs.exclude(pk=self.instance.pk)
+            if qs.exists():
+                raise serializers.ValidationError(
+                    {"name": "Bu nomdagi hisob allaqachon mavjud."}
+                )
+        return attrs
+
 
 class PaymentSerializer(serializers.ModelSerializer):
     partnerId = serializers.PrimaryKeyRelatedField(source='partner', queryset=Partner.objects.all())
@@ -12,8 +38,25 @@ class PaymentSerializer(serializers.ModelSerializer):
         choices=Payment.PaymentMethod.choices,
         default=Payment.PaymentMethod.CASH,
     )
+    accountId = serializers.PrimaryKeyRelatedField(
+        source='account',
+        queryset=CashAccount.objects.all(),
+        required=False,
+        allow_null=True,
+    )
+    accountName = serializers.SerializerMethodField()
     amount = serializers.FloatField(min_value=0.01)
     createdAt = serializers.DateTimeField(source='created_at', read_only=True)
+
+    def get_accountName(self, obj):
+        return obj.account.name if obj.account_id else None
+
+    def create(self, validated_data):
+        if validated_data.get('account') is None:
+            fallback = account_for_payment_method(validated_data.get('payment_method'))
+            if fallback is not None:
+                validated_data['account'] = fallback
+        return super().create(validated_data)
 
     class Meta:
         model = Payment
@@ -26,6 +69,8 @@ class PaymentSerializer(serializers.ModelSerializer):
             'amount',
             'paymentDate',
             'paymentMethod',
+            'accountId',
+            'accountName',
             'notes',
             'createdAt',
         ]

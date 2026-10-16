@@ -88,7 +88,7 @@ export function LoginView({ onLoginSuccess, isDark, onToggleTheme }: LoginViewPr
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
             {/* Username Input */}
             <div>
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">

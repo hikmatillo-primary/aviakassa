@@ -10,12 +10,12 @@ from rest_framework.test import APITestCase
 from apps.partners.models import Partner
 from apps.flights.models import Batch
 from apps.sales.models import Sale
-from apps.cash.models import Payment, DebtOffset
+from apps.cash.models import Payment, DebtOffset, CashAccount
 
 from . import services
 from .models import DatabaseRegistry
 
-BUSINESS_MODELS = [Partner, Batch, Sale, Payment, DebtOffset]
+BUSINESS_MODELS = [CashAccount, Partner, Batch, Sale, Payment, DebtOffset]
 
 
 class CategoryNormalizationTests(APITestCase):
@@ -29,10 +29,10 @@ class CategoryNormalizationTests(APITestCase):
             {"sales", "batches", "partners"},
         )
 
-    def test_payments_pull_partners_only(self):
+    def test_payments_pull_partners_and_accounts(self):
         self.assertEqual(
             services.normalize_categories({"payments": True}),
-            {"payments", "partners"},
+            {"payments", "partners", "accounts"},
         )
 
     def test_partners_only_is_independent(self):
@@ -183,12 +183,14 @@ class CopyDataTests(APITestCase):
             sell_price=Decimal("400.00"),
             sale_date="2026-11-20",
         )
+        self.account = CashAccount.objects.create(name="Bank hisob raqami")
         Payment.objects.create(
             partner=self.client_partner,
             type="INCOME",
             amount=Decimal("100.00"),
             payment_date="2026-11-21",
             payment_method="CASH",
+            account=self.account,
         )
         DebtOffset.objects.create(
             from_partner=self.client_partner,
@@ -204,9 +206,10 @@ class CopyDataTests(APITestCase):
         copied = services.copy_selected(
             services.default_db_name(),
             self.ALIAS,
-            {"partners", "batches", "sales", "payments", "debtOffsets"},
+            {"accounts", "partners", "batches", "sales", "payments", "debtOffsets"},
         )
 
+        self.assertEqual(copied["accounts"], 2)
         self.assertEqual(copied["partners"], 2)
         self.assertEqual(copied["batches"], 1)
         self.assertEqual(copied["sales"], 1)
@@ -222,6 +225,9 @@ class CopyDataTests(APITestCase):
         copied_sale = Sale.objects.using(self.ALIAS).get()
         self.assertEqual(copied_sale.batch_id, self.batch.pk)
         self.assertEqual(copied_sale.client_id, self.client_partner.pk)
+
+        copied_payment = Payment.objects.using(self.ALIAS).get()
+        self.assertEqual(copied_payment.account_id, self.account.pk)
 
     def test_copy_only_selected_categories(self):
         copied = services.copy_selected(

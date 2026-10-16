@@ -1,9 +1,18 @@
 from rest_framework import viewsets, filters
-from .models import Payment, DebtOffset
-from .serializers import PaymentSerializer, DebtOffsetSerializer
+from .models import Payment, DebtOffset, CashAccount
+from .serializers import PaymentSerializer, DebtOffsetSerializer, CashAccountSerializer
+
+
+class CashAccountViewSet(viewsets.ModelViewSet):
+    queryset = CashAccount.objects.all().order_by('name')
+    serializer_class = CashAccountSerializer
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['name']
+    ordering_fields = ['name', 'created_at']
+
 
 class PaymentViewSet(viewsets.ModelViewSet):
-    queryset = Payment.objects.select_related('partner').all().order_by('-created_at')
+    queryset = Payment.objects.select_related('partner', 'account').all().order_by('-created_at')
     serializer_class = PaymentSerializer
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['partner__name', 'payment_method', 'notes']

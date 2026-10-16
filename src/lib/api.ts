@@ -1,4 +1,4 @@
-import { AviakassaData, Batch, DebtOffset, Partner, Payment, Sale } from "./storage";
+import { AviakassaData, Batch, CashAccount, DebtOffset, Partner, Payment, Sale } from "./storage";
 
 // Default: same-origin "/api" (nginx frontend /api/ ni backendga proksilaydi).
 // Kerak bo'lsa NEXT_PUBLIC_API_URL orqali to'liq manzil beriladi.
@@ -225,15 +225,16 @@ export async function checkBackendHealth(): Promise<boolean> {
  * Butun ma'lumotlar bazasini backenddan yuklash (Partners, Batches, Sales, Payments, DebtOffsets)
  */
 export async function apiFetchAll(): Promise<AviakassaData> {
-  const [partners, batches, sales, payments, debtOffsets] = await Promise.all([
+  const [partners, batches, sales, payments, debtOffsets, accounts] = await Promise.all([
     requestAll<Partner>("/partners/"),
     requestAll<Batch>("/batches/"),
     requestAll<Sale>("/sales/"),
     requestAll<Payment>("/cash/payments/"),
     requestAll<DebtOffset>("/cash/offsets/"),
+    requestAll<CashAccount>("/cash/accounts/"),
   ]);
 
-  return { partners, batches, sales, payments, debtOffsets };
+  return { partners, batches, sales, payments, debtOffsets, accounts };
 }
 
 
@@ -342,6 +343,18 @@ export async function apiCreatePayment(payment: Partial<Payment>): Promise<Payme
 
 export async function apiDeletePayment(id: number): Promise<void> {
   await request<void>(`/cash/payments/${id}/`, { method: "DELETE" });
+}
+
+// ================= Cash Accounts =================
+export async function apiCreateAccount(account: { name: string }): Promise<CashAccount> {
+  return request<CashAccount>("/cash/accounts/", {
+    method: "POST",
+    body: JSON.stringify(account),
+  });
+}
+
+export async function apiDeleteAccount(id: number): Promise<void> {
+  await request<void>(`/cash/accounts/${id}/`, { method: "DELETE" });
 }
 
 // ================= Debt Offsets =================

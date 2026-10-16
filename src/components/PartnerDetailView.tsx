@@ -19,6 +19,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { formatUSD, formatDate, paymentMethodLabel, matchesRouteSearch } from "@/lib/format";
+import { RowActionsMenu } from "@/components/RowActionsMenu";
 
 interface PartnerDetailViewProps {
   partnerId: number;
@@ -484,25 +485,29 @@ export function PartnerDetailView({
                   </div>
 
                   <div className="flex items-center gap-1.5">
-                    {onEditSale && (
-                      <button
-                        type="button"
-                        onClick={() => onEditSale(s)}
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 hover:bg-slate-200/80 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] text-slate-700 dark:text-slate-200 text-xs font-semibold rounded-lg transition-all cursor-pointer"
-                      >
-                        <Pencil className="w-3.5 h-3.5 text-slate-400" /> Narx
-                      </button>
-                    )}
-                    {onDeleteSale && (
-                      <button
-                        type="button"
-                        onClick={() => onDeleteSale(s)}
-                        aria-label="Sotuvni o‘chirish"
-                        className="inline-flex items-center justify-center p-1.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 rounded-lg transition-all cursor-pointer border border-rose-200/80 dark:border-rose-500/20"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    )}
+                    <RowActionsMenu
+                      actions={[
+                        ...(onEditSale
+                          ? [
+                              {
+                                label: "Narx",
+                                icon: <Pencil className="w-3.5 h-3.5" />,
+                                onClick: () => onEditSale(s),
+                              },
+                            ]
+                          : []),
+                        ...(onDeleteSale
+                          ? [
+                              {
+                                label: "O‘chirish",
+                                icon: <Trash2 className="w-3.5 h-3.5" />,
+                                onClick: () => onDeleteSale(s),
+                                variant: "danger" as const,
+                              },
+                            ]
+                          : []),
+                      ]}
+                    />
                   </div>
                 </div>
               </div>
@@ -592,25 +597,29 @@ export function PartnerDetailView({
                         Ombor <ChevronRight className="w-3.5 h-3.5" />
                       </button>
                     )}
-                    {onEditBatch && (
-                      <button
-                        type="button"
-                        onClick={() => onEditBatch(b)}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 hover:bg-slate-200/80 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] text-slate-700 dark:text-slate-200 text-xs font-semibold rounded-lg transition-all cursor-pointer"
-                      >
-                        <Pencil className="w-3.5 h-3.5 text-slate-400" /> Narx
-                      </button>
-                    )}
-                    {onDeleteBatch && (
-                      <button
-                        type="button"
-                        onClick={() => onDeleteBatch(b)}
-                        aria-label="Partiyani o‘chirish"
-                        className="inline-flex items-center justify-center p-1.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 rounded-lg transition-all cursor-pointer border border-rose-200/80 dark:border-rose-500/20"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    )}
+                    <RowActionsMenu
+                      actions={[
+                        ...(onEditBatch
+                          ? [
+                              {
+                                label: "Narx",
+                                icon: <Pencil className="w-3.5 h-3.5" />,
+                                onClick: () => onEditBatch(b),
+                              },
+                            ]
+                          : []),
+                        ...(onDeleteBatch
+                          ? [
+                              {
+                                label: "O‘chirish",
+                                icon: <Trash2 className="w-3.5 h-3.5" />,
+                                onClick: () => onDeleteBatch(b),
+                                variant: "danger" as const,
+                              },
+                            ]
+                          : []),
+                      ]}
+                    />
                   </div>
                 </div>
               </div>

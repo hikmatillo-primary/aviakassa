@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { Search, PackagePlus, Users, Calendar, Pencil, Trash2 } from "lucide-react";
 import { formatUSD, formatDate, matchesBatchSearch } from "@/lib/format";
 import { FlightBar } from "@/components/FlightBar";
+import { RowActionsMenu } from "@/components/RowActionsMenu";
 
 interface PartnersViewProps {
   batches?: any[];
@@ -155,31 +156,29 @@ export function PartnersView({
               </div>
 
               <div className="flex items-center gap-1.5">
-                {onEditBatch && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onEditBatch(batch);
-                    }}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200/80 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] text-slate-700 dark:text-slate-200 text-xs font-medium rounded-xl border border-slate-200/60 dark:border-white/[0.08] transition-colors cursor-pointer"
-                  >
-                    <Pencil className="w-3 h-3 text-slate-400" /> Narxni o‘zgartirish
-                  </button>
-                )}
-                {onDeleteBatch && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDeleteBatch(batch);
-                    }}
-                    aria-label="Partiyani o‘chirish"
-                    className="inline-flex items-center justify-center p-2 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 text-rose-600 dark:text-rose-400 rounded-xl border border-rose-200/60 dark:border-rose-900/50 transition-colors cursor-pointer"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                )}
+                <RowActionsMenu
+                  actions={[
+                    ...(onEditBatch
+                      ? [
+                          {
+                            label: "Narx",
+                            icon: <Pencil className="w-3.5 h-3.5" />,
+                            onClick: () => onEditBatch(batch),
+                          },
+                        ]
+                      : []),
+                    ...(onDeleteBatch
+                      ? [
+                          {
+                            label: "O‘chirish",
+                            icon: <Trash2 className="w-3.5 h-3.5" />,
+                            onClick: () => onDeleteBatch(batch),
+                            variant: "danger" as const,
+                          },
+                        ]
+                      : []),
+                  ]}
+                />
               </div>
             </div>
           </div>
@@ -260,31 +259,29 @@ export function PartnersView({
                   {/* Edit Action */}
                   <td className="py-4 px-5 text-right">
                     <div className="inline-flex items-center gap-1.5">
-                      {onEditBatch && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onEditBatch(batch);
-                          }}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200/80 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] text-slate-700 dark:text-slate-200 text-xs font-medium rounded-xl border border-slate-200/60 dark:border-white/[0.08] transition-all cursor-pointer"
-                        >
-                          <Pencil className="w-3 h-3 text-slate-400" /> Narxni o‘zgartirish
-                        </button>
-                      )}
-                      {onDeleteBatch && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onDeleteBatch(batch);
-                          }}
-                          aria-label="Partiyani o‘chirish"
-                          className="inline-flex items-center justify-center p-2 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 text-rose-600 dark:text-rose-400 rounded-xl border border-rose-200/60 dark:border-rose-900/50 transition-all cursor-pointer"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      )}
+                      <RowActionsMenu
+                        actions={[
+                          ...(onEditBatch
+                            ? [
+                                {
+                                  label: "Narx",
+                                  icon: <Pencil className="w-3.5 h-3.5" />,
+                                  onClick: () => onEditBatch(batch),
+                                },
+                              ]
+                            : []),
+                          ...(onDeleteBatch
+                            ? [
+                                {
+                                  label: "O‘chirish",
+                                  icon: <Trash2 className="w-3.5 h-3.5" />,
+                                  onClick: () => onDeleteBatch(batch),
+                                  variant: "danger" as const,
+                                },
+                              ]
+                            : []),
+                        ]}
+                      />
                     </div>
                   </td>
                 </tr>

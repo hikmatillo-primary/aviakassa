@@ -6,7 +6,7 @@ from rest_framework import status
 from apps.partners.models import Partner
 from apps.flights.models import Batch
 from apps.sales.models import Sale
-from apps.cash.models import Payment, DebtOffset
+from apps.cash.models import Payment, DebtOffset, CashAccount
 
 
 class CashModelTests(TestCase):
@@ -208,3 +208,92 @@ class CashAPITests(APITestCase):
         # Ta'minotchi haqi 5000 dan 3800 ga kamaydi (+3800)
         self.assertEqual(self.supplier.net_balance, 3800.0)
         self.assertEqual(self.supplier.we_owe_them, 3800.0)
+
+
+class CashAccountAPITests(APITestCase):
+    def setUp(self):
+        user = get_user_model().objects.create_user(
+            username="account_tester", password="test-pass-12345"
+        )
+        self.client.force_authenticate(user=user)
+        self.partner = Partner.objects.create(
+            name="Mijoz Akmal", type=Partner.PartnerType.CLIENT
+        )
+
+    def _list_results(self, res):
+        if isinstance(res.data, dict) and "results" in res.data:
+            return res.data["results"]
+        return res.data
+
+    def test_create_and_list_accounts(self):
+        res = self.client.post("/api/cash/accounts/", {"name": "Click karta"}, format="json")
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(res.data["name"], "Click karta")
+        self.assertIn("createdAt", res.data)
+
+        res = self.client.get("/api/cash/accounts/")
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        names = [a["name"] for a in self._list_results(res)]
+        self.assertIn("Click karta", names)
+
+    def test_duplicate_name_rejected(self):
+        CashAccount.objects.create(name="Naqd")
+        res = self.client.post("/api/cash/accounts/", {"name": "Naqd"}, format="json")
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("name", res.data)
+
+    def test_blank_name_rejected(self):
+        res = self.client.post("/api/cash/accounts/", {"name": "   "}, format="json")
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_payment_with_account(self):
+        account = CashAccount.objects.create(name="Bank hisob raqami")
+        payload = {
+            "partnerId": self.partner.id,
+            "type": "INCOME",
+            "amount": 150.0,
+            "paymentDate": "2026-10-16",
+            "accountId": account.id,
+            "notes": "Hisobga bog'langan to'lov",
+        }
+        res = self.client.post("/api/cash/payments/", payload, format="json")
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(res.data["accountId"], account.id)
+        self.assertEqual(res.data["accountName"], "Bank hisob raqami")
+
+        payment = Payment.objects.get(pk=res.data["id"])
+        self.assertEqual(payment.account_id, account.id)
+
+    def test_payment_falls_back_to_method_account(self):
+        account = CashAccount.objects.create(name="Naqd ($ USD)")
+        payload = {
+            "partnerId": self.partner.id,
+            "type": "INCOME",
+            "amount": 90.0,
+            "paymentDate": "2026-10-16",
+            "paymentMethod": "NAQD_USD",
+        }
+        res = self.client.post("/api/cash/payments/", payload, format="json")
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+
+        payment = Payment.objects.get(pk=res.data["id"])
+        self.assertEqual(payment.account_id, account.id)
+
+    def test_delete_account_blocked_when_payments_exist(self):
+        account = CashAccount.objects.create(name="Karta")
+        Payment.objects.create(
+            partner=self.partner,
+            type="INCOME",
+            amount=Decimal("10.00"),
+            payment_date="2026-10-16",
+            account=account,
+        )
+        res = self.client.delete(f"/api/cash/accounts/{account.id}/")
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertTrue(CashAccount.objects.filter(pk=account.id).exists())
+
+    def test_delete_account_ok_without_payments(self):
+        account = CashAccount.objects.create(name="Vaqtinchalik")
+        res = self.client.delete(f"/api/cash/accounts/{account.id}/")
+        self.assertEqual(res.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(CashAccount.objects.filter(pk=account.id).exists())

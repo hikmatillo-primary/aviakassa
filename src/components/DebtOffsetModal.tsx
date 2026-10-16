@@ -156,7 +156,7 @@ export function DebtOffsetModal({
         </div>
       }
     >
-      <form id="offset-form" onSubmit={handleSubmit} className="space-y-4">
+      <form id="offset-form" onSubmit={handleSubmit} className="space-y-4" noValidate>
         {error && (
           <div className="p-3 text-xs bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 rounded-2xl border border-rose-200 dark:border-rose-800 flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0" />

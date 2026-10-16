@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from apps.partners.models import Partner
 from apps.flights.models import Batch
 from apps.sales.models import Sale
-from apps.cash.models import Payment, DebtOffset
+from apps.cash.models import Payment, DebtOffset, account_for_payment_method
 from core.db_state import get_active_alias
 
 logger = logging.getLogger(__name__)
@@ -164,6 +164,7 @@ def import_data(request):
                 amount=p.get("amount") or 0,
                 payment_date=payment_date,
                 payment_method=p.get("paymentMethod") or "CASH",
+                account=account_for_payment_method(p.get("paymentMethod") or "CASH"),
                 notes=p.get("notes") or "",
             )
             created["payments"] += 1

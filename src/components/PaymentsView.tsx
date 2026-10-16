@@ -12,34 +12,80 @@ import {
   FileSpreadsheet,
   Users,
   Trash2,
+  Landmark,
+  Plus,
+  Loader2,
 } from "lucide-react";
 import { formatUSD, formatDate, paymentMethodLabel } from "@/lib/format";
+import { CashAccount } from "@/lib/storage";
+import { getValidationMessage } from "@/lib/api";
 
 interface PaymentsViewProps {
   payments: any[];
   debtOffsets?: any[];
   partners?: any[];
+  accounts?: CashAccount[];
   onOpenPaymentModal: (type?: "INCOME" | "EXPENSE", partnerId?: number) => void;
   onOpenDebtOffsetModal?: (fromPartnerId?: number, toPartnerId?: number) => void;
   onOpenHistoryModal?: (partnerId: number) => void;
   onDeletePayment?: (payment: any) => void;
   onDeleteDebtOffset?: (offset: any) => void;
+  onAddAccount?: (name: string) => Promise<void>;
+  onDeleteAccount?: (account: CashAccount) => void;
 }
 
 export function PaymentsView({
   payments,
   debtOffsets = [],
   partners = [],
+  accounts = [],
   onOpenPaymentModal,
   onOpenDebtOffsetModal,
   onOpenHistoryModal,
   onDeletePayment,
   onDeleteDebtOffset,
+  onAddAccount,
+  onDeleteAccount,
 }: PaymentsViewProps) {
-  const [activeSubTab, setActiveSubTab] = useState<"CASH" | "PARTNERS" | "OFFSETS">("CASH");
+  const [activeSubTab, setActiveSubTab] = useState<"CASH" | "PARTNERS" | "OFFSETS" | "ACCOUNTS">("CASH");
   const [filter, setFilter] = useState<"ALL" | "INCOME" | "EXPENSE">("ALL");
   const [partnerBalanceFilter, setPartnerBalanceFilter] = useState<"ALL" | "DEBT_US" | "DEBT_THEM">("ALL");
   const [search, setSearch] = useState("");
+  const [newAccountName, setNewAccountName] = useState("");
+  const [isCreatingAccount, setIsCreatingAccount] = useState(false);
+  const [accountError, setAccountError] = useState<string | null>(null);
+
+  const handleCreateAccount = async () => {
+    const name = newAccountName.trim();
+    if (!name || !onAddAccount) return;
+    setIsCreatingAccount(true);
+    setAccountError(null);
+    try {
+      await onAddAccount(name);
+      setNewAccountName("");
+    } catch (err) {
+      setAccountError(getValidationMessage(err));
+    } finally {
+      setIsCreatingAccount(false);
+    }
+  };
+
+  const paymentsForAccount = (accountId: number | null) =>
+    payments.filter((p) =>
+      accountId === null ? p.accountId == null : p.accountId === accountId
+    );
+
+  const accountNet = (list: any[]) =>
+    list.reduce(
+      (acc, p) => acc + (p.type === "INCOME" ? p.amount || 0 : -(p.amount || 0)),
+      0
+    );
+
+  const unassignedPayments = paymentsForAccount(null);
+
+  const filteredAccounts = accounts.filter((a) =>
+    !search.trim() ? true : a.name.toLowerCase().includes(search.toLowerCase())
+  );
 
   const filteredPayments = payments.filter((p) => {
     if (filter === "INCOME" && p.type !== "INCOME") return false;
@@ -255,7 +301,7 @@ export function PaymentsView({
       </div>
 
       {/* Sub Tabs Switch */}
-      <div className="grid grid-cols-3 sm:inline-flex items-center gap-1 bg-slate-200/60 dark:bg-[#111726] p-1 rounded-xl border border-transparent dark:border-white/[0.07] w-full sm:w-auto">
+      <div className="grid grid-cols-4 sm:inline-flex items-center gap-1 bg-slate-200/60 dark:bg-[#111726] p-1 rounded-xl border border-transparent dark:border-white/[0.07] w-full sm:w-auto">
         <button
           onClick={() => {
             setActiveSubTab("CASH");
@@ -303,6 +349,22 @@ export function PaymentsView({
           <span className="sm:hidden">Qarz surish ({debtOffsets.length})</span>
           <span className="hidden sm:inline">O‘zaro qarz surish ({debtOffsets.length})</span>
         </button>
+
+        <button
+          onClick={() => {
+            setActiveSubTab("ACCOUNTS");
+            setSearch("");
+            setAccountError(null);
+          }}
+          className={`flex items-center justify-center gap-1.5 px-2.5 sm:px-3.5 py-2 text-[11px] sm:text-xs font-semibold rounded-lg transition-all cursor-pointer truncate ${
+            activeSubTab === "ACCOUNTS"
+              ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs"
+              : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+          }`}
+        >
+          <Landmark className="w-3.5 h-3.5 shrink-0" />
+          <span>Hisoblar ({accounts.length})</span>
+        </button>
       </div>
 
       {/* Search and Filters */}
@@ -317,7 +379,9 @@ export function PaymentsView({
                 ? "Hamkor nomi yoki izoh..."
                 : activeSubTab === "PARTNERS"
                 ? "Hamkor nomi bo‘yicha qidirish..."
-                : "Qarz beruvchi, oluvchi yoki izoh..."
+                : activeSubTab === "OFFSETS"
+                ? "Qarz beruvchi, oluvchi yoki izoh..."
+                : "Hisob nomi bo‘yicha qidirish..."
             }
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -446,7 +510,7 @@ export function PaymentsView({
 
                 <div className="flex items-center justify-between gap-2 text-xs pt-2.5 border-t border-slate-100 dark:border-white/[0.06]">
                   <span className="bg-slate-100 dark:bg-white/[0.06] text-slate-600 dark:text-slate-300 px-2.5 py-0.5 rounded-lg text-[11px] font-medium">
-                    {paymentMethodLabel(p.paymentMethod)}
+                    {p.accountName || paymentMethodLabel(p.paymentMethod)}
                   </span>
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="text-slate-500 dark:text-slate-400 text-xs truncate max-w-[180px]">
@@ -498,7 +562,7 @@ export function PaymentsView({
                     <th className="py-3 px-4">Turi</th>
                     <th className="py-3 px-4">Hamkor</th>
                     <th className="py-3 px-4 text-right">Summa</th>
-                    <th className="py-3 px-4">To‘lov usuli</th>
+                    <th className="py-3 px-4">Hisob / Usul</th>
                     <th className="py-3 px-4">Izoh</th>
                     <th className="py-3 px-4 text-right">Amal</th>
                   </tr>
@@ -545,7 +609,7 @@ export function PaymentsView({
                       </td>
                       <td className="py-3.5 px-4">
                         <span className="bg-slate-100 dark:bg-white/[0.06] text-slate-600 dark:text-slate-300 px-2.5 py-0.5 rounded-lg text-[11px] font-medium">
-                          {paymentMethodLabel(p.paymentMethod)}
+                          {p.accountName || paymentMethodLabel(p.paymentMethod)}
                         </span>
                       </td>
                       <td className="py-3.5 px-4 text-slate-400 dark:text-slate-500 max-w-xs truncate">
@@ -921,6 +985,157 @@ export function PaymentsView({
             </div>
           </div>
         </>
+      )}
+
+      {/* SUB-TAB 4: CASH ACCOUNTS (HISOBLAR) */}
+      {activeSubTab === "ACCOUNTS" && (
+        <div className="space-y-4">
+          {/* Add account */}
+          {onAddAccount && (
+            <div className="bg-white dark:bg-[#111726] p-3 rounded-2xl border border-slate-200/70 dark:border-white/[0.07] shadow-xs flex flex-col sm:flex-row sm:items-center gap-2">
+              <input
+                type="text"
+                value={newAccountName}
+                onChange={(e) => setNewAccountName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleCreateAccount();
+                  }
+                }}
+                placeholder="Yangi hisob nomi (masalan: Naqd, Kapitalbank, Click)..."
+                className="w-full flex-1 px-3.5 py-2.5 text-xs bg-slate-50/80 dark:bg-white/[0.04] border border-slate-200/80 dark:border-white/[0.08] rounded-xl focus:bg-white dark:focus:bg-white/[0.07] text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-all"
+              />
+              <button
+                type="button"
+                onClick={handleCreateAccount}
+                disabled={isCreatingAccount || !newAccountName.trim()}
+                className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-sm shadow-blue-500/20 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+              >
+                {isCreatingAccount ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Plus className="w-3.5 h-3.5" />
+                )}
+                Hisob qo‘shish
+              </button>
+            </div>
+          )}
+
+          {accountError && (
+            <div className="p-3 text-xs bg-red-50 dark:bg-red-950/50 text-red-600 dark:text-red-400 rounded-xl border border-red-200 dark:border-red-800">
+              {accountError}
+            </div>
+          )}
+
+          {/* Account cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+            {filteredAccounts.map((acc) => {
+              const accPayments = paymentsForAccount(acc.id);
+              const net = accountNet(accPayments);
+              return (
+                <div
+                  key={acc.id}
+                  className="bg-white dark:bg-[#111726] p-4 sm:p-5 rounded-2xl border border-slate-200/70 dark:border-white/[0.07] shadow-xs flex flex-col justify-between gap-4"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                        <Landmark className="w-5 h-5" />
+                      </div>
+                      <div className="min-w-0">
+                        <h3 className="font-bold text-slate-900 dark:text-white text-base truncate">
+                          {acc.name}
+                        </h3>
+                        <p className="text-[11px] text-slate-400">
+                          {accPayments.length} ta to‘lov
+                        </p>
+                      </div>
+                    </div>
+                    {onDeleteAccount && (
+                      <button
+                        type="button"
+                        onClick={() => onDeleteAccount(acc)}
+                        aria-label="Hisobni o‘chirish"
+                        className="inline-flex items-center justify-center p-1.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 rounded-lg transition-colors cursor-pointer border border-rose-200/80 dark:border-rose-500/20 shrink-0"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50/80 dark:bg-white/[0.03] border border-slate-100 dark:border-white/[0.05] text-xs tabular-nums">
+                    <span className="text-slate-400 text-[11px]">Qoldiq:</span>
+                    <span
+                      className={`text-lg font-bold ${
+                        net >= 0
+                          ? "text-emerald-600 dark:text-emerald-400"
+                          : "text-rose-600 dark:text-rose-400"
+                      }`}
+                    >
+                      {net >= 0
+                        ? `+${formatUSD(net)}`
+                        : `-${formatUSD(Math.abs(net))}`}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Unassigned payments bucket */}
+            {unassignedPayments.length > 0 && (
+              <div className="bg-white dark:bg-[#111726] p-4 sm:p-5 rounded-2xl border border-dashed border-slate-300/80 dark:border-white/[0.12] shadow-xs flex flex-col justify-between gap-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-xl bg-slate-500/10 text-slate-500 dark:text-slate-400 flex items-center justify-center shrink-0">
+                      <Wallet className="w-5 h-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="font-bold text-slate-900 dark:text-white text-base truncate">
+                        Hisobsiz to‘lovlar
+                      </h3>
+                      <p className="text-[11px] text-slate-400">
+                        {unassignedPayments.length} ta to‘lov
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50/80 dark:bg-white/[0.03] border border-slate-100 dark:border-white/[0.05] text-xs tabular-nums">
+                  <span className="text-slate-400 text-[11px]">Qoldiq:</span>
+                  <span
+                    className={`text-lg font-bold ${
+                      accountNet(unassignedPayments) >= 0
+                        ? "text-emerald-600 dark:text-emerald-400"
+                        : "text-rose-600 dark:text-rose-400"
+                    }`}
+                  >
+                    {accountNet(unassignedPayments) >= 0
+                      ? `+${formatUSD(accountNet(unassignedPayments))}`
+                      : `-${formatUSD(Math.abs(accountNet(unassignedPayments)))}`}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {filteredAccounts.length === 0 && unassignedPayments.length === 0 && (
+              <div className="col-span-full bg-white dark:bg-[#111726] rounded-2xl border border-slate-200/70 dark:border-white/[0.07] p-8 text-center space-y-2">
+                <p className="text-xs text-slate-400 dark:text-slate-500">
+                  Hisoblar topilmadi
+                </p>
+                {search && (
+                  <button
+                    type="button"
+                    onClick={() => setSearch("")}
+                    className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                  >
+                    Filterni tozalash
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );
