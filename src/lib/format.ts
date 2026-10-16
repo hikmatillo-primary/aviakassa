@@ -17,6 +17,21 @@ export function formatUSD(amount: number | undefined | null): string {
   return `$${formatMoney(num)}`;
 }
 
+/**
+ * To'lov usuli bo'yicha yagona o'zbekcha nom.
+ * CASH/CARD/BANK — butun ilova bo'ylab bir xil ko'rsatiladi.
+ */
+export const PAYMENT_METHOD_OPTIONS: { value: string; label: string }[] = [
+  { value: "CASH", label: "Naqd pul" },
+  { value: "CARD", label: "Karta / O'tkazma" },
+  { value: "BANK", label: "Bank hisobi" },
+];
+
+export function paymentMethodLabel(method: string | undefined | null): string {
+  const found = PAYMENT_METHOD_OPTIONS.find((m) => m.value === method);
+  return found ? found.label : "Bank hisobi";
+}
+
 const UZ_MONTHS = [
   "Yan",
   "Fev",

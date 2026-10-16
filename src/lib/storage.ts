@@ -304,9 +304,13 @@ export function calculateEnrichedData(data: AviakassaData) {
   const { partners, batches, sales, payments } = data;
   const debtOffsets = data.debtOffsets || [];
 
+  // O(1) qidiruv uchun indekslar (avval O(P×N) edi)
+  const partnerById = new Map(partners.map((p) => [p.id, p]));
+  const batchById = new Map(batches.map((b) => [b.id, b]));
+
   // Enrich batches with supplier names & live totalCost
   const enrichedBatches = batches.map((b) => {
-    const supplier = partners.find((p) => p.id === b.supplierId);
+    const supplier = partnerById.get(b.supplierId);
     const computedCost = (b.totalQty || 0) * (b.buyPrice || 0);
     const totalCost = typeof b.totalCost === "number" ? b.totalCost : computedCost;
     return {
@@ -319,8 +323,8 @@ export function calculateEnrichedData(data: AviakassaData) {
 
   // Enrich sales with client & batch details (live profit & totalAmount)
   const enrichedSales = sales.map((s) => {
-    const client = partners.find((p) => p.id === s.clientId);
-    const batch = batches.find((b) => b.id === s.batchId);
+    const client = partnerById.get(s.clientId);
+    const batch = batchById.get(s.batchId);
     const buyPrice =
       typeof s.buyPrice === "number" ? s.buyPrice : batch ? batch.buyPrice : 0;
     const computedAmount = (s.qty || 0) * (s.sellPrice || 0);
@@ -350,7 +354,7 @@ export function calculateEnrichedData(data: AviakassaData) {
 
   // Enrich payments with partner names & types
   const enrichedPayments = payments.map((p) => {
-    const partner = partners.find((item) => item.id === p.partnerId);
+    const partner = partnerById.get(p.partnerId);
     return {
       ...p,
       partnerName: partner?.name || "Noma'lum",
@@ -360,8 +364,8 @@ export function calculateEnrichedData(data: AviakassaData) {
 
   // Enrich debt offsets with partner names
   const enrichedOffsets = debtOffsets.map((o) => {
-    const fromP = partners.find((p) => p.id === o.fromPartnerId);
-    const toP = partners.find((p) => p.id === o.toPartnerId);
+    const fromP = partnerById.get(o.fromPartnerId);
+    const toP = partnerById.get(o.toPartnerId);
     return {
       ...o,
       fromPartnerName: fromP?.name || "Noma'lum",
@@ -369,25 +373,49 @@ export function calculateEnrichedData(data: AviakassaData) {
     };
   });
 
+  // Hamkor bo'yicha yig'indi ko'rsatkichlarni bir marta hisoblaymiz (bitta o'tish)
+  const boughtFromUsByPartner = new Map<number, number>();
+  for (const s of enrichedSales) {
+    boughtFromUsByPartner.set(
+      s.clientId,
+      (boughtFromUsByPartner.get(s.clientId) || 0) + (s.totalAmount || 0)
+    );
+  }
+  const soldToUsByPartner = new Map<number, number>();
+  for (const b of enrichedBatches) {
+    soldToUsByPartner.set(
+      b.supplierId,
+      (soldToUsByPartner.get(b.supplierId) || 0) + (b.totalCost || 0)
+    );
+  }
+  const paidToUsByPartner = new Map<number, number>();
+  const paidByUsByPartner = new Map<number, number>();
+  for (const p of payments) {
+    if (p.type === "INCOME") {
+      paidToUsByPartner.set(p.partnerId, (paidToUsByPartner.get(p.partnerId) || 0) + (p.amount || 0));
+    } else if (p.type === "EXPENSE") {
+      paidByUsByPartner.set(p.partnerId, (paidByUsByPartner.get(p.partnerId) || 0) + (p.amount || 0));
+    }
+  }
+  const offsetFromByPartner = new Map<number, number>();
+  const offsetToByPartner = new Map<number, number>();
+  for (const o of debtOffsets) {
+    offsetFromByPartner.set(
+      o.fromPartnerId,
+      (offsetFromByPartner.get(o.fromPartnerId) || 0) + (o.amount || 0)
+    );
+    offsetToByPartner.set(
+      o.toPartnerId,
+      (offsetToByPartner.get(o.toPartnerId) || 0) + (o.amount || 0)
+    );
+  }
+
   // Enrich partners with balances (including dual role: vendor + buyer)
   const enrichedPartners = partners.map((partner) => {
-    // 1. Sales sold to this partner (Partner is buyer)
-    const partnerSales = enrichedSales.filter((s) => s.clientId === partner.id);
-    const computedBoughtFromUs = partnerSales.reduce((sum, s) => sum + (s.totalAmount || 0), 0);
-
-    // 2. Batches bought from this partner (Partner is supplier/vendor)
-    const partnerBatches = enrichedBatches.filter((b) => b.supplierId === partner.id);
-    const computedSoldToUs = partnerBatches.reduce((sum, b) => sum + (b.totalCost || 0), 0);
-
-    // 3. Payments received from this partner (Income)
-    const computedPaidToUs = payments
-      .filter((p) => p.partnerId === partner.id && p.type === "INCOME")
-      .reduce((sum, p) => sum + (p.amount || 0), 0);
-
-    // 4. Payments paid by us to this partner (Expense)
-    const computedPaidByUs = payments
-      .filter((p) => p.partnerId === partner.id && p.type === "EXPENSE")
-      .reduce((sum, p) => sum + (p.amount || 0), 0);
+    const computedBoughtFromUs = boughtFromUsByPartner.get(partner.id) || 0;
+    const computedSoldToUs = soldToUsByPartner.get(partner.id) || 0;
+    const computedPaidToUs = paidToUsByPartner.get(partner.id) || 0;
+    const computedPaidByUs = paidByUsByPartner.get(partner.id) || 0;
 
     // Server hisob-kitobi mavjud bo'lsa undan, aks holda lokal hisobdan foydalanamiz
     const totalBoughtFromUs =
@@ -402,12 +430,8 @@ export function calculateEnrichedData(data: AviakassaData) {
       typeof partner.totalPaidByUs === "number" ? partner.totalPaidByUs : computedPaidByUs;
 
     // 5. Debt offsets (faqat lokal hisob uchun)
-    const offsetFrom = debtOffsets
-      .filter((o) => o.fromPartnerId === partner.id)
-      .reduce((sum, o) => sum + (o.amount || 0), 0);
-    const offsetTo = debtOffsets
-      .filter((o) => o.toPartnerId === partner.id)
-      .reduce((sum, o) => sum + (o.amount || 0), 0);
+    const offsetFrom = offsetFromByPartner.get(partner.id) || 0;
+    const offsetTo = offsetToByPartner.get(partner.id) || 0;
 
     // Net calculations (DebtOffset included, aligned with backend Partner model):
     const clientDebt = totalBoughtFromUs - totalPaidToUs;

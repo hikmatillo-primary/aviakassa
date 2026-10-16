@@ -2,10 +2,11 @@
 
 import React, { useState } from "react";
 import { Modal } from "./Modal";
-import { ArrowDownLeft, ArrowUpRight } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, Loader2 } from "lucide-react";
 import { formatUSD } from "@/lib/format";
 import { DatePicker } from "./DatePicker";
 import { PartnerSelect } from "./PartnerSelect";
+import { getValidationMessage } from "@/lib/api";
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -22,7 +23,7 @@ interface PaymentModalProps {
     paymentDate: string;
     paymentMethod: string;
     notes: string;
-  }) => void;
+  }) => void | Promise<void>;
 }
 
 export function PaymentModal({
@@ -36,6 +37,7 @@ export function PaymentModal({
   onSave,
 }: PaymentModalProps) {
   const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [type, setType] = useState<"INCOME" | "EXPENSE">(defaultType);
   const [partnerId, setPartnerId] = useState<string>(defaultPartnerId ? String(defaultPartnerId) : "");
@@ -47,6 +49,7 @@ export function PaymentModal({
   React.useEffect(() => {
     if (isOpen) {
       setError(null);
+      setIsSubmitting(false);
       if (defaultType) setType(defaultType);
       setPartnerId(defaultPartnerId ? String(defaultPartnerId) : "");
       setAmount(defaultAmount !== undefined ? defaultAmount : 0);
@@ -57,7 +60,7 @@ export function PaymentModal({
 
   const selectedPartner = partners.find((p) => String(p.id) === partnerId);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
@@ -66,8 +69,9 @@ export function PaymentModal({
       return;
     }
 
+    setIsSubmitting(true);
     try {
-      onSave({
+      await onSave({
         partnerId: Number(partnerId),
         type,
         amount: Number(amount),
@@ -76,8 +80,9 @@ export function PaymentModal({
         notes,
       });
       onClose();
-    } catch (err: any) {
-      setError(err.message || "Xatolik yuz berdi!");
+    } catch (err) {
+      setError(getValidationMessage(err));
+      setIsSubmitting(false);
     }
   };
 
@@ -92,20 +97,23 @@ export function PaymentModal({
           <button
             type="button"
             onClick={onClose}
-            className="px-5 py-2.5 text-xs sm:text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/[0.06] rounded-xl transition-colors cursor-pointer"
+            disabled={isSubmitting}
+            className="px-5 py-2.5 text-xs sm:text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/[0.06] rounded-xl transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Bekor qilish
           </button>
           <button
             type="submit"
             form="payment-form"
-            className={`px-6 py-2.5 text-xs sm:text-sm font-bold text-white rounded-xl shadow-sm transition-all cursor-pointer ${
+            disabled={isSubmitting}
+            className={`inline-flex items-center gap-2 px-6 py-2.5 text-xs sm:text-sm font-bold text-white rounded-xl shadow-sm transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed ${
               type === "INCOME"
                 ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20"
                 : "bg-rose-600 hover:bg-rose-700 shadow-rose-500/20"
             }`}
           >
-            To&apos;lovni saqlash
+            {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+            {isSubmitting ? "Saqlanmoqda..." : "To‘lovni saqlash"}
           </button>
         </div>
       }

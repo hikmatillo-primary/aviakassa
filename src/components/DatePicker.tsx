@@ -307,10 +307,21 @@ export function DatePicker({
 
       {/* Trigger Input Button */}
       <div
+        role="button"
+        tabIndex={0}
+        aria-haspopup="dialog"
+        aria-expanded={isOpen}
+        aria-label={label ? `${label}: ${value || placeholder}` : undefined}
         onClick={() => {
           setIsOpen((prev) => !prev);
         }}
-        className={`w-full flex items-center justify-between gap-1.5 px-2.5 sm:px-3 py-2 bg-white dark:bg-[#111726] border rounded-xl cursor-pointer transition-all select-none ${
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setIsOpen((prev) => !prev);
+          }
+        }}
+        className={`w-full flex items-center justify-between gap-1.5 px-2.5 sm:px-3 py-2 bg-white dark:bg-[#111726] border rounded-xl cursor-pointer transition-all select-none focus:outline-none focus:ring-2 focus:ring-blue-500/40 ${
           isOpen
             ? "border-blue-500 ring-2 ring-blue-500/20 shadow-sm"
             : "border-slate-300 dark:border-slate-700/80 hover:border-slate-400 dark:hover:border-slate-600"
@@ -340,6 +351,7 @@ export function DatePicker({
             type="button"
             onClick={handleClear}
             title="Sanani o'chirish"
+            aria-label="Sanani o'chirish"
             className="p-1 rounded-md text-slate-400 hover:text-rose-500 hover:bg-slate-100 dark:hover:bg-white/[0.05] transition-colors cursor-pointer shrink-0"
           >
             <X className="w-3.5 h-3.5" />

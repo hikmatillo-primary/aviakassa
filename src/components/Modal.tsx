@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useId, useRef } from "react";
 import { X } from "lucide-react";
 
 interface ModalProps {
@@ -14,6 +14,9 @@ interface ModalProps {
   zIndex?: string;
 }
 
+const FOCUSABLE_SELECTOR =
+  'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
 export function Modal({
   isOpen,
   onClose,
@@ -24,20 +27,64 @@ export function Modal({
   maxWidth = "max-w-xl md:max-w-2xl",
   zIndex = "z-50",
 }: ModalProps) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const previouslyFocused = useRef<HTMLElement | null>(null);
+  const titleId = useId();
+  const descriptionId = useId();
+
   useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    if (isOpen) {
-      document.body.style.overflow = "hidden";
-      window.addEventListener("keydown", handleEscape);
-    }
-    return () => {
-      window.removeEventListener("keydown", handleEscape);
-      const openModals = document.querySelectorAll(".aviakassa-modal-root");
-      if (openModals.length <= 1) {
-        document.body.style.overflow = "unset";
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+        return;
       }
+      if (e.key !== "Tab") return;
+
+      const root = dialogRef.current;
+      if (!root) return;
+      const focusables = Array.from(
+        root.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)
+      ).filter((el) => el.offsetParent !== null || el === document.activeElement);
+      if (focusables.length === 0) return;
+
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+
+    if (isOpen) {
+      previouslyFocused.current = document.activeElement as HTMLElement | null;
+      document.body.style.overflow = "hidden";
+      window.addEventListener("keydown", handleKeyDown);
+
+      // Fokusni dialog ichiga olib kirish (agar avtofokus allaqachon bo'lmasa).
+      const timer = window.setTimeout(() => {
+        const root = dialogRef.current;
+        if (!root) return;
+        if (root.contains(document.activeElement)) return;
+        const firstFocusable = root.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
+        (firstFocusable || root).focus();
+      }, 0);
+
+      return () => {
+        window.clearTimeout(timer);
+        window.removeEventListener("keydown", handleKeyDown);
+        const openModals = document.querySelectorAll(".aviakassa-modal-root");
+        if (openModals.length <= 1) {
+          document.body.style.overflow = "unset";
+        }
+        previouslyFocused.current?.focus?.();
+      };
+    }
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
     };
   }, [isOpen, onClose]);
 
@@ -51,11 +98,18 @@ export function Modal({
       <div
         className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
         onClick={onClose}
+        aria-hidden="true"
       />
 
       {/* Dialog */}
       <div
-        className={`relative w-full ${maxWidth} bg-white dark:bg-[#111726] rounded-t-3xl sm:rounded-3xl shadow-2xl border-t sm:border border-slate-200/80 dark:border-white/[0.08] overflow-hidden transform transition-all z-10 max-h-[92vh] sm:max-h-[90vh] flex flex-col`}
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        aria-describedby={description ? descriptionId : undefined}
+        tabIndex={-1}
+        className={`relative w-full ${maxWidth} bg-white dark:bg-[#111726] rounded-t-3xl sm:rounded-3xl shadow-2xl border-t sm:border border-slate-200/80 dark:border-white/[0.08] overflow-hidden transform transition-all z-10 max-h-[92vh] sm:max-h-[90vh] flex flex-col focus:outline-none`}
       >
         {/* Mobile grab handle */}
         <div className="w-12 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700 mx-auto mt-2.5 sm:hidden shrink-0" />
@@ -63,11 +117,13 @@ export function Modal({
         {/* Header */}
         <div className="px-5 sm:px-7 md:px-8 py-3.5 sm:py-4 md:py-5 border-b border-slate-100 dark:border-white/[0.07] flex items-center justify-between shrink-0 bg-slate-50/40 dark:bg-white/[0.02]">
           <div>
-            <h3 className="text-base sm:text-lg md:text-xl font-extrabold text-slate-900 dark:text-white tracking-tight">{title}</h3>
-            {description && <p className="text-xs sm:text-sm text-slate-400 dark:text-slate-400 mt-0.5">{description}</p>}
+            <h3 id={titleId} className="text-base sm:text-lg md:text-xl font-extrabold text-slate-900 dark:text-white tracking-tight">{title}</h3>
+            {description && <p id={descriptionId} className="text-xs sm:text-sm text-slate-400 dark:text-slate-400 mt-0.5">{description}</p>}
           </div>
           <button
+            type="button"
             onClick={onClose}
+            aria-label="Yopish"
             className="w-9 h-9 md:w-10 md:h-10 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/[0.06] flex items-center justify-center transition-colors cursor-pointer shrink-0"
           >
             <X className="w-4 h-4 md:w-5 md:h-5" />

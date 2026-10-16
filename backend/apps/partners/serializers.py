@@ -2,14 +2,46 @@ from rest_framework import serializers
 from .models import Partner
 
 class PartnerSerializer(serializers.ModelSerializer):
-    totalSoldToUs = serializers.FloatField(source='total_sold_to_us', read_only=True)
-    totalPaidByUs = serializers.FloatField(source='total_paid_by_us', read_only=True)
-    totalBoughtFromUs = serializers.FloatField(source='total_bought_from_us', read_only=True)
-    totalPaidToUs = serializers.FloatField(source='total_paid_to_us', read_only=True)
-    theyOweUs = serializers.FloatField(source='they_owe_us', read_only=True)
-    weOweThem = serializers.FloatField(source='we_owe_them', read_only=True)
-    balance = serializers.FloatField(source='net_balance', read_only=True)
+    totalSoldToUs = serializers.SerializerMethodField()
+    totalPaidByUs = serializers.SerializerMethodField()
+    totalBoughtFromUs = serializers.SerializerMethodField()
+    totalPaidToUs = serializers.SerializerMethodField()
+    theyOweUs = serializers.SerializerMethodField()
+    weOweThem = serializers.SerializerMethodField()
+    balance = serializers.SerializerMethodField()
     createdAt = serializers.DateTimeField(source='created_at', read_only=True)
+
+    def _financials(self, obj):
+        # Har bir hamkor uchun moliyaviy ko'rsatkichlar bitta o'tishda hisoblanadi
+        # va serializer nusxasida keshlanadi (avval ~3x takrorlanardi).
+        cache = getattr(self, "_financials_cache", None)
+        if cache is None:
+            cache = {}
+            self._financials_cache = cache
+        if obj.pk not in cache:
+            cache[obj.pk] = obj.compute_financials()
+        return cache[obj.pk]
+
+    def get_totalSoldToUs(self, obj):
+        return self._financials(obj)["total_sold_to_us"]
+
+    def get_totalPaidByUs(self, obj):
+        return self._financials(obj)["total_paid_by_us"]
+
+    def get_totalBoughtFromUs(self, obj):
+        return self._financials(obj)["total_bought_from_us"]
+
+    def get_totalPaidToUs(self, obj):
+        return self._financials(obj)["total_paid_to_us"]
+
+    def get_theyOweUs(self, obj):
+        return self._financials(obj)["they_owe_us"]
+
+    def get_weOweThem(self, obj):
+        return self._financials(obj)["we_owe_them"]
+
+    def get_balance(self, obj):
+        return self._financials(obj)["balance"]
 
     class Meta:
         model = Partner
@@ -21,7 +53,6 @@ class PartnerSerializer(serializers.ModelSerializer):
             'phone',
             'notes',
             'createdAt',
-            'created_at',
             'totalSoldToUs',
             'totalPaidByUs',
             'totalBoughtFromUs',

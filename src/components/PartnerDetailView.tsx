@@ -16,8 +16,9 @@ import {
   Tag,
   FileText,
   ChevronRight,
+  Trash2,
 } from "lucide-react";
-import { formatUSD, formatDate } from "@/lib/format";
+import { formatUSD, formatDate, paymentMethodLabel } from "@/lib/format";
 
 interface PartnerDetailViewProps {
   partnerId: number;
@@ -36,6 +37,12 @@ interface PartnerDetailViewProps {
   onOpenDebtOffsetModal?: (fromPartnerId?: number, toPartnerId?: number) => void;
   onEditBatch?: (batch: any) => void;
   onEditSale?: (sale: any) => void;
+  onEditPartner?: (partner: any) => void;
+  onDeletePartner?: (partner: any) => void;
+  onDeleteBatch?: (batch: any) => void;
+  onDeleteSale?: (sale: any) => void;
+  onDeletePayment?: (payment: any) => void;
+  onDeleteDebtOffset?: (offset: any) => void;
   onSelectBatch?: (batchId: number) => void;
 }
 
@@ -51,6 +58,12 @@ export function PartnerDetailView({
   onOpenDebtOffsetModal,
   onEditBatch,
   onEditSale,
+  onEditPartner,
+  onDeletePartner,
+  onDeleteBatch,
+  onDeleteSale,
+  onDeletePayment,
+  onDeleteDebtOffset,
   onSelectBatch,
 }: PartnerDetailViewProps) {
   const [activeTab, setActiveTab] = useState<"SALES" | "BATCHES" | "PAYMENTS" | "OFFSETS">("SALES");
@@ -188,6 +201,26 @@ export function PartnerDetailView({
           >
             <ArrowUpRight className="w-3.5 h-3.5" /> Pul berish (Chiqim)
           </button>
+
+          {onEditPartner && (
+            <button
+              onClick={() => onEditPartner(partner)}
+              aria-label="Hamkorni tahrirlash"
+              className="px-3 py-2 text-xs font-semibold rounded-xl text-slate-700 dark:text-slate-200 bg-white dark:bg-[#111726] hover:bg-slate-50 dark:hover:bg-white/[0.06] border border-slate-200/80 dark:border-white/[0.08] shadow-2xs transition-all cursor-pointer flex items-center gap-1.5"
+            >
+              <Pencil className="w-3.5 h-3.5 text-slate-500" /> Tahrirlash
+            </button>
+          )}
+
+          {onDeletePartner && (
+            <button
+              onClick={() => onDeletePartner(partner)}
+              aria-label="Hamkorni o‘chirish"
+              className="px-3 py-2 text-xs font-semibold rounded-xl text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/10 hover:bg-rose-100 dark:hover:bg-rose-500/20 border border-rose-200/80 dark:border-rose-500/20 transition-all cursor-pointer flex items-center gap-1.5"
+            >
+              <Trash2 className="w-3.5 h-3.5" /> O‘chirish
+            </button>
+          )}
         </div>
       </div>
 
@@ -450,15 +483,27 @@ export function PartnerDetailView({
                     </span>
                   </div>
 
-                  {onEditSale && (
-                    <button
-                      type="button"
-                      onClick={() => onEditSale(s)}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 hover:bg-slate-200/80 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] text-slate-700 dark:text-slate-200 text-xs font-semibold rounded-lg transition-all cursor-pointer"
-                    >
-                      <Pencil className="w-3.5 h-3.5 text-slate-400" /> Narx
-                    </button>
-                  )}
+                  <div className="flex items-center gap-1.5">
+                    {onEditSale && (
+                      <button
+                        type="button"
+                        onClick={() => onEditSale(s)}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 hover:bg-slate-200/80 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] text-slate-700 dark:text-slate-200 text-xs font-semibold rounded-lg transition-all cursor-pointer"
+                      >
+                        <Pencil className="w-3.5 h-3.5 text-slate-400" /> Narx
+                      </button>
+                    )}
+                    {onDeleteSale && (
+                      <button
+                        type="button"
+                        onClick={() => onDeleteSale(s)}
+                        aria-label="Sotuvni o‘chirish"
+                        className="inline-flex items-center justify-center p-1.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 rounded-lg transition-all cursor-pointer border border-rose-200/80 dark:border-rose-500/20"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
@@ -556,6 +601,16 @@ export function PartnerDetailView({
                         <Pencil className="w-3.5 h-3.5 text-slate-400" /> Narx
                       </button>
                     )}
+                    {onDeleteBatch && (
+                      <button
+                        type="button"
+                        onClick={() => onDeleteBatch(b)}
+                        aria-label="Partiyani o‘chirish"
+                        className="inline-flex items-center justify-center p-1.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 rounded-lg transition-all cursor-pointer border border-rose-200/80 dark:border-rose-500/20"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -592,11 +647,7 @@ export function PartnerDetailView({
                       • {formatDate(p.paymentDate)}
                     </span>
                     <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-slate-100 dark:bg-white/[0.06] text-slate-600 dark:text-slate-300">
-                      {p.paymentMethod === "CASH"
-                        ? "Naqd pul"
-                        : p.paymentMethod === "CARD"
-                        ? "Karta"
-                        : "Bank"}
+                      {paymentMethodLabel(p.paymentMethod)}
                     </span>
                   </div>
                   {p.notes && (
@@ -606,9 +657,9 @@ export function PartnerDetailView({
                   )}
                 </div>
 
-                <div className="text-right shrink-0 tabular-nums">
+                <div className="flex items-center gap-2 shrink-0">
                   <span
-                    className={`text-base sm:text-lg font-black ${
+                    className={`text-base sm:text-lg font-black tabular-nums ${
                       p.type === "INCOME"
                         ? "text-emerald-600 dark:text-emerald-400"
                         : "text-rose-600 dark:text-rose-400"
@@ -616,6 +667,16 @@ export function PartnerDetailView({
                   >
                     {p.type === "INCOME" ? `+${formatUSD(p.amount)}` : `-${formatUSD(p.amount)}`}
                   </span>
+                  {onDeletePayment && (
+                    <button
+                      type="button"
+                      onClick={() => onDeletePayment(p)}
+                      aria-label="To‘lovni o‘chirish"
+                      className="inline-flex items-center justify-center p-1.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 rounded-lg transition-all cursor-pointer border border-rose-200/80 dark:border-rose-500/20"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
@@ -651,8 +712,20 @@ export function PartnerDetailView({
                     <p className="text-xs text-slate-400">{o.notes}</p>
                   )}
                 </div>
-                <div className="text-right shrink-0 tabular-nums font-bold text-sm text-blue-600 dark:text-blue-400">
-                  {formatUSD(o.amount)}
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="tabular-nums font-bold text-sm text-blue-600 dark:text-blue-400">
+                    {formatUSD(o.amount)}
+                  </span>
+                  {onDeleteDebtOffset && (
+                    <button
+                      type="button"
+                      onClick={() => onDeleteDebtOffset(o)}
+                      aria-label="Qarz surishni o‘chirish"
+                      className="inline-flex items-center justify-center p-1.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 rounded-lg transition-all cursor-pointer border border-rose-200/80 dark:border-rose-500/20"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
               </div>
             ))}

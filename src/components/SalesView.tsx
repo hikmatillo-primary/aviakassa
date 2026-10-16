@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Search, ShoppingBag, Users, Pencil } from "lucide-react";
+import { Search, ShoppingBag, Users, Pencil, Trash2 } from "lucide-react";
 import { formatUSD, formatDate } from "@/lib/format";
 import { FlightBar } from "@/components/FlightBar";
 
@@ -11,6 +11,7 @@ interface SalesViewProps {
   onOpenSaleModal: () => void;
   onOpenPartnerModal?: (type?: "CLIENT") => void;
   onEditSale?: (sale: any) => void;
+  onDeleteSale?: (sale: any) => void;
   onOpenHistoryModal?: (partnerId: number) => void;
 }
 
@@ -19,6 +20,7 @@ export function SalesView({
   onOpenSaleModal,
   onOpenPartnerModal,
   onEditSale,
+  onDeleteSale,
   onOpenHistoryModal,
 }: SalesViewProps) {
   const [search, setSearch] = useState("");
@@ -144,16 +146,29 @@ export function SalesView({
                 </span>
               </div>
 
-              {onEditSale && (
-                <button
-                  type="button"
-                  onClick={() => onEditSale(sale)}
-                  title="Sotish narxini o'zgartirish"
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 hover:bg-slate-200/80 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] text-slate-700 dark:text-slate-200 text-xs font-medium rounded-lg border border-slate-200/60 dark:border-white/[0.08] transition-colors cursor-pointer"
-                >
-                  <Pencil className="w-3 h-3 text-slate-400" /> Narx
-                </button>
-              )}
+              <div className="flex items-center gap-1.5">
+                {onEditSale && (
+                  <button
+                    type="button"
+                    onClick={() => onEditSale(sale)}
+                    title="Sotish narxini o'zgartirish"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 hover:bg-slate-200/80 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] text-slate-700 dark:text-slate-200 text-xs font-medium rounded-lg border border-slate-200/60 dark:border-white/[0.08] transition-colors cursor-pointer"
+                  >
+                    <Pencil className="w-3 h-3 text-slate-400" /> Narx
+                  </button>
+                )}
+                {onDeleteSale && (
+                  <button
+                    type="button"
+                    onClick={() => onDeleteSale(sale)}
+                    title="Sotuvni o'chirish"
+                    aria-label="Sotuvni o‘chirish"
+                    className="inline-flex items-center justify-center p-1.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 text-rose-600 dark:text-rose-400 rounded-lg border border-rose-200/60 dark:border-rose-900/50 transition-colors cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         ))}
@@ -254,16 +269,29 @@ export function SalesView({
 
                   {/* Edit Action */}
                   <td className="py-4 px-5 text-right">
-                    {onEditSale && (
-                      <button
-                        type="button"
-                        onClick={() => onEditSale(sale)}
-                        title="Sotish narxini o'zgartirish"
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 hover:bg-slate-200/80 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] text-slate-700 dark:text-slate-200 text-xs font-medium rounded-lg border border-slate-200/60 dark:border-white/[0.08] transition-all cursor-pointer"
-                      >
-                        <Pencil className="w-3 h-3 text-slate-400" /> Narx
-                      </button>
-                    )}
+                    <div className="inline-flex items-center gap-1.5">
+                      {onEditSale && (
+                        <button
+                          type="button"
+                          onClick={() => onEditSale(sale)}
+                          title="Sotish narxini o'zgartirish"
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 hover:bg-slate-200/80 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] text-slate-700 dark:text-slate-200 text-xs font-medium rounded-lg border border-slate-200/60 dark:border-white/[0.08] transition-all cursor-pointer"
+                        >
+                          <Pencil className="w-3 h-3 text-slate-400" /> Narx
+                        </button>
+                      )}
+                      {onDeleteSale && (
+                        <button
+                          type="button"
+                          onClick={() => onDeleteSale(sale)}
+                          title="Sotuvni o'chirish"
+                          aria-label="Sotuvni o‘chirish"
+                          className="inline-flex items-center justify-center p-1.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 text-rose-600 dark:text-rose-400 rounded-lg border border-rose-200/60 dark:border-rose-900/50 transition-all cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

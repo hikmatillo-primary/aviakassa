@@ -23,7 +23,7 @@ interface NavbarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   isDark: boolean;
-  currentUser?: { username: string; name?: string } | null;
+  currentUser?: { username: string; name?: string; isStaff?: boolean } | null;
   onToggleTheme: () => void;
   onLogout?: () => void;
   onOpenSaleModal: () => void;
@@ -31,7 +31,6 @@ interface NavbarProps {
   onOpenPaymentModal?: (type: "INCOME" | "EXPENSE") => void;
   onExportData?: () => void;
   onImportData?: () => void;
-  onResetDemo?: () => void;
 }
 
 export function Navbar({
@@ -46,7 +45,6 @@ export function Navbar({
   onOpenPaymentModal,
   onExportData,
   onImportData,
-  onResetDemo,
 }: NavbarProps) {
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -177,6 +175,7 @@ export function Navbar({
               <button
                 onClick={onToggleTheme}
                 title={isDark ? "Yorug' rejim (Light mode)" : "Tungi rejim (Dark mode)"}
+                aria-label={isDark ? "Yorug' rejimga o'tish" : "Tungi rejimga o'tish"}
                 className="w-9 h-9 rounded-xl bg-white dark:bg-[#111726] border border-slate-200/80 dark:border-white/[0.08] flex items-center justify-center text-slate-600 dark:text-amber-400 hover:bg-slate-50 dark:hover:bg-white/[0.05] shadow-xs transition-colors cursor-pointer"
               >
                 {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
@@ -187,6 +186,9 @@ export function Navbar({
                 <button
                   onClick={() => setShowSettingsMenu((prev) => !prev)}
                   title="Profil va Sozlamalar"
+                  aria-label="Profil va sozlamalar menyusi"
+                  aria-haspopup="menu"
+                  aria-expanded={showSettingsMenu}
                   className="flex items-center gap-2 bg-white dark:bg-[#111726] p-1 sm:pl-1.5 sm:pr-3 sm:py-1 rounded-xl border border-slate-200/80 dark:border-white/[0.08] shadow-xs hover:border-slate-300 dark:hover:border-white/[0.15] transition-all cursor-pointer"
                 >
                   <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-500 text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0 uppercase">
@@ -244,7 +246,7 @@ export function Navbar({
                         Zaxirani yuklab olish (JSON)
                       </button>
                     )}
-                    {onImportData && (
+                    {onImportData && currentUser?.isStaff && (
                       <button
                         onClick={onImportData}
                         className="w-full px-3.5 py-2 text-left hover:bg-slate-50 dark:hover:bg-white/[0.05] flex items-center gap-2.5 text-slate-700 dark:text-slate-200 hover:text-emerald-600 cursor-pointer"

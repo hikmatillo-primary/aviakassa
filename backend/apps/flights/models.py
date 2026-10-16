@@ -80,3 +80,26 @@ class Batch(models.Model):
         elif self.remaining_qty > 0 and self.status == self.Status.COMPLETED:
             self.status = self.Status.ACTIVE
         super().save(*args, **kwargs)
+
+        # Reys ma'lumotlari partiyadan sotuvlarga denormalizatsiya qilinadi.
+        # Partiya reysi o'zgarsa, undagi sotuvlar ham sinxronlanadi (drift oldini olish).
+        update_fields = kwargs.get("update_fields")
+        flight_fields = {
+            "route", "flight_date", "flight_number", "departure_time", "arrival_time",
+            "is_round_trip", "return_date", "return_flight_number",
+            "return_departure_time", "return_arrival_time",
+        }
+        if update_fields is None or flight_fields.intersection(update_fields):
+            from apps.sales.models import Sale
+            Sale.objects.filter(batch=self).update(
+                route=self.route,
+                flight_date=self.flight_date,
+                flight_number=self.flight_number,
+                departure_time=self.departure_time,
+                arrival_time=self.arrival_time,
+                is_round_trip=self.is_round_trip,
+                return_date=self.return_date,
+                return_flight_number=self.return_flight_number,
+                return_departure_time=self.return_departure_time,
+                return_arrival_time=self.return_arrival_time,
+            )

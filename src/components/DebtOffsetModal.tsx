@@ -2,11 +2,12 @@
 
 import React, { useState, useEffect } from "react";
 import { Modal } from "./Modal";
-import { ArrowRightLeft, Users, CheckCircle, AlertCircle } from "lucide-react";
+import { ArrowRightLeft, Users, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 import { Partner } from "@/lib/storage";
 import { formatUSD } from "@/lib/format";
 import { DatePicker } from "./DatePicker";
 import { PartnerSelect } from "./PartnerSelect";
+import { getValidationMessage } from "@/lib/api";
 
 interface DebtOffsetModalProps {
   isOpen: boolean;
@@ -20,7 +21,7 @@ interface DebtOffsetModalProps {
     amount: number;
     date: string;
     notes: string;
-  }) => void;
+  }) => void | Promise<void>;
 }
 
 export function DebtOffsetModal({
@@ -41,6 +42,14 @@ export function DebtOffsetModal({
   const [date, setDate] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setError(null);
+      setIsSubmitting(false);
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     if (!date) {
@@ -86,7 +95,7 @@ export function DebtOffsetModal({
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
@@ -103,8 +112,9 @@ export function DebtOffsetModal({
       return;
     }
 
+    setIsSubmitting(true);
     try {
-      onSave({
+      await onSave({
         fromPartnerId: Number(fromPartnerId),
         toPartnerId: Number(toPartnerId),
         amount: Number(amount),
@@ -112,8 +122,9 @@ export function DebtOffsetModal({
         notes: notes.trim(),
       });
       onClose();
-    } catch (err: any) {
-      setError(err.message || "Xatolik yuz berdi!");
+    } catch (err) {
+      setError(getValidationMessage(err));
+      setIsSubmitting(false);
     }
   };
 
@@ -128,17 +139,19 @@ export function DebtOffsetModal({
           <button
             type="button"
             onClick={onClose}
-            className="px-5 py-2.5 text-xs sm:text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/[0.06] rounded-xl transition-colors cursor-pointer"
+            disabled={isSubmitting}
+            className="px-5 py-2.5 text-xs sm:text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/[0.06] rounded-xl transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Bekor qilish
           </button>
           <button
             type="submit"
             form="offset-form"
-            className="inline-flex items-center gap-2 px-6 py-2.5 text-xs sm:text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm shadow-blue-500/20 transition-all cursor-pointer"
+            disabled={isSubmitting}
+            className="inline-flex items-center gap-2 px-6 py-2.5 text-xs sm:text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm shadow-blue-500/20 transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            <ArrowRightLeft className="w-4 h-4" />
-            Tasdiqlash
+            {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRightLeft className="w-4 h-4" />}
+            {isSubmitting ? "Saqlanmoqda..." : "Tasdiqlash"}
           </button>
         </div>
       }

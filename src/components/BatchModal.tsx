@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Modal } from "./Modal";
-import { Plus, Trash2, Sparkles, PlaneTakeoff, PlaneLanding, X } from "lucide-react";
+import { Plus, Trash2, Sparkles, PlaneTakeoff, PlaneLanding, X, Loader2 } from "lucide-react";
 import { formatUSD } from "@/lib/format";
 
 export interface BatchItemInput {
@@ -50,7 +50,7 @@ interface BatchModalProps {
       notes?: string;
       batchNumber?: string;
     }>;
-  }) => void;
+  }) => void | Promise<void>;
   onOpenSupplierModal?: () => void;
   newlyCreatedPartnerId?: number | null;
   existingBatches?: any[];
@@ -58,6 +58,7 @@ interface BatchModalProps {
 
 import { DatePicker } from "./DatePicker";
 import { PartnerSelect } from "./PartnerSelect";
+import { getValidationMessage } from "@/lib/api";
 
 import { getNextBatchNumber } from "../lib/storage";
 export { getNextBatchNumber };
@@ -73,6 +74,7 @@ export function BatchModal({
   existingBatches = [],
 }: BatchModalProps) {
   const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [supplierId, setSupplierId] = useState<string>("");
   const [purchaseDate, setPurchaseDate] = useState<string>("");
   const [paidNow, setPaidNow] = useState<number | string>(0);
@@ -109,6 +111,7 @@ export function BatchModal({
       setPaidNow(0);
       setNotes("");
       setError(null);
+      setIsSubmitting(false);
     }
     prevIsOpenRef.current = isOpen;
   }, [isOpen]);
@@ -169,7 +172,7 @@ export function BatchModal({
   const totalTickets = items.reduce((sum, it) => sum + (Number(it.totalQty) || 0), 0);
   const remainingDebt = Math.max(0, totalCost - (Number(paidNow) || 0));
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
@@ -198,8 +201,9 @@ export function BatchModal({
       }
     }
 
+    setIsSubmitting(true);
     try {
-      onSave({
+      await onSave({
         supplierId: Number(supplierId),
         purchaseDate: purchaseDate || new Date().toISOString().split("T")[0],
         paidNow: Number(paidNow) || 0,
@@ -229,8 +233,9 @@ export function BatchModal({
         }),
       });
       onClose();
-    } catch (err: any) {
-      setError(err.message || "Xatolik yuz berdi!");
+    } catch (err) {
+      setError(getValidationMessage(err));
+      setIsSubmitting(false);
     }
   };
 
@@ -250,16 +255,19 @@ export function BatchModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2.5 text-xs sm:text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/[0.06] rounded-xl transition-colors cursor-pointer"
+              disabled={isSubmitting}
+              className="px-5 py-2.5 text-xs sm:text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/[0.06] rounded-xl transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Bekor qilish
             </button>
             <button
               type="submit"
               form="batch-form"
-              className="px-6 py-2.5 text-xs sm:text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm shadow-blue-500/20 transition-all cursor-pointer"
+              disabled={isSubmitting}
+              className="inline-flex items-center gap-2 px-6 py-2.5 text-xs sm:text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm shadow-blue-500/20 transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              Xaridni qabul qilish
+              {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+              {isSubmitting ? "Saqlanmoqda..." : "Xaridni qabul qilish"}
             </button>
           </div>
         </div>

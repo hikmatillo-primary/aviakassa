@@ -6,6 +6,8 @@ import { formatUSD, formatDate } from "@/lib/format";
 import { DatePicker } from "./DatePicker";
 import { PartnerSelect } from "./PartnerSelect";
 import { FlightBar } from "./FlightBar";
+import { getValidationMessage } from "@/lib/api";
+import { Loader2 } from "lucide-react";
 
 interface SaleModalProps {
   isOpen: boolean;
@@ -32,7 +34,7 @@ interface SaleModalProps {
       returnDepartureTime?: string;
       returnArrivalTime?: string;
     }>;
-  }) => void;
+  }) => void | Promise<void>;
   onOpenClientModal?: () => void;
   newlyCreatedPartnerId?: number | null;
 }
@@ -48,6 +50,7 @@ export function SaleModal({
   newlyCreatedPartnerId,
 }: SaleModalProps) {
   const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentBatchId, setCurrentBatchId] = useState<string>("");
   const [clientId, setClientId] = useState<string>("");
   const [saleDate, setSaleDate] = useState<string>("");
@@ -79,6 +82,7 @@ export function SaleModal({
       setPaidNow(0);
       setNotes("");
       setError(null);
+      setIsSubmitting(false);
     }
     prevIsOpenRef.current = isOpen;
   }, [isOpen, selectedBatchId, batches]);
@@ -111,7 +115,7 @@ export function SaleModal({
   const profit = totalAmount - totalCost;
   const remainingDebt = Math.max(0, totalAmount - numPaidNow);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
@@ -142,8 +146,9 @@ export function SaleModal({
       return;
     }
 
+    setIsSubmitting(true);
     try {
-      onSave({
+      await onSave({
         clientId: Number(clientId),
         saleDate: saleDate || new Date().toISOString().split("T")[0],
         paidNow: numPaidNow,
@@ -166,8 +171,9 @@ export function SaleModal({
         ],
       });
       onClose();
-    } catch (err: any) {
-      setError(err.message || "Xatolik yuz berdi!");
+    } catch (err) {
+      setError(getValidationMessage(err));
+      setIsSubmitting(false);
     }
   };
 
@@ -190,16 +196,19 @@ export function SaleModal({
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2.5 text-xs sm:text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/[0.06] rounded-xl transition-colors cursor-pointer"
+              disabled={isSubmitting}
+              className="px-5 py-2.5 text-xs sm:text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/[0.06] rounded-xl transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Bekor qilish
             </button>
             <button
               type="submit"
               form="sale-form"
-              className="px-6 py-2.5 text-xs sm:text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm shadow-blue-500/20 transition-all cursor-pointer"
+              disabled={isSubmitting}
+              className="inline-flex items-center gap-2 px-6 py-2.5 text-xs sm:text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm shadow-blue-500/20 transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              Sotuvni tasdiqlash
+              {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+              {isSubmitting ? "Saqlanmoqda..." : "Sotuvni tasdiqlash"}
             </button>
           </div>
         </div>

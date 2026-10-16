@@ -12,7 +12,6 @@ import { SaleModal } from "./SaleModal";
 import { BatchModal } from "./BatchModal";
 import { PaymentModal } from "./PaymentModal";
 import { PartnerModal } from "./PartnerModal";
-import { PartnerHistoryModal } from "./PartnerHistoryModal";
 import { DebtOffsetModal } from "./DebtOffsetModal";
 import { EditPriceModal } from "./EditPriceModal";
 import { BatchDetailView } from "./BatchDetailView";
@@ -32,18 +31,24 @@ import {
 } from "@/lib/storage";
 import {
   apiFetchAll,
-  apiCreateBatch,
   apiUpdateBatch,
-  apiCreateSale,
   apiUpdateSale,
+  apiCreateSalesBulk,
+  apiCreateBatchesBulk,
   apiCreatePayment,
   apiCreatePartner,
+  apiUpdatePartner,
   apiCreateDebtOffset,
+  apiDeletePartner,
+  apiDeleteBatch,
+  apiDeleteSale,
+  apiDeletePayment,
+  apiDeleteDebtOffset,
   apiImportData,
-  apiResetData,
   UNAUTHORIZED_EVENT,
 } from "@/lib/api";
 import { LoginView } from "./LoginView";
+import { ConfirmDialog } from "./ConfirmDialog";
 import { getStoredUser, isAuthenticated, logoutUser, AuthUser } from "@/lib/auth";
 
 export function AppContainer() {
@@ -176,11 +181,6 @@ export function AppContainer() {
     }
   };
 
-  const updateData = (newData: AviakassaData) => {
-    setData(newData);
-    saveData(newData);
-  };
-
   // Enriched metrics & data
   const { stats, batches, sales, payments, partners, debtOffsets } = useMemo(
     () => calculateEnrichedData(data),
@@ -202,9 +202,14 @@ export function AppContainer() {
   const [isPartnerModalOpen, setIsPartnerModalOpen] = useState(false);
   const [partnerModalType, setPartnerModalType] = useState<"CLIENT" | "SUPPLIER">("CLIENT");
   const [lastCreatedPartnerId, setLastCreatedPartnerId] = useState<number | null>(null);
+  const [editingPartner, setEditingPartner] = useState<Partner | null>(null);
 
-  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
-  const [historyPartnerId, setHistoryPartnerId] = useState<number | null>(null);
+  const [confirmState, setConfirmState] = useState<{
+    title: string;
+    message: string;
+    confirmLabel?: string;
+    action: () => Promise<void>;
+  } | null>(null);
 
   const [isDebtOffsetModalOpen, setIsDebtOffsetModalOpen] = useState(false);
   const [debtOffsetModalFromId, setDebtOffsetModalFromId] = useState<number | null>(null);
@@ -223,7 +228,13 @@ export function AppContainer() {
   // Quick Open Handlers
   const handleOpenSaleModal = (batchId?: number) => {
     setSelectedBatchId(batchId || null);
+    setLastCreatedPartnerId(null);
     setIsSaleModalOpen(true);
+  };
+
+  const handleOpenBatchModal = () => {
+    setLastCreatedPartnerId(null);
+    setIsBatchModalOpen(true);
   };
 
   const handleOpenEditBatch = (batch: any) => {
@@ -294,7 +305,8 @@ export function AppContainer() {
       showToast("O‘zaro qarz muvaffaqiyatli surildi! 🔄");
     } catch (e) {
       console.error("O'zaro qarz saqlashda xato:", e);
-      showToast("O‘zaro qarzni saqlab bo'lmadi. Qayta urinib ko'ring.", "warning");
+      await syncFromServer();
+      throw e;
     }
   };
 
@@ -321,18 +333,27 @@ export function AppContainer() {
   }) => {
     const routeNames: string[] = [];
     try {
-      for (const item of saleInput.items) {
-        if (!item.batchId || item.qty <= 0) continue;
+      const validItems = saleInput.items.filter((item) => item.batchId && item.qty > 0);
+      for (const item of validItems) {
         const targetBatch = data.batches.find((b) => b.id === item.batchId);
         if (targetBatch) routeNames.push(targetBatch.route);
+      }
 
-        await apiCreateSale({
+      await apiCreateSalesBulk({
+        clientId: saleInput.clientId,
+        saleDate: saleInput.saleDate,
+        paidNow: saleInput.paidNow,
+        paymentMethod: saleInput.paymentMethod,
+        notes: saleInput.notes,
+        paymentNotes:
+          saleInput.paidNow > 0
+            ? `Chiptalar sotuvi uchun to'lov (${routeNames.join(", ")})`
+            : undefined,
+        items: validItems.map((item) => ({
           batchId: item.batchId,
-          clientId: saleInput.clientId,
           qty: item.qty,
           sellPrice: item.sellPrice,
           passengerNames: item.passengerNames || "",
-          saleDate: saleInput.saleDate,
           departureTime: item.departureTime,
           arrivalTime: item.arrivalTime,
           isRoundTrip: item.isRoundTrip,
@@ -340,25 +361,15 @@ export function AppContainer() {
           returnFlightNumber: item.returnFlightNumber,
           returnDepartureTime: item.returnDepartureTime,
           returnArrivalTime: item.returnArrivalTime,
-          notes: saleInput.notes,
-        });
-      }
-      if (saleInput.paidNow > 0) {
-        await apiCreatePayment({
-          partnerId: saleInput.clientId,
-          type: "INCOME",
-          amount: saleInput.paidNow,
-          paymentDate: saleInput.saleDate,
-          paymentMethod: saleInput.paymentMethod,
-          notes: `Chiptalar sotuvi uchun to'lov (${routeNames.join(", ")})`,
-        });
-      }
+        })),
+      });
+
       await syncFromServer();
       showToast("Chipta sotuvi muvaffaqiyatli saqlandi! 🎉");
     } catch (e) {
       console.error("Sotuvni saqlashda xato:", e);
       await syncFromServer();
-      showToast("Sotuvni saqlab bo'lmadi! Ma'lumotlar serverdan yangilandi.", "warning");
+      throw e;
     }
   };
 
@@ -388,7 +399,7 @@ export function AppContainer() {
   }) => {
     const routeNames: string[] = [];
     try {
-      for (const item of batchInput.items) {
+      const items = batchInput.items.map((item) => {
         routeNames.push(item.route);
         const fullNotes = [
           item.baggage ? `Bagaj: ${item.baggage}` : null,
@@ -397,8 +408,7 @@ export function AppContainer() {
           .filter(Boolean)
           .join(" • ");
 
-        await apiCreateBatch({
-          supplierId: batchInput.supplierId,
+        return {
           route: item.route,
           flightDate: item.flightDate,
           flightNumber: item.flightNumber ? item.flightNumber.trim().toUpperCase() : "",
@@ -409,33 +419,32 @@ export function AppContainer() {
           returnFlightNumber: item.isRoundTrip ? item.returnFlightNumber : undefined,
           returnDepartureTime: item.isRoundTrip ? item.returnDepartureTime : undefined,
           returnArrivalTime: item.isRoundTrip ? item.returnArrivalTime : undefined,
-          purchaseDate: batchInput.purchaseDate || new Date().toISOString().split("T")[0],
           baggage: item.baggage,
           totalQty: item.totalQty,
           buyPrice: item.buyPrice,
           notes: fullNotes,
           batchNumber: item.batchNumber?.trim() || undefined,
-        });
-      }
-      if (batchInput.paidNow && batchInput.paidNow > 0) {
-        await apiCreatePayment({
-          partnerId: batchInput.supplierId,
-          type: "EXPENSE",
-          amount: batchInput.paidNow,
-          paymentDate:
-            batchInput.purchaseDate ||
-            batchInput.items[0]?.flightDate ||
-            new Date().toISOString().split("T")[0],
-          paymentMethod: batchInput.paymentMethod || "CASH",
-          notes: `Partiyalar xaridi uchun to'lov (${routeNames.join(", ")})`,
-        });
-      }
+        };
+      });
+
+      await apiCreateBatchesBulk({
+        supplierId: batchInput.supplierId,
+        purchaseDate: batchInput.purchaseDate || new Date().toISOString().split("T")[0],
+        paidNow: batchInput.paidNow || 0,
+        paymentMethod: batchInput.paymentMethod || "CASH",
+        paymentNotes:
+          batchInput.paidNow && batchInput.paidNow > 0
+            ? `Partiyalar xaridi uchun to'lov (${routeNames.join(", ")})`
+            : undefined,
+        items,
+      });
+
       await syncFromServer();
       showToast("Yangi partiya omborga kiritildi! ✈️");
     } catch (e) {
       console.error("Partiyani saqlashda xato:", e);
       await syncFromServer();
-      showToast("Partiyani saqlab bo'lmadi! Ma'lumotlar serverdan yangilandi.", "warning");
+      throw e;
     }
   };
 
@@ -464,11 +473,11 @@ export function AppContainer() {
       );
     } catch (e) {
       console.error("To'lovni saqlashda xato:", e);
-      showToast("To'lovni saqlab bo'lmadi! Qayta urinib ko'ring.", "warning");
+      throw e;
     }
   };
 
-  const handleAddPartner = async (partnerInput: {
+  const handleSavePartner = async (partnerInput: {
     name: string;
     type?: "SUPPLIER" | "CLIENT";
     tags?: string[];
@@ -476,37 +485,102 @@ export function AppContainer() {
     notes: string;
   }) => {
     try {
-      const created = await apiCreatePartner({
-        name: partnerInput.name,
-        type: partnerInput.type || "CLIENT",
-        tags: partnerInput.tags || [],
-        phone: partnerInput.phone,
-        notes: partnerInput.notes,
-      });
-      setLastCreatedPartnerId(created.id);
-      await syncFromServer();
-      showToast("Yangi hamkor muvaffaqiyatli qo‘shildi! 🤝");
+      if (editingPartner) {
+        await apiUpdatePartner(editingPartner.id, {
+          name: partnerInput.name,
+          type: partnerInput.type || editingPartner.type || "CLIENT",
+          phone: partnerInput.phone,
+          notes: partnerInput.notes,
+        });
+        await syncFromServer();
+        showToast("Hamkor ma'lumotlari yangilandi!");
+      } else {
+        const created = await apiCreatePartner({
+          name: partnerInput.name,
+          type: partnerInput.type || "CLIENT",
+          tags: partnerInput.tags || [],
+          phone: partnerInput.phone,
+          notes: partnerInput.notes,
+        });
+        setLastCreatedPartnerId(created.id);
+        await syncFromServer();
+        showToast("Yangi hamkor muvaffaqiyatli qo‘shildi! 🤝");
+      }
     } catch (e) {
       console.error("Hamkorni saqlashda xato:", e);
-      showToast("Hamkorni saqlab bo'lmadi! Qayta urinib ko'ring.", "warning");
+      throw e;
     }
   };
 
-  const handleToggleBatchStatus = async (id: number) => {
-    const batch = data.batches.find((b) => b.id === id);
-    if (!batch) return;
-    const nextStatus = batch.status === "ACTIVE" ? "COMPLETED" : "ACTIVE";
-    try {
-      await apiUpdateBatch(id, { status: nextStatus });
-      await syncFromServer();
-      showToast("Partiya holati yangilandi!");
-    } catch (e) {
-      console.error("Partiya holatini yangilashda xato:", e);
-      showToast("Partiya holatini o'zgartirib bo'lmadi.", "warning");
-    }
+  const handleOpenEditPartner = (partner: Partner) => {
+    setEditingPartner(partner);
+    setPartnerModalType(partner.type === "SUPPLIER" ? "SUPPLIER" : "CLIENT");
+    setIsPartnerModalOpen(true);
   };
 
-  // Xarid narxi va sonini tahrirlash (Kompaniya hisob-kitobi va sof foydani qayta hisoblaydi)
+  // O'chirish amallari (in-app tasdiqlash bilan)
+  const handleDeleteBatch = (batch: Batch) => {
+    setConfirmState({
+      title: "Partiyani o‘chirish",
+      message: `"${batch.route}" partiyasini o‘chirmoqchimisiz? Bu amalni qaytarib bo‘lmaydi.`,
+      action: async () => {
+        await apiDeleteBatch(batch.id);
+        await syncFromServer();
+        showToast("Partiya o‘chirildi!", "info");
+        if (detailBatchId === batch.id) setDetailBatchId(null);
+      },
+    });
+  };
+
+  const handleDeleteSale = (sale: Sale) => {
+    setConfirmState({
+      title: "Sotuvni o‘chirish",
+      message: "Ushbu chipta sotuvini o‘chirmoqchimisiz? Bu amalni qaytarib bo‘lmaydi.",
+      action: async () => {
+        await apiDeleteSale(sale.id);
+        await syncFromServer();
+        showToast("Sotuv o‘chirildi!", "info");
+      },
+    });
+  };
+
+  const handleDeletePayment = (payment: Payment) => {
+    setConfirmState({
+      title: "To‘lovni o‘chirish",
+      message: "Ushbu kassa yozuvini o‘chirmoqchimisiz? Bu amalni qaytarib bo‘lmaydi.",
+      action: async () => {
+        await apiDeletePayment(payment.id);
+        await syncFromServer();
+        showToast("To‘lov o‘chirildi!", "info");
+      },
+    });
+  };
+
+  const handleDeleteDebtOffset = (offset: DebtOffset) => {
+    setConfirmState({
+      title: "Qarz surishni o‘chirish",
+      message: "Ushbu o‘zaro qarz surish yozuvini o‘chirmoqchimisiz?",
+      action: async () => {
+        await apiDeleteDebtOffset(offset.id);
+        await syncFromServer();
+        showToast("Qarz surish o‘chirildi!", "info");
+      },
+    });
+  };
+
+  const handleDeletePartner = (partner: Partner) => {
+    setConfirmState({
+      title: "Hamkorni o‘chirish",
+      message: `"${partner.name}" hamkorini o‘chirmoqchimisiz? Bu amalni qaytarib bo‘lmaydi.`,
+      action: async () => {
+        await apiDeletePartner(partner.id);
+        await syncFromServer();
+        showToast("Hamkor o‘chirildi!", "info");
+        if (detailPartnerId === partner.id) setDetailPartnerId(null);
+      },
+    });
+  };
+
   const handleUpdateBatchPrice = async (batchId: number, newBuyPrice: number, newTotalQty: number) => {
     try {
       await apiUpdateBatch(batchId, { buyPrice: newBuyPrice, totalQty: newTotalQty });
@@ -514,7 +588,8 @@ export function AppContainer() {
       showToast("Partiya ma'lumotlari yangilandi!");
     } catch (e) {
       console.error("Partiya ma'lumotlarini yangilashda xato:", e);
-      showToast("Partiya ma'lumotlarini yangilab bo'lmadi.", "warning");
+      await syncFromServer();
+      throw e;
     }
   };
 
@@ -535,7 +610,8 @@ export function AppContainer() {
       showToast("Sotuv ma'lumotlari yangilandi!");
     } catch (e) {
       console.error("Sotuv ma'lumotlarini yangilashda xato:", e);
-      showToast("Sotuv ma'lumotlarini yangilab bo'lmadi.", "warning");
+      await syncFromServer();
+      throw e;
     }
   };
 
@@ -589,20 +665,6 @@ export function AppContainer() {
     e.target.value = "";
   };
 
-  const handleResetDemo = async () => {
-    if (!window.confirm("Barcha ma'lumotlar serverdan o'chirilib, bo'sh holatga o'tkazilsinmi?")) {
-      return;
-    }
-    try {
-      await apiResetData();
-      await syncFromServer();
-      showToast("Barcha ma'lumotlar tozalandi! 🧹", "info");
-    } catch (err) {
-      console.error("Ma'lumotlarni tozalashda xato:", err);
-      showToast("Ma'lumotlarni tozalab bo'lmadi!", "warning");
-    }
-  };
-
   const clients = partners.filter((p) => p.type === "CLIENT");
   const suppliers = partners.filter((p) => p.type === "SUPPLIER");
 
@@ -650,11 +712,10 @@ export function AppContainer() {
         onLogout={handleLogout}
         onToggleTheme={handleToggleTheme}
         onOpenSaleModal={() => handleOpenSaleModal()}
-        onOpenBatchModal={() => setIsBatchModalOpen(true)}
+        onOpenBatchModal={handleOpenBatchModal}
         onOpenPaymentModal={(type) => handleOpenPaymentModal(type)}
         onExportData={handleExportBackup}
         onImportData={() => fileInputRef.current?.click()}
-        onResetDemo={handleResetDemo}
       />
 
       {/* Main Container */}
@@ -693,9 +754,10 @@ export function AppContainer() {
           <PartnersView
             batches={batches}
             suppliers={suppliers}
-            onOpenBatchModal={() => setIsBatchModalOpen(true)}
+            onOpenBatchModal={handleOpenBatchModal}
             onOpenPartnerModal={() => handleOpenPartnerModal("SUPPLIER")}
             onEditBatch={handleOpenEditBatch}
+            onDeleteBatch={handleDeleteBatch}
             onOpenHistoryModal={handleOpenHistoryModal}
             onSelectBatch={(batchId) => {
               setActiveTab("inventory");
@@ -712,18 +774,21 @@ export function AppContainer() {
               allBatches={batches}
               allSales={sales}
               onBack={() => setDetailBatchId(null)}
-              onOpenBatchModal={() => setIsBatchModalOpen(true)}
+              onOpenBatchModal={handleOpenBatchModal}
               onOpenSaleModal={(batchId) => handleOpenSaleModal(batchId)}
               onEditBatch={handleOpenEditBatch}
               onEditSale={handleOpenEditSale}
+              onDeleteBatch={handleDeleteBatch}
+              onDeleteSale={handleDeleteSale}
               onOpenHistoryModal={handleOpenHistoryModal}
               onOpenPaymentModal={handleOpenPaymentModal}
             />
           ) : (
             <BatchesView
               batches={batches}
-              onOpenBatchModal={() => setIsBatchModalOpen(true)}
+              onOpenBatchModal={handleOpenBatchModal}
               onEditBatch={handleOpenEditBatch}
+              onDeleteBatch={handleDeleteBatch}
               onOpenHistoryModal={handleOpenHistoryModal}
               onSelectBatch={(batchId) => setDetailBatchId(batchId)}
             />
@@ -738,6 +803,7 @@ export function AppContainer() {
             onOpenSaleModal={() => handleOpenSaleModal()}
             onOpenPartnerModal={() => handleOpenPartnerModal("CLIENT")}
             onEditSale={handleOpenEditSale}
+            onDeleteSale={handleDeleteSale}
             onOpenHistoryModal={handleOpenHistoryModal}
           />
         )}
@@ -757,6 +823,12 @@ export function AppContainer() {
               onOpenDebtOffsetModal={handleOpenDebtOffsetModal}
               onEditBatch={handleOpenEditBatch}
               onEditSale={handleOpenEditSale}
+              onEditPartner={handleOpenEditPartner}
+              onDeletePartner={handleDeletePartner}
+              onDeleteBatch={handleDeleteBatch}
+              onDeleteSale={handleDeleteSale}
+              onDeletePayment={handleDeletePayment}
+              onDeleteDebtOffset={handleDeleteDebtOffset}
               onSelectBatch={(batchId) => {
                 setActiveTab("inventory");
                 setDetailBatchId(batchId);
@@ -771,6 +843,8 @@ export function AppContainer() {
               onSelectPartner={(partnerId) => setDetailPartnerId(partnerId)}
               onOpenPartnerModal={handleOpenPartnerModal}
               onOpenPaymentModal={handleOpenPaymentModal}
+              onEditPartner={handleOpenEditPartner}
+              onDeletePartner={handleDeletePartner}
             />
           )
         )}
@@ -784,6 +858,8 @@ export function AppContainer() {
             onOpenPaymentModal={handleOpenPaymentModal}
             onOpenDebtOffsetModal={handleOpenDebtOffsetModal}
             onOpenHistoryModal={handleOpenHistoryModal}
+            onDeletePayment={handleDeletePayment}
+            onDeleteDebtOffset={handleDeleteDebtOffset}
           />
         )}
       </main>
@@ -791,7 +867,11 @@ export function AppContainer() {
       {/* Modals */}
       <SaleModal
         isOpen={isSaleModalOpen}
-        onClose={() => setIsSaleModalOpen(false)}
+        onClose={() => {
+          setIsSaleModalOpen(false);
+          setSelectedBatchId(null);
+          setLastCreatedPartnerId(null);
+        }}
         batches={batches}
         clients={partners}
         selectedBatchId={selectedBatchId}
@@ -804,7 +884,10 @@ export function AppContainer() {
 
       <BatchModal
         isOpen={isBatchModalOpen}
-        onClose={() => setIsBatchModalOpen(false)}
+        onClose={() => {
+          setIsBatchModalOpen(false);
+          setLastCreatedPartnerId(null);
+        }}
         suppliers={partners}
         existingBatches={batches}
         onSave={handleAddBatch}
@@ -827,24 +910,13 @@ export function AppContainer() {
 
       <PartnerModal
         isOpen={isPartnerModalOpen}
-        onClose={() => setIsPartnerModalOpen(false)}
+        onClose={() => {
+          setIsPartnerModalOpen(false);
+          setEditingPartner(null);
+        }}
         defaultType={partnerModalType}
-        onSave={handleAddPartner}
-      />
-
-      <PartnerHistoryModal
-        isOpen={isHistoryModalOpen}
-        onClose={() => setIsHistoryModalOpen(false)}
-        partnerId={historyPartnerId}
-        partners={partners}
-        batches={batches}
-        sales={sales}
-        payments={payments}
-        debtOffsets={debtOffsets}
-        onOpenPaymentModal={handleOpenPaymentModal}
-        onOpenDebtOffsetModal={handleOpenDebtOffsetModal}
-        onEditBatch={handleOpenEditBatch}
-        onEditSale={handleOpenEditSale}
+        partner={editingPartner}
+        onSave={handleSavePartner}
       />
 
       <DebtOffsetModal
@@ -865,6 +937,17 @@ export function AppContainer() {
         onSaveSale={handleUpdateSalePrice}
       />
 
+      <ConfirmDialog
+        isOpen={confirmState !== null}
+        title={confirmState?.title}
+        message={confirmState?.message || ""}
+        confirmLabel={confirmState?.confirmLabel}
+        onCancel={() => setConfirmState(null)}
+        onConfirm={async () => {
+          if (confirmState) await confirmState.action();
+        }}
+      />
+
       {/* Enterprise Toast Notification */}
       {toast && (
         <div className="fixed bottom-5 sm:bottom-6 right-5 sm:right-6 z-50 flex items-center gap-3 px-4 py-3 bg-slate-900/95 dark:bg-white/95 text-white dark:text-slate-900 rounded-2xl shadow-xl border border-white/10 dark:border-slate-800 backdrop-blur-md transition-all animate-in fade-in slide-in-from-bottom-2 duration-200">
@@ -881,6 +964,7 @@ export function AppContainer() {
           <button
             type="button"
             onClick={() => setToast(null)}
+            aria-label="Bildirishnomani yopish"
             className="p-1 hover:bg-white/10 dark:hover:bg-slate-900/10 rounded-lg text-slate-400 hover:text-white dark:hover:text-slate-900 transition-colors cursor-pointer shrink-0 ml-1"
           >
             <X className="w-3.5 h-3.5" />

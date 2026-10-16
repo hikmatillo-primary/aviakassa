@@ -9,6 +9,7 @@ import {
   UserCheck,
   TrendingUp,
   ArrowUpRight,
+  Trash2,
 } from "lucide-react";
 import { formatUSD, formatDate } from "@/lib/format";
 import { FlightBar } from "@/components/FlightBar";
@@ -22,6 +23,8 @@ interface BatchDetailViewProps {
   onOpenSaleModal: (batchId: number) => void;
   onEditBatch: (batch: any) => void;
   onEditSale: (sale: any) => void;
+  onDeleteBatch?: (batch: any) => void;
+  onDeleteSale?: (sale: any) => void;
   onOpenHistoryModal?: (partnerId: number) => void;
   onOpenPaymentModal?: (
     type: "INCOME" | "EXPENSE",
@@ -38,6 +41,8 @@ export function BatchDetailView({
   onOpenSaleModal,
   onEditBatch,
   onEditSale,
+  onDeleteBatch,
+  onDeleteSale,
   onOpenHistoryModal,
   onOpenPaymentModal,
 }: BatchDetailViewProps) {
@@ -197,6 +202,16 @@ export function BatchDetailView({
                 >
                   <Pencil className="w-3.5 h-3.5 text-slate-400" /> Narx
                 </button>
+                {onDeleteBatch && (
+                  <button
+                    type="button"
+                    onClick={() => onDeleteBatch(batch)}
+                    aria-label="Partiyani o‘chirish"
+                    className="inline-flex items-center gap-1 px-2.5 py-1 bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-700 dark:text-rose-400 text-[11px] font-semibold rounded-lg transition-all cursor-pointer border border-rose-200/80 dark:border-rose-500/20"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" /> O‘chirish
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -312,13 +327,25 @@ export function BatchDetailView({
                   </span>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => onEditSale(s)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200/80 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] text-slate-700 dark:text-slate-200 text-xs font-semibold rounded-xl transition-all cursor-pointer"
-                >
-                  <Pencil className="w-3.5 h-3.5 text-slate-400" /> Narx
-                </button>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => onEditSale(s)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200/80 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] text-slate-700 dark:text-slate-200 text-xs font-semibold rounded-xl transition-all cursor-pointer"
+                  >
+                    <Pencil className="w-3.5 h-3.5 text-slate-400" /> Narx
+                  </button>
+                  {onDeleteSale && (
+                    <button
+                      type="button"
+                      onClick={() => onDeleteSale(s)}
+                      aria-label="Sotuvni o‘chirish"
+                      className="inline-flex items-center justify-center p-2 bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 rounded-xl transition-all cursor-pointer border border-rose-200/80 dark:border-rose-500/20"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           ))}

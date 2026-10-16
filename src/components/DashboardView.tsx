@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
 import {
   TrendingUp,
   ShoppingBag,
@@ -12,6 +12,17 @@ import {
   Plane,
   ArrowRightLeft,
 } from "lucide-react";
+
+const MONTH_LABELS = [
+  "Yan", "Fev", "Mar", "Apr", "May", "Iyun",
+  "Iyul", "Avg", "Sen", "Okt", "Noy", "Dek",
+];
+
+const PERIOD_OPTIONS = [
+  { label: "3 oy", months: 3 },
+  { label: "6 oy", months: 6 },
+  { label: "12 oy", months: 12 },
+];
 import { formatMoney, formatUSD, formatDate } from "@/lib/format";
 
 interface DashboardViewProps {
@@ -39,7 +50,23 @@ export function DashboardView({
   onNavigateTab,
 }: DashboardViewProps) {
   const [search, setSearch] = useState("");
-  const [period, setPeriod] = useState("Bu oy");
+  const [periodMonths, setPeriodMonths] = useState(6);
+  const [isPeriodOpen, setIsPeriodOpen] = useState(false);
+  const periodRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isPeriodOpen) return;
+    const onDocClick = (e: MouseEvent) => {
+      if (periodRef.current && !periodRef.current.contains(e.target as Node)) {
+        setIsPeriodOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, [isPeriodOpen]);
+
+  const periodLabel =
+    PERIOD_OPTIONS.find((o) => o.months === periodMonths)?.label || "6 oy";
 
   const availableBatches = batches.filter((b) => b.remainingQty > 0);
 
@@ -65,25 +92,56 @@ export function DashboardView({
   const soldRateDisplay = soldRateNum.toFixed(1);
   const filledArcSegments = Math.round((soldRateNum / 100) * 12);
 
-  // Month bar data (with current month dynamically reflecting real sales)
-  const currentRevenueK = totalSalesRevenue > 0 ? `$${(totalSalesRevenue / 1000).toFixed(1)}k` : "$0k";
-  const monthsData = [
-    { month: "May", height: 45, value: "$12k" },
-    { month: "Iyun", height: 60, value: "$18k" },
-    { month: "Iyul", height: 75, value: "$24k" },
-    { month: "Avg", height: 55, value: "$16k" },
-    { month: "Sen", height: 68, value: "$21k" },
-    {
-      month: "Okt",
-      height: Math.min(95, Math.max(35, Math.round(soldRateNum))),
-      value: currentRevenueK,
-      active: true,
-      tickets: totalSoldTicketsAll,
-      revenue: currentRevenueK,
-    },
-    { month: "Noy", height: 50, value: "$15k" },
-    { month: "Dek", height: 58, value: "$17k" },
-  ];
+  // Real oylik sotuv dinamikasi (oxirgi `periodMonths` oy)
+  const monthsData = useMemo(() => {
+    const now = new Date();
+    const series = Array.from({ length: periodMonths }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - (periodMonths - 1 - i), 1);
+      return {
+        year: d.getFullYear(),
+        monthIndex: d.getMonth(),
+        label: MONTH_LABELS[d.getMonth()],
+        revenue: 0,
+        tickets: 0,
+      };
+    });
+    const index = new Map(series.map((m, idx) => [`${m.year}-${m.monthIndex}`, idx]));
+    for (const s of sales) {
+      if (!s.saleDate) continue;
+      const parts = String(s.saleDate).split("-");
+      if (parts.length < 3) continue;
+      const y = parseInt(parts[0], 10);
+      const mo = parseInt(parts[1], 10) - 1;
+      const idx = index.get(`${y}-${mo}`);
+      if (idx === undefined) continue;
+      series[idx].revenue += s.totalAmount || 0;
+      series[idx].tickets += s.qty || 0;
+    }
+    const max = Math.max(1, ...series.map((m) => m.revenue));
+    return series.map((m) => ({
+      month: m.label,
+      height: m.revenue > 0 ? Math.max(4, Math.round((m.revenue / max) * 100)) : 2,
+      value: formatUSD(m.revenue),
+      tickets: m.tickets,
+      revenue: formatUSD(m.revenue),
+      rawRevenue: m.revenue,
+      active: m.year === now.getFullYear() && m.monthIndex === now.getMonth(),
+    }));
+  }, [sales, periodMonths]);
+
+  const yMaxK = Math.max(1, Math.ceil(Math.max(0, ...monthsData.map((m) => m.rawRevenue)) / 1000));
+  const yAxisLabels = Array.from({ length: 6 }, (_, i) => {
+    const v = (yMaxK * (5 - i)) / 5;
+    return `${Number.isInteger(v) ? v : v.toFixed(1)}k`;
+  });
+
+  const seriesYears = useMemo(() => {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth() - (periodMonths - 1), 1);
+    const startYear = start.getFullYear();
+    const endYear = now.getFullYear();
+    return startYear === endYear ? `${endYear}-yil` : `${startYear} – ${endYear}`;
+  }, [periodMonths]);
 
   return (
     <div className="space-y-6">
@@ -96,14 +154,46 @@ export function DashboardView({
         </div>
 
         {/* Period filter pill */}
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2.5 relative" ref={periodRef}>
           <button
-            onClick={() => setPeriod(period === "Bu oy" ? "Bu hafta" : "Bu oy")}
+            type="button"
+            onClick={() => setIsPeriodOpen((v) => !v)}
+            aria-haspopup="listbox"
+            aria-expanded={isPeriodOpen}
+            aria-label="Davrni tanlash"
             className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold bg-white dark:bg-[#111726] text-slate-700 dark:text-slate-200 rounded-xl border border-slate-200/80 dark:border-white/[0.08] shadow-xs hover:border-slate-300 dark:hover:border-white/[0.15] transition-all cursor-pointer"
           >
-            {period}
-            <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+            Oxirgi {periodLabel}
+            <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${isPeriodOpen ? "rotate-180" : ""}`} />
           </button>
+
+          {isPeriodOpen && (
+            <div
+              role="listbox"
+              aria-label="Davr"
+              className="absolute right-0 top-full mt-1.5 z-30 w-32 bg-white dark:bg-[#111726] rounded-xl border border-slate-200/80 dark:border-white/[0.08] shadow-lg overflow-hidden py-1"
+            >
+              {PERIOD_OPTIONS.map((opt) => (
+                <button
+                  key={opt.months}
+                  type="button"
+                  role="option"
+                  aria-selected={opt.months === periodMonths}
+                  onClick={() => {
+                    setPeriodMonths(opt.months);
+                    setIsPeriodOpen(false);
+                  }}
+                  className={`w-full text-left px-3.5 py-2 text-xs font-semibold transition-colors cursor-pointer ${
+                    opt.months === periodMonths
+                      ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10"
+                      : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/[0.05]"
+                  }`}
+                >
+                  Oxirgi {opt.label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -251,7 +341,7 @@ export function DashboardView({
               </p>
             </div>
             <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100/80 dark:bg-white/[0.05] rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300">
-              <span>2026-yil</span>
+              <span>{seriesYears}</span>
             </div>
           </div>
 
@@ -260,12 +350,9 @@ export function DashboardView({
             <div className="flex h-56 items-end gap-3 sm:gap-6 pl-8 relative">
               {/* Y-Axis lines and labels */}
               <div className="absolute left-0 top-0 bottom-6 flex flex-col justify-between text-[11px] text-slate-400 dark:text-slate-500 select-none">
-                <span>40k</span>
-                <span>30k</span>
-                <span>20k</span>
-                <span>10k</span>
-                <span>5k</span>
-                <span>0k</span>
+                {yAxisLabels.map((label, i) => (
+                  <span key={i}>{label}</span>
+                ))}
               </div>
 
               {/* Horizontal gridlines */}

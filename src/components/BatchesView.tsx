@@ -6,6 +6,7 @@ import {
   PackagePlus,
   Pencil,
   ChevronRight,
+  Trash2,
 } from "lucide-react";
 import { formatUSD } from "@/lib/format";
 import { FlightBar } from "@/components/FlightBar";
@@ -13,8 +14,8 @@ import { FlightBar } from "@/components/FlightBar";
 interface BatchesViewProps {
   batches: any[];
   onOpenBatchModal?: () => void;
-  onToggleStatus?: (id: number) => void;
   onEditBatch?: (batch: any) => void;
+  onDeleteBatch?: (batch: any) => void;
   onOpenHistoryModal?: (partnerId: number) => void;
   onSelectBatch?: (batchId: number) => void;
 }
@@ -23,6 +24,7 @@ export function BatchesView({
   batches,
   onOpenBatchModal,
   onEditBatch,
+  onDeleteBatch,
   onOpenHistoryModal,
   onSelectBatch,
 }: BatchesViewProps) {
@@ -151,18 +153,33 @@ export function BatchesView({
                     (Jami: {formatUSD(batch.totalCost)})
                   </span>
                 </div>
-                {onEditBatch && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onEditBatch(batch);
-                    }}
-                    className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200/80 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] text-slate-700 dark:text-slate-200 text-xs font-medium rounded-lg transition-all cursor-pointer"
-                  >
-                    <Pencil className="w-3 h-3 text-slate-400" /> Narx
-                  </button>
-                )}
+                <div className="flex items-center gap-1.5">
+                  {onEditBatch && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onEditBatch(batch);
+                      }}
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200/80 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] text-slate-700 dark:text-slate-200 text-xs font-medium rounded-lg transition-all cursor-pointer"
+                    >
+                      <Pencil className="w-3 h-3 text-slate-400" /> Narx
+                    </button>
+                  )}
+                  {onDeleteBatch && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeleteBatch(batch);
+                      }}
+                      aria-label="Partiyani o‘chirish"
+                      className="inline-flex items-center justify-center p-1.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 text-rose-600 dark:text-rose-400 rounded-lg transition-all cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           );
@@ -279,19 +296,35 @@ export function BatchesView({
 
                     {/* Action */}
                     <td className="py-3.5 px-4 text-center">
-                      {onEditBatch && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onEditBatch(batch);
-                          }}
-                          title="Kompaniyadan olingan narxni o'zgartirish"
-                          className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 hover:bg-slate-200/80 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] text-slate-700 dark:text-slate-200 text-[11px] font-medium rounded-lg transition-all cursor-pointer"
-                        >
-                          <Pencil className="w-3 h-3 text-slate-400" /> Narx
-                        </button>
-                      )}
+                      <div className="inline-flex items-center gap-1.5">
+                        {onEditBatch && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onEditBatch(batch);
+                            }}
+                            title="Kompaniyadan olingan narxni o'zgartirish"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 hover:bg-slate-200/80 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] text-slate-700 dark:text-slate-200 text-[11px] font-medium rounded-lg transition-all cursor-pointer"
+                          >
+                            <Pencil className="w-3 h-3 text-slate-400" /> Narx
+                          </button>
+                        )}
+                        {onDeleteBatch && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onDeleteBatch(batch);
+                            }}
+                            title="Partiyani o'chirish"
+                            aria-label="Partiyani o‘chirish"
+                            className="inline-flex items-center justify-center p-1.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 text-rose-600 dark:text-rose-400 rounded-lg transition-all cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );

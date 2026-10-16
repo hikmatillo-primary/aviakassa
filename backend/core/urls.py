@@ -1,9 +1,13 @@
 from django.contrib import admin
 from django.urls import path, include
+from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.throttling import AnonRateThrottle
+from rest_framework.views import APIView
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
@@ -19,6 +23,21 @@ class LoginRateThrottle(AnonRateThrottle):
 class ThrottledTokenObtainPairView(TokenObtainPairView):
     """Brute-force hujumlariga qarshi login endpointi uchun rate-limit."""
     throttle_classes = [LoginRateThrottle]
+
+
+class LogoutView(APIView):
+    """Refresh tokenni blacklist'ga qo'shib, sessiyani bekor qiladi."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        refresh = request.data.get("refresh")
+        if refresh:
+            try:
+                RefreshToken(refresh).blacklist()
+            except TokenError:
+                # Allaqachon bekor qilingan yoki yaroqsiz token — chiqishga xalaqit bermaydi.
+                pass
+        return Response({"detail": "Tizimdan chiqildi."}, status=status.HTTP_200_OK)
 
 
 @api_view(["GET"])
@@ -45,6 +64,7 @@ urlpatterns = [
     path("api/health/", health_check, name="health-check"),
     path("api/auth/login/", ThrottledTokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("api/auth/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
+    path("api/auth/logout/", LogoutView.as_view(), name="logout"),
     path("api/auth/user/", current_user, name="current_user"),
     path("api/partners/", include("apps.partners.urls")),
     path("api/batches/", include("apps.flights.urls")),

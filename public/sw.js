@@ -1,5 +1,7 @@
 // Aviakassa Pro Service Worker
-const CACHE_NAME = "aviakassa-v1";
+// CACHE_VERSION ni har bir relizda oshiring — activate bosqichida eski kesh o'chiriladi.
+const CACHE_VERSION = "v3";
+const CACHE_NAME = `aviakassa-${CACHE_VERSION}`;
 const STATIC_ASSETS = [
   "/",
   "/manifest.json",
@@ -14,55 +16,91 @@ self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(STATIC_ASSETS).catch(() => {
-        // Assets will be cached on demand if offline during initial load
+        // Offline bo'lsa assetlar keyinroq talab bo'yicha keshlanadi
       });
     })
   );
   self.skipWaiting();
 });
 
-self.addEventListener("activate", (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) => {
-      return Promise.all(
-        keys.map((key) => {
-          if (key !== CACHE_NAME) {
-            return caches.delete(key);
-          }
-        })
-      );
-    })
-  );
-  self.clients.claim();
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
 });
 
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    caches
+      .keys()
+      .then((keys) =>
+        Promise.all(
+          keys
+            .filter((key) => key.startsWith("aviakassa-") && key !== CACHE_NAME)
+            .map((key) => caches.delete(key))
+        )
+      )
+      .then(() => self.clients.claim())
+  );
+});
+
+const isStaticAsset = (url) =>
+  url.pathname.startsWith("/_next/static/") ||
+  /\.(?:js|css|woff2?|ttf|otf|png|jpe?g|gif|svg|webp|ico)$/i.test(url.pathname);
+
 self.addEventListener("fetch", (event) => {
-  // Let API requests bypass the service worker cache entirely
-  if (event.request.url.includes("/api/") || event.request.method !== "GET") {
+  const { request } = event;
+
+  // API so'rovlari va GET bo'lmagan so'rovlar keshdan tashqarida
+  if (request.method !== "GET" || request.url.includes("/api/")) {
     return;
   }
 
+  const url = new URL(request.url);
+  if (url.origin !== self.location.origin) {
+    return;
+  }
+
+  // Statik assetlar (hash'langan): cache-first + fonda yangilash
+  if (isStaticAsset(url)) {
+    event.respondWith(
+      caches.match(request).then((cached) => {
+        const network = fetch(request)
+          .then((response) => {
+            if (response && response.status === 200) {
+              const clone = response.clone();
+              caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+            }
+            return response;
+          })
+          .catch(() => cached);
+        return cached || network;
+      })
+    );
+    return;
+  }
+
+  // HTML va boshqa hujjatlar: network-first, offline'da keshdan
   event.respondWith(
-    fetch(event.request)
+    fetch(request)
       .then((response) => {
-        // Clone and store successful GET responses in cache
         if (response && response.status === 200 && response.type === "basic") {
-          const responseToCache = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseToCache);
-          });
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
         }
         return response;
       })
-      .catch(() => {
-        // Fallback to cache if network fails (offline support)
-        return caches.match(event.request).then((cachedResponse) => {
-          if (cachedResponse) {
-            return cachedResponse;
-          }
-          if (event.request.mode === "navigate") {
-            return caches.match("/");
-          }
+      .catch(async () => {
+        const cached = await caches.match(request);
+        if (cached) return cached;
+        if (request.mode === "navigate") {
+          const shell = await caches.match("/");
+          if (shell) return shell;
+        }
+        return new Response("Offline", {
+          status: 503,
+          statusText: "Offline",
+          headers: { "Content-Type": "text/plain; charset=utf-8" },
         });
       })
   );

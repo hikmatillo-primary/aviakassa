@@ -1,12 +1,16 @@
+import logging
+
 from django.db import transaction
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 
 from apps.partners.models import Partner
 from apps.flights.models import Batch
 from apps.sales.models import Sale
 from apps.cash.models import Payment, DebtOffset
+
+logger = logging.getLogger(__name__)
 
 
 def _clean_date(value):
@@ -17,20 +21,28 @@ def _clean_date(value):
 
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAdminUser])
 def reset_data(request):
     """Barcha ma'lumotlarni (hamkorlar, partiyalar, sotuvlar, to'lovlar) o'chiradi."""
     with transaction.atomic():
+        counts = {
+            "debtOffsets": DebtOffset.objects.count(),
+            "payments": Payment.objects.count(),
+            "sales": Sale.objects.count(),
+            "batches": Batch.objects.count(),
+            "partners": Partner.objects.count(),
+        }
         DebtOffset.objects.all().delete()
         Payment.objects.all().delete()
         Sale.objects.all().delete()
         Batch.objects.all().delete()
         Partner.objects.all().delete()
-    return Response({"status": "ok", "detail": "Barcha ma'lumotlar tozalandi."})
+    logger.warning("MA'LUMOTLAR TOZALANDI: user=%s deleted=%s", request.user.username, counts)
+    return Response({"status": "ok", "detail": "Barcha ma'lumotlar tozalandi.", "deleted": counts})
 
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAdminUser])
 def import_data(request):
     """
     JSON zaxira nusxasini yuklaydi (hozirgi ma'lumotlarni almashtiradi).
@@ -171,4 +183,5 @@ def import_data(request):
             )
             created["debtOffsets"] += 1
 
+    logger.warning("ZAXIRA NUSXA TIKLANDI: user=%s created=%s", request.user.username, created)
     return Response({"status": "ok", "detail": "Zaxira nusxa tiklandi.", "created": created})

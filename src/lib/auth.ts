@@ -88,6 +88,23 @@ export async function loginUser(username: string, password: string): Promise<Aut
 
 export function logoutUser(): void {
   if (typeof window === "undefined") return;
+
+  // Serverdagi refresh tokenni bekor qilamiz (best-effort, xatoga chidamli).
+  const refresh = localStorage.getItem(REFRESH_KEY);
+  const token = localStorage.getItem(TOKEN_KEY);
+  if (refresh && token) {
+    fetch(`${API_BASE_URL}/auth/logout/`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ refresh }),
+    }).catch(() => {
+      // Chiqishni bloklamaymiz.
+    });
+  }
+
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(REFRESH_KEY);
   localStorage.removeItem(USER_KEY);

@@ -2,6 +2,7 @@ from decimal import Decimal
 from django.test import TestCase
 from apps.partners.models import Partner
 from apps.flights.models import Batch
+from apps.sales.models import Sale
 
 
 class FlightBatchTests(TestCase):
@@ -42,3 +43,59 @@ class FlightBatchTests(TestCase):
         batch.buy_price = Decimal("220.00")
         batch.save()
         self.assertEqual(batch.total_cost, Decimal("2200.00"))
+
+    def test_batch_flight_update_resyncs_sales(self):
+        client = Partner.objects.create(name="Mijoz", type=Partner.PartnerType.CLIENT)
+        batch = Batch.objects.create(
+            batch_number="TEST-SAM-03",
+            route="Samarqand - Dubay",
+            flight_date="2026-12-01",
+            flight_number="HY-101",
+            supplier=self.supplier,
+            total_qty=10,
+            buy_price=Decimal("300.00"),
+        )
+        sale = Sale.objects.create(
+            batch=batch,
+            client=client,
+            qty=2,
+            buy_price=Decimal("300.00"),
+            sell_price=Decimal("400.00"),
+            sale_date="2026-11-15",
+        )
+        self.assertEqual(sale.route, "Samarqand - Dubay")
+        self.assertEqual(sale.flight_number, "HY-101")
+
+        # Partiya reysi o'zgarsa — undagi sotuvlar ham sinxronlanishi kerak (drift yo'q)
+        batch.flight_number = "HY-202"
+        batch.route = "Samarqand - Sharja"
+        batch.save()
+        sale.refresh_from_db()
+        self.assertEqual(sale.flight_number, "HY-202")
+        self.assertEqual(sale.route, "Samarqand - Sharja")
+
+    def test_sale_qty_change_does_not_trigger_flight_resync(self):
+        client = Partner.objects.create(name="Mijoz 2", type=Partner.PartnerType.CLIENT)
+        batch = Batch.objects.create(
+            batch_number="TEST-SAM-04",
+            route="Samarqand - Moskva",
+            flight_date="2026-12-05",
+            flight_number="U6-303",
+            supplier=self.supplier,
+            total_qty=10,
+            buy_price=Decimal("300.00"),
+        )
+        sale = Sale.objects.create(
+            batch=batch,
+            client=client,
+            qty=2,
+            buy_price=Decimal("300.00"),
+            sell_price=Decimal("400.00"),
+            sale_date="2026-11-16",
+        )
+        sale.qty = 3
+        sale.save()
+        batch.refresh_from_db()
+        self.assertEqual(batch.remaining_qty, 7)
+        sale.refresh_from_db()
+        self.assertEqual(sale.flight_number, "U6-303")

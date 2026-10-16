@@ -13,6 +13,7 @@ import {
   Tag,
   X,
 } from "lucide-react";
+import { formatUSD } from "@/lib/format";
 
 export interface PartnerItem {
   id: number | string;
@@ -170,8 +171,19 @@ export function PartnerSelect({
 
       {/* Trigger Button */}
       <div
+        role="button"
+        tabIndex={0}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        aria-label={label ? `${label}: ${selectedPartner?.name || placeholder}` : undefined}
         onClick={() => setIsOpen((prev) => !prev)}
-        className={`w-full flex items-center justify-between gap-2 px-3 py-2 bg-white dark:bg-[#111726] border rounded-xl cursor-pointer transition-all select-none ${
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setIsOpen((prev) => !prev);
+          }
+        }}
+        className={`w-full flex items-center justify-between gap-2 px-3 py-2 bg-white dark:bg-[#111726] border rounded-xl cursor-pointer transition-all select-none focus:outline-none focus:ring-2 focus:ring-blue-500/40 ${
           isOpen
             ? "border-blue-500 ring-2 ring-blue-500/20 shadow-sm"
             : "border-slate-300 dark:border-slate-700/80 hover:border-slate-400 dark:hover:border-slate-600"
@@ -258,6 +270,8 @@ export function PartnerSelect({
 
             {/* Partners List */}
             <div
+              role="listbox"
+              aria-label={label || "Hamkorlar ro'yxati"}
               style={{ maxHeight: Math.max(120, coords.maxHeight - 80) }}
               className="overflow-y-auto space-y-1 pr-0.5 text-xs scrollbar-thin"
             >
@@ -268,6 +282,8 @@ export function PartnerSelect({
                   <button
                     key={p.id}
                     type="button"
+                    role="option"
+                    aria-selected={isSelected}
                     onClick={() => handleSelect(p.id)}
                     className={`w-full text-left px-2.5 py-2 rounded-xl flex items-center justify-between transition-colors cursor-pointer group ${
                       isSelected
@@ -317,9 +333,9 @@ export function PartnerSelect({
                           }`}
                         >
                           {p.balance > 0
-                            ? `$${p.balance.toLocaleString()}`
+                            ? formatUSD(p.balance)
                             : p.balance < 0
-                            ? `-$${Math.abs(p.balance).toLocaleString()}`
+                            ? formatUSD(p.balance)
                             : "$0"}
                         </span>
                       )}

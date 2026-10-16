@@ -11,8 +11,9 @@ import {
   Calendar,
   FileSpreadsheet,
   Users,
+  Trash2,
 } from "lucide-react";
-import { formatUSD, formatDate } from "@/lib/format";
+import { formatUSD, formatDate, paymentMethodLabel } from "@/lib/format";
 
 interface PaymentsViewProps {
   payments: any[];
@@ -21,6 +22,8 @@ interface PaymentsViewProps {
   onOpenPaymentModal: (type?: "INCOME" | "EXPENSE", partnerId?: number) => void;
   onOpenDebtOffsetModal?: (fromPartnerId?: number, toPartnerId?: number) => void;
   onOpenHistoryModal?: (partnerId: number) => void;
+  onDeletePayment?: (payment: any) => void;
+  onDeleteDebtOffset?: (offset: any) => void;
 }
 
 export function PaymentsView({
@@ -30,6 +33,8 @@ export function PaymentsView({
   onOpenPaymentModal,
   onOpenDebtOffsetModal,
   onOpenHistoryModal,
+  onDeletePayment,
+  onDeleteDebtOffset,
 }: PaymentsViewProps) {
   const [activeSubTab, setActiveSubTab] = useState<"CASH" | "PARTNERS" | "OFFSETS">("CASH");
   const [filter, setFilter] = useState<"ALL" | "INCOME" | "EXPENSE">("ALL");
@@ -439,17 +444,25 @@ export function PaymentsView({
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between text-xs pt-2.5 border-t border-slate-100 dark:border-white/[0.06]">
+                <div className="flex items-center justify-between gap-2 text-xs pt-2.5 border-t border-slate-100 dark:border-white/[0.06]">
                   <span className="bg-slate-100 dark:bg-white/[0.06] text-slate-600 dark:text-slate-300 px-2.5 py-0.5 rounded-lg text-[11px] font-medium">
-                    {p.paymentMethod === "CASH"
-                      ? "Naqd pul"
-                      : p.paymentMethod === "CARD"
-                      ? "Karta / O'tkazma"
-                      : "Bank hisobi"}
+                    {paymentMethodLabel(p.paymentMethod)}
                   </span>
-                  <span className="text-slate-500 dark:text-slate-400 text-xs truncate max-w-[180px]">
-                    {p.notes || "-"}
-                  </span>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-slate-500 dark:text-slate-400 text-xs truncate max-w-[180px]">
+                      {p.notes || "-"}
+                    </span>
+                    {onDeletePayment && (
+                      <button
+                        type="button"
+                        onClick={() => onDeletePayment(p)}
+                        aria-label="To‘lovni o‘chirish"
+                        className="inline-flex items-center justify-center p-1.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 rounded-lg transition-colors cursor-pointer border border-rose-200/80 dark:border-rose-500/20 shrink-0"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
@@ -487,6 +500,7 @@ export function PaymentsView({
                     <th className="py-3 px-4 text-right">Summa</th>
                     <th className="py-3 px-4">To‘lov usuli</th>
                     <th className="py-3 px-4">Izoh</th>
+                    <th className="py-3 px-4 text-right">Amal</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-white/[0.05] text-xs text-slate-700 dark:text-slate-300">
@@ -531,15 +545,23 @@ export function PaymentsView({
                       </td>
                       <td className="py-3.5 px-4">
                         <span className="bg-slate-100 dark:bg-white/[0.06] text-slate-600 dark:text-slate-300 px-2.5 py-0.5 rounded-lg text-[11px] font-medium">
-                          {p.paymentMethod === "CASH"
-                            ? "Naqd pul"
-                            : p.paymentMethod === "CARD"
-                            ? "Karta / O'tkazma"
-                            : "Bank hisobi"}
+                          {paymentMethodLabel(p.paymentMethod)}
                         </span>
                       </td>
                       <td className="py-3.5 px-4 text-slate-400 dark:text-slate-500 max-w-xs truncate">
                         {p.notes || "-"}
+                      </td>
+                      <td className="py-3.5 px-4 text-right">
+                        {onDeletePayment && (
+                          <button
+                            type="button"
+                            onClick={() => onDeletePayment(p)}
+                            aria-label="To‘lovni o‘chirish"
+                            className="inline-flex items-center justify-center p-1.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 rounded-lg transition-colors cursor-pointer border border-rose-200/80 dark:border-rose-500/20"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -547,7 +569,7 @@ export function PaymentsView({
                   {filteredPayments.length === 0 && (
                     <tr>
                       <td
-                        colSpan={6}
+                        colSpan={7}
                         className="py-12 text-center space-y-2"
                       >
                         <p className="text-xs text-slate-400 dark:text-slate-500">
@@ -589,7 +611,7 @@ export function PaymentsView({
                           ? `+${formatUSD(filteredCashNet)}`
                           : `-${formatUSD(Math.abs(filteredCashNet))}`}
                       </td>
-                      <td colSpan={2} className="py-3 px-4 text-slate-400 font-normal text-[11px]">
+                      <td colSpan={3} className="py-3 px-4 text-slate-400 font-normal text-[11px]">
                         Sof kassa harakati
                       </td>
                     </tr>
@@ -768,8 +790,18 @@ export function PaymentsView({
                   </div>
                 </div>
 
-                <div className="pt-2 border-t border-slate-100 dark:border-white/[0.06] text-xs text-slate-500 dark:text-slate-400">
-                  {o.notes || "O'zaro hisob-kitob"}
+                <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100 dark:border-white/[0.06] text-xs text-slate-500 dark:text-slate-400">
+                  <span className="truncate">{o.notes || "O'zaro hisob-kitob"}</span>
+                  {onDeleteDebtOffset && (
+                    <button
+                      type="button"
+                      onClick={() => onDeleteDebtOffset(o)}
+                      aria-label="Qarz surishni o‘chirish"
+                      className="inline-flex items-center justify-center p-1.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 rounded-lg transition-colors cursor-pointer border border-rose-200/80 dark:border-rose-500/20 shrink-0"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
@@ -803,6 +835,7 @@ export function PaymentsView({
                     <th className="py-3 px-4">Kimning qarziga (Qarzi yopilgan)</th>
                     <th className="py-3 px-4 text-right">Surilgan summa</th>
                     <th className="py-3 px-4">Izoh</th>
+                    <th className="py-3 px-4 text-right">Amal</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-white/[0.05] text-xs text-slate-700 dark:text-slate-300">
@@ -832,13 +865,25 @@ export function PaymentsView({
                       <td className="py-3.5 px-4 text-slate-500 dark:text-slate-400 max-w-sm truncate">
                         {o.notes || "O'zaro hisob-kitob"}
                       </td>
+                      <td className="py-3.5 px-4 text-right">
+                        {onDeleteDebtOffset && (
+                          <button
+                            type="button"
+                            onClick={() => onDeleteDebtOffset(o)}
+                            aria-label="Qarz surishni o‘chirish"
+                            className="inline-flex items-center justify-center p-1.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 rounded-lg transition-colors cursor-pointer border border-rose-200/80 dark:border-rose-500/20"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </td>
                     </tr>
                   ))}
 
                   {filteredOffsets.length === 0 && (
                     <tr>
                       <td
-                        colSpan={5}
+                        colSpan={6}
                         className="py-12 text-center space-y-2"
                       >
                         <p className="text-xs text-slate-400 dark:text-slate-500">
@@ -860,7 +905,7 @@ export function PaymentsView({
                 {filteredOffsets.length > 0 && (
                   <tfoot>
                     <tr className="border-t-2 border-slate-100 dark:border-white/[0.08] bg-slate-50/60 dark:bg-white/[0.02] text-xs font-bold text-slate-800 dark:text-slate-200 tabular-nums">
-                      <td colSpan={3} className="py-3 px-4 text-slate-500 dark:text-slate-400">
+                      <td colSpan={4} className="py-3 px-4 text-slate-500 dark:text-slate-400">
                         Jami surilgan qarzlar ({filteredOffsets.length} ta operatsiya):
                       </td>
                       <td className="py-3 px-4 text-right text-blue-600 dark:text-blue-400 font-bold text-sm">

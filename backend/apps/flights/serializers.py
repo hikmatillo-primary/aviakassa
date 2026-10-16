@@ -22,7 +22,8 @@ class BatchSerializer(serializers.ModelSerializer):
     remainingQty = serializers.IntegerField(source='remaining_qty', read_only=True)
     buyPrice = serializers.FloatField(source='buy_price', min_value=0)
     totalCost = serializers.FloatField(source='total_cost', read_only=True)
-    status = serializers.ChoiceField(choices=Batch.Status.choices, required=False)
+    # Holat qoldiqdan avtomatik hisoblanadi (Batch.save), shuning uchun faqat o'qish uchun.
+    status = serializers.ChoiceField(choices=Batch.Status.choices, read_only=True)
     createdAt = serializers.DateTimeField(source='created_at', read_only=True)
 
     class Meta:

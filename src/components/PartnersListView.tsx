@@ -13,6 +13,8 @@ import {
   Building2,
   TrendingDown,
   TrendingUp,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import { formatUSD } from "@/lib/format";
 
@@ -24,6 +26,8 @@ interface PartnersListViewProps {
   onSelectPartner: (partnerId: number) => void;
   onOpenPartnerModal: (type?: "CLIENT" | "SUPPLIER") => void;
   onOpenPaymentModal: (type: "INCOME" | "EXPENSE", partnerId: number) => void;
+  onEditPartner?: (partner: any) => void;
+  onDeletePartner?: (partner: any) => void;
 }
 
 export function PartnersListView({
@@ -31,6 +35,8 @@ export function PartnersListView({
   onSelectPartner,
   onOpenPartnerModal,
   onOpenPaymentModal,
+  onEditPartner,
+  onDeletePartner,
 }: PartnersListViewProps) {
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState<"ALL" | "CLIENT" | "SUPPLIER" | "DEBT_US" | "DEBT_THEM">("ALL");
@@ -286,6 +292,26 @@ export function PartnersListView({
                   >
                     Chiqim
                   </button>
+                  {onEditPartner && (
+                    <button
+                      type="button"
+                      onClick={() => onEditPartner(pt)}
+                      aria-label="Hamkorni tahrirlash"
+                      className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] text-slate-600 dark:text-slate-300 border border-slate-200/60 dark:border-white/[0.08] transition-all cursor-pointer"
+                    >
+                      <Pencil className="w-3 h-3" />
+                    </button>
+                  )}
+                  {onDeletePartner && (
+                    <button
+                      type="button"
+                      onClick={() => onDeletePartner(pt)}
+                      aria-label="Hamkorni o‘chirish"
+                      className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/20 transition-all cursor-pointer"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

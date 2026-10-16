@@ -9,6 +9,102 @@ const REFRESH_TOKEN_KEY = "aviakassa_refresh_token";
 
 export const UNAUTHORIZED_EVENT = "aviakassa:unauthorized";
 
+/**
+ * Backenddan kelgan xatolik. DRF maydonlar bo'yicha xato qaytarsa,
+ * ular `fieldErrors`da saqlanadi (masalan: { name: ["Bu maydon majburiy."] }).
+ */
+export class ApiError extends Error {
+  status: number;
+  fieldErrors: Record<string, string[]>;
+
+  constructor(message: string, status: number, fieldErrors: Record<string, string[]> = {}) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.fieldErrors = fieldErrors;
+  }
+}
+
+// DRF javobini tekis xabarlar ro'yxatiga aylantiradi (nested list/dict ham).
+function collectErrorMessages(
+  value: unknown,
+  fieldKey: string | null,
+  acc: Record<string, string[]>,
+  out: string[]
+): void {
+  if (value == null) return;
+  if (typeof value === "string") {
+    const text = value.trim();
+    if (!text) return;
+    out.push(text);
+    if (fieldKey) {
+      (acc[fieldKey] ||= []).push(text);
+    }
+    return;
+  }
+  if (Array.isArray(value)) {
+    for (const entry of value) collectErrorMessages(entry, fieldKey, acc, out);
+    return;
+  }
+  if (typeof value === "object") {
+    for (const [key, val] of Object.entries(value as Record<string, unknown>)) {
+      collectErrorMessages(val, key, acc, out);
+    }
+  }
+}
+
+async function parseErrorResponse(res: Response): Promise<ApiError> {
+  const text = await res.text().catch(() => "");
+  let body: unknown = null;
+  if (text) {
+    try {
+      body = JSON.parse(text);
+    } catch {
+      body = text;
+    }
+  }
+
+  const fieldErrors: Record<string, string[]> = {};
+  const messages: string[] = [];
+  collectErrorMessages(body, null, fieldErrors, messages);
+
+  const message =
+    messages[0] ||
+    (res.status === 401
+      ? "Avtorizatsiya muddati tugagan. Qayta kiring."
+      : res.status === 403
+      ? "Bu amalni bajarishga ruxsat yo'q."
+      : res.status === 404
+      ? "So'ralgan ma'lumot topilmadi."
+      : res.status >= 500
+      ? "Serverda ichki xatolik yuz berdi. Keyinroq qayta urinib ko'ring."
+      : `Xatolik yuz berdi (HTTP ${res.status}).`);
+
+  return new ApiError(message, res.status, fieldErrors);
+}
+
+/**
+ * Har qanday xatolikdan foydalanuvchiga ko'rsatiladigan matn chiqaradi.
+ */
+export function getValidationMessage(
+  error: unknown,
+  fallback = "Xatolik yuz berdi. Qayta urinib ko'ring."
+): string {
+  if (error instanceof ApiError) {
+    return error.message || fallback;
+  }
+  if (error instanceof TypeError) {
+    return "Serverga ulanib bo'lmadi. Internet aloqasini tekshiring.";
+  }
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+  if (typeof error === "string" && error.trim()) {
+    return error;
+  }
+  return fallback;
+}
+
 function getAccessToken(): string | null {
   if (typeof window === "undefined") return null;
   return localStorage.getItem(ACCESS_TOKEN_KEY);
@@ -79,8 +175,7 @@ async function request<T>(endpoint: string, options?: RequestInit, allowRetry = 
   }
 
   if (!res.ok) {
-    const errorText = await res.text().catch(() => "");
-    throw new Error(`API Error [${res.status}] ${res.statusText}: ${errorText}`);
+    throw await parseErrorResponse(res);
   }
 
   if (res.status === 204) {
@@ -180,6 +275,25 @@ export async function apiDeleteBatch(id: number): Promise<void> {
   await request<void>(`/batches/${id}/`, { method: "DELETE" });
 }
 
+export interface BatchBulkPayload {
+  supplierId: number;
+  purchaseDate?: string;
+  paidNow?: number;
+  paymentMethod?: string;
+  notes?: string;
+  paymentNotes?: string;
+  items: Array<Record<string, unknown>>;
+}
+
+export async function apiCreateBatchesBulk(
+  payload: BatchBulkPayload
+): Promise<{ created: Batch[]; paymentId: number | null }> {
+  return request<{ created: Batch[]; paymentId: number | null }>("/batches/bulk/", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
 // ================= Sales =================
 export async function apiCreateSale(sale: Partial<Sale>): Promise<Sale> {
   return request<Sale>("/sales/", {
@@ -197,6 +311,25 @@ export async function apiUpdateSale(id: number, data: Partial<Sale>): Promise<Sa
 
 export async function apiDeleteSale(id: number): Promise<void> {
   await request<void>(`/sales/${id}/`, { method: "DELETE" });
+}
+
+export interface SaleBulkPayload {
+  clientId: number;
+  saleDate: string;
+  paidNow?: number;
+  paymentMethod?: string;
+  notes?: string;
+  paymentNotes?: string;
+  items: Array<Record<string, unknown>>;
+}
+
+export async function apiCreateSalesBulk(
+  payload: SaleBulkPayload
+): Promise<{ created: Sale[]; paymentId: number | null }> {
+  return request<{ created: Sale[]; paymentId: number | null }>("/sales/bulk/", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 }
 
 // ================= Payments =================

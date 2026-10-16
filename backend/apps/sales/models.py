@@ -138,7 +138,7 @@ class Sale(models.Model):
                     batch.status = Batch.Status.COMPLETED
                 elif batch.remaining_qty > 0 and batch.status == Batch.Status.COMPLETED:
                     batch.status = Batch.Status.ACTIVE
-                batch.save()
+                batch.save(update_fields=["remaining_qty", "status"])
 
             super().save(*args, **kwargs)
 
@@ -149,5 +149,5 @@ class Sale(models.Model):
                 batch.remaining_qty += self.qty
                 if batch.status == Batch.Status.COMPLETED and batch.remaining_qty > 0:
                     batch.status = Batch.Status.ACTIVE
-                batch.save()
+                batch.save(update_fields=["remaining_qty", "status"])
             super().delete(*args, **kwargs)

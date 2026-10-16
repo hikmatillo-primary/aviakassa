@@ -28,36 +28,67 @@ class Partner(models.Model):
 
     # Eslatma: bu xossalar Python tomonida hisoblanadi (prefetch_related bilan N+1
     # so'rovlarning oldi olinadi). ViewSet'da `prefetch_related` ishlatiladi.
+    # Barcha ko'rsatkichlar `compute_financials` da bir joyda hisoblanadi.
+
+    def compute_financials(self) -> dict:
+        """Hamkor bo'yicha barcha moliyaviy ko'rsatkichlarni bitta o'tishda hisoblaydi."""
+        total_sold_to_us = float(sum((b.total_cost or 0) for b in self.batches.all()))
+        total_paid_by_us = float(
+            sum((p.amount or 0) for p in self.payments.all() if p.type == 'EXPENSE')
+        )
+        total_bought_from_us = float(sum((s.total_amount or 0) for s in self.sales.all()))
+        total_paid_to_us = float(
+            sum((p.amount or 0) for p in self.payments.all() if p.type == 'INCOME')
+        )
+        total_offset_from = float(sum((o.amount or 0) for o in self.offsets_from.all()))
+        total_offset_to = float(sum((o.amount or 0) for o in self.offsets_to.all()))
+
+        # Bizdan qarzi bo'lsa: manfiy (-); Haqi bo'lsa: musbat (+)
+        client_debt = total_bought_from_us - total_paid_to_us
+        supplier_debt = total_sold_to_us - total_paid_by_us
+        balance = float(supplier_debt - client_debt + total_offset_from - total_offset_to)
+
+        return {
+            "total_sold_to_us": total_sold_to_us,
+            "total_paid_by_us": total_paid_by_us,
+            "total_bought_from_us": total_bought_from_us,
+            "total_paid_to_us": total_paid_to_us,
+            "total_offset_from": total_offset_from,
+            "total_offset_to": total_offset_to,
+            "balance": balance,
+            "they_owe_us": abs(balance) if balance < 0 else 0,
+            "we_owe_them": balance if balance > 0 else 0,
+        }
 
     @property
     def total_sold_to_us(self) -> float:
         """Ushbu hamkordan sotib olingan partiyalar summasi (Vendor sifatida)."""
-        return float(sum((b.total_cost or 0) for b in self.batches.all()))
+        return self.compute_financials()["total_sold_to_us"]
 
     @property
     def total_paid_by_us(self) -> float:
         """Biz ushbu hamkorga to'lagan xarajatlarimiz (Vendor ga to'lov)."""
-        return float(sum((p.amount or 0) for p in self.payments.all() if p.type == 'EXPENSE'))
+        return self.compute_financials()["total_paid_by_us"]
 
     @property
     def total_bought_from_us(self) -> float:
         """Ushbu hamkor bizdan xarid qilgan chiptalar summasi (Mijoz sifatida)."""
-        return float(sum((s.total_amount or 0) for s in self.sales.all()))
+        return self.compute_financials()["total_bought_from_us"]
 
     @property
     def total_paid_to_us(self) -> float:
         """Ushbu hamkor bizga to'lagan tushumlar (Mijoz to'lovi)."""
-        return float(sum((p.amount or 0) for p in self.payments.all() if p.type == 'INCOME'))
+        return self.compute_financials()["total_paid_to_us"]
 
     @property
     def total_offset_from(self) -> float:
         """Ushbu hamkordan boshqa hamkorga surilgan qarz summasi."""
-        return float(sum((o.amount or 0) for o in self.offsets_from.all()))
+        return self.compute_financials()["total_offset_from"]
 
     @property
     def total_offset_to(self) -> float:
         """Boshqa hamkordan ushbu hamkor foydasiga o'tkazilgan qarz summasi."""
-        return float(sum((o.amount or 0) for o in self.offsets_to.all()))
+        return self.compute_financials()["total_offset_to"]
 
     @property
     def net_balance(self) -> float:
@@ -66,16 +97,12 @@ class Partner(models.Model):
         Bizdan qarzi bo'lsa: manfiy (-)
         Haqi bo'lsa: musbat (+)
         """
-        client_debt = self.total_bought_from_us - self.total_paid_to_us
-        supplier_debt = self.total_sold_to_us - self.total_paid_by_us
-        return float(supplier_debt - client_debt + self.total_offset_from - self.total_offset_to)
+        return self.compute_financials()["balance"]
 
     @property
     def they_owe_us(self) -> float:
-        bal = self.net_balance
-        return abs(bal) if bal < 0 else 0
+        return self.compute_financials()["they_owe_us"]
 
     @property
     def we_owe_them(self) -> float:
-        bal = self.net_balance
-        return bal if bal > 0 else 0
+        return self.compute_financials()["we_owe_them"]
