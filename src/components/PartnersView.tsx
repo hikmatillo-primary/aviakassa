@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { Search, PackagePlus, Users, Calendar, Pencil, Trash2 } from "lucide-react";
-import { formatUSD, formatDate } from "@/lib/format";
+import { formatUSD, formatDate, matchesBatchSearch } from "@/lib/format";
 import { FlightBar } from "@/components/FlightBar";
 
 interface PartnersViewProps {
@@ -28,16 +28,7 @@ export function PartnersView({
 }: PartnersViewProps) {
   const [search, setSearch] = useState("");
 
-  const filteredBatches = batches.filter((b) => {
-    if (!search.trim()) return true;
-    const q = search.toLowerCase();
-    return (
-      b.route?.toLowerCase().includes(q) ||
-      b.batchNumber?.toLowerCase().includes(q) ||
-      b.supplierName?.toLowerCase().includes(q) ||
-      b.flightNumber?.toLowerCase().includes(q)
-    );
-  });
+  const filteredBatches = batches.filter((b) => matchesBatchSearch(b, search));
 
   return (
     <div className="space-y-5">

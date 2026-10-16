@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { Modal } from "./Modal";
 import { Loader2 } from "lucide-react";
 import { getValidationMessage } from "@/lib/api";
+import { sanitizePhoneInput, isValidPhone } from "@/lib/format";
 
 interface PartnerModalProps {
   isOpen: boolean;
@@ -59,6 +60,11 @@ export function PartnerModal({
 
     if (!name.trim()) {
       setError("Hamkor nomini kiriting!");
+      return;
+    }
+
+    if (!isValidPhone(phone)) {
+      setError("Telefon raqami noto'g'ri! Faqat raqam kiriting (masalan: +998 90 123-45-67).");
       return;
     }
 
@@ -140,9 +146,10 @@ export function PartnerModal({
           </label>
           <input
             type="text"
+            inputMode="tel"
             placeholder="+998 90 123-45-67"
             value={phone}
-            onChange={(e) => setPhone(e.target.value)}
+            onChange={(e) => setPhone(sanitizePhoneInput(e.target.value))}
             className="w-full px-3.5 py-2.5 sm:py-3 text-sm sm:text-base bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 tabular-nums font-mono"
           />
         </div>

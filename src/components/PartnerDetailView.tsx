@@ -18,7 +18,7 @@ import {
   ChevronRight,
   Trash2,
 } from "lucide-react";
-import { formatUSD, formatDate, paymentMethodLabel } from "@/lib/format";
+import { formatUSD, formatDate, paymentMethodLabel, matchesRouteSearch } from "@/lib/format";
 
 interface PartnerDetailViewProps {
   partnerId: number;
@@ -123,7 +123,7 @@ export function PartnerDetailView({
   const filteredSales = partnerSales.filter((s) => {
     if (!q) return true;
     return (
-      s.route?.toLowerCase().includes(q) ||
+      matchesRouteSearch(s.route, searchQuery) ||
       s.flightNumber?.toLowerCase().includes(q) ||
       s.passengerNames?.toLowerCase().includes(q) ||
       s.saleDate?.toLowerCase().includes(q)
@@ -134,7 +134,7 @@ export function PartnerDetailView({
     if (!q) return true;
     return (
       b.batchNumber?.toLowerCase().includes(q) ||
-      b.route?.toLowerCase().includes(q) ||
+      matchesRouteSearch(b.route, searchQuery) ||
       b.flightNumber?.toLowerCase().includes(q) ||
       b.flightDate?.toLowerCase().includes(q)
     );

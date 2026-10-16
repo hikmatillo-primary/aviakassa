@@ -8,6 +8,7 @@ class Payment(models.Model):
 
     class PaymentMethod(models.TextChoices):
         CASH = 'CASH', 'Naqd (Cash)'
+        CARD = 'CARD', 'Karta / O\'tkazma'
         BANK = 'BANK', 'Bank hisob raqami'
         NAQD_USD = 'NAQD_USD', 'Naqd ($ USD)'
         NAQD_UZS = 'NAQD_UZS', 'Naqd (UZS so\'m)'

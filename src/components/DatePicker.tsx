@@ -15,6 +15,7 @@ interface DatePickerProps {
   labelClassName?: string;
   compact?: boolean;
   align?: "left" | "right" | "auto";
+  maxDate?: string; // "YYYY-MM-DD" — bundan keyingi kunlarni tanlash mumkin emas
 }
 
 const MONTH_NAMES = [
@@ -105,6 +106,7 @@ export function DatePicker({
   labelClassName = "",
   compact = false,
   align = "auto",
+  maxDate,
 }: DatePickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -258,8 +260,11 @@ export function DatePicker({
     }
   };
 
+  const exceedsMaxDate = (dateKey: string) => Boolean(maxDate && dateKey > maxDate);
+
   const handleSelectDay = (day: number) => {
     const formatted = `${viewYear}-${padZero(viewMonth + 1)}-${padZero(day)}`;
+    if (exceedsMaxDate(formatted)) return;
     onChange(formatted);
     setIsOpen(false);
   };
@@ -268,11 +273,27 @@ export function DatePicker({
     const base = new Date();
     base.setDate(base.getDate() + daysToAdd);
     const formatted = `${base.getFullYear()}-${padZero(base.getMonth() + 1)}-${padZero(base.getDate())}`;
+    if (exceedsMaxDate(formatted)) return;
     onChange(formatted);
     setViewYear(base.getFullYear());
     setViewMonth(base.getMonth());
     setIsOpen(false);
   };
+
+  // maxDate dan oshib ketadigan tezkor tugmalar ko'rsatilmaydi
+  const quickPresets = [
+    { label: "Bugun", days: 0 },
+    { label: "Ertaga", days: 1 },
+    { label: "+1 hafta", days: 7 },
+    { label: "+2 hafta", days: 14 },
+    { label: "+1 oy", days: 30 },
+  ].filter((preset) => {
+    if (!maxDate) return true;
+    const d = new Date();
+    d.setDate(d.getDate() + preset.days);
+    const key = `${d.getFullYear()}-${padZero(d.getMonth() + 1)}-${padZero(d.getDate())}`;
+    return key <= maxDate;
+  });
 
   const handleClear = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -377,41 +398,20 @@ export function DatePicker({
           >
             {/* Quick Presets Bar */}
             <div className="flex items-center gap-1 overflow-x-auto pb-1.5 mb-1.5 border-b border-slate-100 dark:border-white/[0.06] scrollbar-none text-[10px] font-semibold">
-              <button
-                type="button"
-                onClick={() => handleQuickAddDays(0)}
-                className="px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 cursor-pointer whitespace-nowrap"
-              >
-                Bugun
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickAddDays(1)}
-                className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer whitespace-nowrap"
-              >
-                Ertaga
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickAddDays(7)}
-                className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer whitespace-nowrap"
-              >
-                +1 hafta
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickAddDays(14)}
-                className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer whitespace-nowrap"
-              >
-                +2 hafta
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickAddDays(30)}
-                className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 cursor-pointer whitespace-nowrap"
-              >
-                +1 oy
-              </button>
+              {quickPresets.map((preset) => (
+                <button
+                  key={preset.label}
+                  type="button"
+                  onClick={() => handleQuickAddDays(preset.days)}
+                  className={`px-2 py-0.5 rounded-md cursor-pointer whitespace-nowrap ${
+                    preset.days === 0
+                      ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50"
+                      : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+                  }`}
+                >
+                  {preset.label}
+                </button>
+              ))}
             </div>
 
             {/* Month & Year Navigation Header */}
@@ -464,18 +464,22 @@ export function DatePicker({
                 const dateKey = `${viewYear}-${padZero(viewMonth + 1)}-${padZero(day)}`;
                 const isSelected = value === dateKey;
                 const isToday = todayStr === dateKey;
+                const isDisabled = exceedsMaxDate(dateKey);
 
                 return (
                   <button
                     key={day}
                     type="button"
+                    disabled={isDisabled}
                     onClick={() => handleSelectDay(day)}
-                    className={`w-8 h-8 rounded-lg text-xs font-semibold flex items-center justify-center transition-all cursor-pointer ${
-                      isSelected
-                        ? "bg-blue-600 text-white font-bold shadow-md shadow-blue-500/30 scale-105"
+                    className={`w-8 h-8 rounded-lg text-xs font-semibold flex items-center justify-center transition-all ${
+                      isDisabled
+                        ? "text-slate-300 dark:text-slate-600 opacity-40 cursor-not-allowed"
+                        : isSelected
+                        ? "bg-blue-600 text-white font-bold shadow-md shadow-blue-500/30 scale-105 cursor-pointer"
                         : isToday
-                        ? "border border-blue-500 text-blue-600 dark:text-blue-400 font-bold bg-blue-50 dark:bg-blue-900/20"
-                        : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                        ? "border border-blue-500 text-blue-600 dark:text-blue-400 font-bold bg-blue-50 dark:bg-blue-900/20 cursor-pointer"
+                        : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
                     }`}
                   >
                     {day}

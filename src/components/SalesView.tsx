@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { Search, ShoppingBag, Users, Pencil, Trash2 } from "lucide-react";
-import { formatUSD, formatDate } from "@/lib/format";
+import { formatUSD, formatDate, matchesRouteSearch } from "@/lib/format";
 import { FlightBar } from "@/components/FlightBar";
 
 interface SalesViewProps {
@@ -31,7 +31,7 @@ export function SalesView({
     const q = search.toLowerCase();
     return (
       s.clientName?.toLowerCase().includes(q) ||
-      s.route?.toLowerCase().includes(q) ||
+      matchesRouteSearch(s.route, search) ||
       s.passengerNames?.toLowerCase().includes(q) ||
       s.flightNumber?.toLowerCase().includes(q) ||
       s.saleDate?.toLowerCase().includes(q)

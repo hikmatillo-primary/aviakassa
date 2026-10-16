@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { Copy, Check } from "lucide-react";
-import { getBatchFlightSchedule } from "@/lib/format";
+import { getBatchFlightSchedule, isBatchExpired, getBatchExpiryDate, formatDate } from "@/lib/format";
 import { copyToClipboard } from "@/lib/clipboard";
 
 interface FlightBarProps {
@@ -35,6 +35,7 @@ export function FlightBar({
   };
 
   const isLg = size === "lg";
+  const isExpired = isBatchExpired(batch);
 
   return (
     <div className={`${isLg ? "space-y-2" : "space-y-1"} max-w-full ${className}`}>
@@ -142,6 +143,14 @@ export function FlightBar({
               <span>•</span>
               <span>{batch.baggage} bagaj</span>
             </>
+          )}
+          {isExpired && (
+            <span
+              title={`Oxirgi parvoz sanasi: ${formatDate(getBatchExpiryDate(batch) || "", false)}`}
+              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-rose-100 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 font-bold uppercase tracking-wide text-[10px]"
+            >
+              Muddati o&apos;tgan
+            </span>
           )}
         </div>
       )}

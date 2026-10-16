@@ -54,6 +54,9 @@ import { ConfirmDialog } from "./ConfirmDialog";
 import { DatabaseModal } from "./DatabaseModal";
 import { getStoredUser, isAuthenticated, logoutUser, AuthUser } from "@/lib/auth";
 
+const ACTIVE_TAB_STORAGE_KEY = "aviakassa_active_tab";
+const VALID_TABS = ["dashboard", "purchases", "inventory", "sales", "partners", "cash"];
+
 export function AppContainer() {
   const [data, setData] = useState<AviakassaData>(EMPTY_AVIAKASSA_DATA);
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
@@ -94,6 +97,18 @@ export function AppContainer() {
       document.documentElement.classList.remove("dark");
     }
   }, []);
+
+  // Sahifa yangilanganda oxirgi ochiq tab tiklansin (dashboardga qaytib ketmasligi uchun)
+  useEffect(() => {
+    const savedTab = localStorage.getItem(ACTIVE_TAB_STORAGE_KEY);
+    if (savedTab && VALID_TABS.includes(savedTab)) {
+      setActiveTab(savedTab);
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem(ACTIVE_TAB_STORAGE_KEY, activeTab);
+  }, [activeTab]);
 
   // Prevent mouse wheel from incrementing/decrementing number inputs
   useEffect(() => {

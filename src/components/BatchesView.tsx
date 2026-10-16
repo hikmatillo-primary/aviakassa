@@ -8,7 +8,7 @@ import {
   ChevronRight,
   Trash2,
 } from "lucide-react";
-import { formatUSD } from "@/lib/format";
+import { formatUSD, matchesBatchSearch } from "@/lib/format";
 import { FlightBar } from "@/components/FlightBar";
 
 interface BatchesViewProps {
@@ -30,15 +30,7 @@ export function BatchesView({
 }: BatchesViewProps) {
   const [search, setSearch] = useState("");
 
-  const filteredBatches = batches.filter((b) => {
-    if (!search.trim()) return true;
-    const q = search.toLowerCase();
-    const matchRoute = b.route?.toLowerCase().includes(q);
-    const matchBatch = b.batchNumber?.toLowerCase().includes(q);
-    const matchSupplier = b.supplierName?.toLowerCase().includes(q);
-    const matchFlight = b.flightNumber?.toLowerCase().includes(q);
-    return matchRoute || matchBatch || matchSupplier || matchFlight;
-  });
+  const filteredBatches = batches.filter((b) => matchesBatchSearch(b, search));
 
   const filteredTotalQty = filteredBatches.reduce((sum, b) => sum + (b.totalQty || 0), 0);
   const filteredRemainingQty = filteredBatches.reduce((sum, b) => sum + (b.remainingQty || 0), 0);

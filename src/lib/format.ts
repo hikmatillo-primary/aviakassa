@@ -19,17 +19,41 @@ export function formatUSD(amount: number | undefined | null): string {
 
 /**
  * To'lov usuli bo'yicha yagona o'zbekcha nom.
- * CASH/CARD/BANK — butun ilova bo'ylab bir xil ko'rsatiladi.
+ * Qiymatlar backenddagi Payment.PaymentMethod bilan bir xil bo'lishi shart.
  */
 export const PAYMENT_METHOD_OPTIONS: { value: string; label: string }[] = [
   { value: "CASH", label: "Naqd pul" },
   { value: "CARD", label: "Karta / O'tkazma" },
   { value: "BANK", label: "Bank hisobi" },
+  { value: "NAQD_USD", label: "Naqd ($ USD)" },
+  { value: "NAQD_UZS", label: "Naqd (so'm)" },
+  { value: "BANK_KARTA", label: "Bank / Karta" },
+  { value: "HISOB_RAQAM", label: "Hisob raqam" },
 ];
 
 export function paymentMethodLabel(method: string | undefined | null): string {
   const found = PAYMENT_METHOD_OPTIONS.find((m) => m.value === method);
   return found ? found.label : "Bank hisobi";
+}
+
+/**
+ * Telefon raqamini kiritishda faqat ruxsat etilgan belgilarni qoldiradi
+ * (raqam, +, bo'sh joy, -, (), .). Harflar kiritilmaydi.
+ */
+export function sanitizePhoneInput(value: string): string {
+  return (value || "").replace(/[^+\d\s\-().]/g, "");
+}
+
+/**
+ * Telefon raqami to'g'rimi. Bo'sh qiymat ruxsat etiladi (ixtiyoriy maydon),
+ * aks holda 7-15 ta raqam bo'lishi shart.
+ */
+export function isValidPhone(value: string): boolean {
+  const cleaned = (value || "").trim();
+  if (!cleaned) return true;
+  if (!/^[+\d\s\-().]{7,50}$/.test(cleaned)) return false;
+  const digits = cleaned.replace(/\D/g, "");
+  return digits.length >= 7 && digits.length <= 15;
 }
 
 const UZ_MONTHS = [
@@ -64,6 +88,42 @@ export function formatDate(dateStr: string | undefined | null, includeYear = tru
 }
 
 export const UZ_WEEKDAYS = ["Yak", "Dush", "Sesh", "Chor", "Pay", "Jum", "Shan"];
+
+/** Bugungi sana mahalliy vaqt bo'yicha "YYYY-MM-DD" ko'rinishida. */
+export function getTodayISO(date: Date = new Date()): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+/**
+ * Partiyaning oxirgi parvoz sanasi.
+ * Borish-kelish partiyalarida — qaytish sanasi, aks holda parvoz sanasi.
+ */
+export function getBatchExpiryDate(batch: any): string | null {
+  if (!batch) return null;
+  if (batch.isRoundTrip && batch.returnDate) return batch.returnDate;
+  return batch.flightDate || null;
+}
+
+/**
+ * Partiya muddati o'tganmi — oxirgi parvoz sanasi bugundan oldin bo'lsa.
+ * Sana mahalliy vaqt bo'yicha kun boshidan taqqoslanadi.
+ */
+export function isBatchExpired(batch: any, today: Date = new Date()): boolean {
+  const expiry = getBatchExpiryDate(batch);
+  if (!expiry) return false;
+  const parts = expiry.split("-");
+  if (parts.length !== 3) return false;
+  const year = parseInt(parts[0], 10);
+  const monthIdx = parseInt(parts[1], 10) - 1;
+  const day = parseInt(parts[2], 10);
+  if (isNaN(year) || isNaN(monthIdx) || isNaN(day)) return false;
+  const expiryDate = new Date(year, monthIdx, day);
+  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  return expiryDate < todayStart;
+}
 
 /**
  * Sanani Aviasales uslubida o'zbekcha qisqa ko'rinishda formatlash:
@@ -282,6 +342,85 @@ export function parseRouteCities(routeStr: string | undefined | null): {
     originIata,
     destIata,
   };
+}
+
+/**
+ * IATA kodi -> unga tegishli barcha nomlar (o'zbekcha/inglizcha yozilishlar).
+ * "TAS - DXB" marshrutini "dubay", "dubai" yoki "dxb" bilan ham topish uchun.
+ */
+const IATA_SEARCH_ALIASES: Record<string, string[]> = (() => {
+  const map: Record<string, string[]> = {};
+  for (const [alias, code] of Object.entries(CITY_TO_IATA)) {
+    (map[code] ||= []).push(alias);
+  }
+  for (const [code, city] of Object.entries(IATA_TO_CITY)) {
+    (map[code] ||= []).push(city);
+  }
+  return map;
+})();
+
+/**
+ * Qidiruv matnini bir xillashtirish: kichik harf, apostrof va ajratgichlar olib tashlanadi.
+ */
+export function normalizeSearchText(value: string | undefined | null): string {
+  return (value || "")
+    .toLowerCase()
+    .replace(/['`ʻ’‘]/g, "")
+    .replace(/[—–\-_/.,]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
+ * Marshrut uchun qidiruv matni: marshrutning o'zi, IATA kodlari va shahar nomlari.
+ * "TAS - DXB" marshruti "dubay", "dubai", "dxb" kabi so'rovlarga ham mos keladi.
+ */
+export function buildRouteSearchText(route: string | undefined | null): string {
+  if (!route) return "";
+  const { originIata, destIata } = parseRouteCities(route);
+  const parts: (string | undefined)[] = [
+    route,
+    originIata,
+    destIata,
+    ...(IATA_SEARCH_ALIASES[originIata] || []),
+    ...(IATA_SEARCH_ALIASES[destIata] || []),
+  ];
+  return normalizeSearchText(parts.filter(Boolean).join(" "));
+}
+
+/** Marshrut qidiruv so'roviga mos keladimi. */
+export function matchesRouteSearch(route: string | undefined | null, query: string): boolean {
+  const q = normalizeSearchText(query);
+  if (!q) return true;
+  return buildRouteSearchText(route).includes(q);
+}
+
+/**
+ * Partiya uchun qidiruv matni: marshrut (IATA kodlari va shahar nomlari bilan),
+ * partiya raqami, reys raqamlari, ta'minotchi va bagaj.
+ */
+export function buildBatchSearchText(batch: any): string {
+  if (!batch) return "";
+  const parts: (string | undefined)[] = [
+    buildRouteSearchText(batch.route),
+    batch.batchNumber,
+    batch.flightNumber,
+    batch.returnFlightNumber,
+    batch.supplierName,
+    batch.baggage,
+  ];
+  return normalizeSearchText(parts.filter(Boolean).join(" "));
+}
+
+/**
+ * Partiya qidiruv so'roviga mos keladimi.
+ * Marshrut IATA kodi bilan saqlansa ham, shahar nomi bilan qidirish ishlaydi
+ * (masalan "TAS — DXB" partiyasi "dubay" bo'yicha topiladi).
+ */
+export function matchesBatchSearch(batch: any, query: string): boolean {
+  const q = normalizeSearchText(query);
+  if (!q) return true;
+  return buildBatchSearchText(batch).includes(q);
 }
 
 export interface FlightDisplayData {

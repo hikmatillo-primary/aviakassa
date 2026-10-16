@@ -1,3 +1,4 @@
+import re
 from rest_framework import serializers
 from .models import Partner
 
@@ -42,6 +43,22 @@ class PartnerSerializer(serializers.ModelSerializer):
 
     def get_balance(self, obj):
         return self._financials(obj)["balance"]
+
+    def validate_phone(self, value):
+        """Telefon raqami faqat raqam va +, -, (), bo'sh joy belgilaridan iborat bo'lishi kerak."""
+        if not value:
+            return value
+        cleaned = value.strip()
+        if not re.fullmatch(r"[+\d\s\-().]{7,50}", cleaned):
+            raise serializers.ValidationError(
+                "Telefon raqami noto'g'ri! Faqat raqam kiriting (masalan: +998 90 123-45-67)."
+            )
+        digits = re.sub(r"\D", "", cleaned)
+        if not (7 <= len(digits) <= 15):
+            raise serializers.ValidationError(
+                "Telefon raqamida 7 tadan 15 tagacha raqam bo'lishi kerak."
+            )
+        return cleaned
 
     class Meta:
         model = Partner

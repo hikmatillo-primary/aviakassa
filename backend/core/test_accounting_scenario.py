@@ -44,7 +44,7 @@ class AccountingScenarioTests(APITestCase):
             "clientId": self.customer.id,
             "qty": 4,
             "sellPrice": 400,
-            "saleDate": "2026-11-20",
+            "saleDate": "2026-10-10",
         })
         batch.refresh_from_db()
         self.assertEqual(batch.remaining_qty, 6)
@@ -113,7 +113,7 @@ class AccountingScenarioTests(APITestCase):
             "clientId": self.customer.id,
             "qty": 3,
             "sellPrice": 600,
-            "saleDate": "2026-11-20",
+            "saleDate": "2026-10-10",
         }, format="json")
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(Sale.objects.count(), 0)
@@ -132,7 +132,7 @@ class AccountingScenarioTests(APITestCase):
             "clientId": self.customer.id,
             "qty": 3,
             "sellPrice": 300,
-            "saleDate": "2026-11-20",
+            "saleDate": "2026-10-10",
         }).data
         batch.refresh_from_db()
         self.assertEqual(batch.remaining_qty, 7)
@@ -162,7 +162,7 @@ class AccountingScenarioTests(APITestCase):
             "clientId": self.customer.id,
             "qty": 3,
             "sellPrice": 300,
-            "saleDate": "2026-11-20",
+            "saleDate": "2026-10-10",
         }).data
         self.assertEqual(float(Sale.objects.get().profit), 300.0)  # 900 - 600
 
@@ -187,7 +187,7 @@ class AccountingScenarioTests(APITestCase):
             "clientId": self.customer.id,
             "qty": 3,
             "sellPrice": 300,
-            "saleDate": "2026-11-20",
+            "saleDate": "2026-10-10",
         })
         res = self.client.patch(f"/api/batches/{batch.id}/", {"totalQty": 2}, format="json")
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)

@@ -1,7 +1,16 @@
+from django.utils import timezone
 from rest_framework import serializers
 from .models import Sale
 from apps.flights.models import Batch
 from apps.partners.models import Partner
+
+
+def batch_expiry_date(batch: Batch):
+    """Partiyaning oxirgi parvoz sanasi (borish-kelishda — qaytish sanasi)."""
+    if batch.is_round_trip and batch.return_date:
+        return batch.return_date
+    return batch.flight_date
+
 
 class SaleSerializer(serializers.ModelSerializer):
     batchId = serializers.PrimaryKeyRelatedField(source='batch', queryset=Batch.objects.all())
@@ -32,6 +41,28 @@ class SaleSerializer(serializers.ModelSerializer):
         qty = attrs.get('qty', 1)
         if qty <= 0:
             raise serializers.ValidationError({"qty": "Chiptalar soni kamida 1 ta bo'lishi kerak."})
+
+        # Sotuv sanasi kelajakda bo'lishi mumkin emas (sotuv bugun yoki undan oldin amalga oshirilgan).
+        sale_date = attrs.get('sale_date')
+        if sale_date and sale_date > timezone.localdate():
+            raise serializers.ValidationError({
+                "saleDate": "Sotuv sanasi bugundan keyin bo'lishi mumkin emas."
+            })
+
+        # Muddati o'tgan partiyadan yangi chipta sotib bo'lmaydi.
+        # (Mavjud sotuvni tahrirlashda faqat partiya almashtirilsa tekshiriladi.)
+        if batch:
+            previous_batch = self.instance.batch if self.instance else None
+            if batch != previous_batch:
+                expiry = batch_expiry_date(batch)
+                if expiry and expiry < timezone.localdate():
+                    raise serializers.ValidationError({
+                        "batchId": (
+                            f"Bu partiyaning muddati o'tgan ({expiry.strftime('%d.%m.%Y')}) — "
+                            "chipta sotib bo'lmaydi."
+                        )
+                    })
+
         if self.instance is None:
             if batch and batch.remaining_qty < qty:
                 raise serializers.ValidationError({

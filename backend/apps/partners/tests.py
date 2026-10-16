@@ -150,6 +150,26 @@ class PartnerAPITests(APITestCase):
         self.assertEqual(res.data["name"], "Buxoro Turizm")
         self.assertEqual(res.data["balance"], 0.0)
 
+    def test_partner_api_rejects_invalid_phone(self):
+        """Telefon raqamida harflar yoki juda kam raqam bo'lsa 400 xatosi qaytishi kerak."""
+        for bad_phone in ["abc123", "salom", "12345", "+998 abc 12 34"]:
+            res = self.client.post(
+                "/api/partners/",
+                {"name": "Test Hamkor", "type": "CLIENT", "phone": bad_phone},
+                format="json",
+            )
+            self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST, bad_phone)
+            self.assertIn("phone", res.data, bad_phone)
+
+        # To'g'ri raqamlar qabul qilinadi
+        for good_phone in ["+998 90 123-45-67", "901234567", "(71) 200-00-00"]:
+            res = self.client.post(
+                "/api/partners/",
+                {"name": "Test Hamkor", "type": "CLIENT", "phone": good_phone},
+                format="json",
+            )
+            self.assertEqual(res.status_code, status.HTTP_201_CREATED, good_phone)
+
     def test_partner_api_balance_reflection_after_sale_and_partial_payment(self):
         """API orqali so'ralganda hamkorning balansi qat'iy manfiy (-) yoki musbat (+) ko'rsatilishi."""
         batch = Batch.objects.create(

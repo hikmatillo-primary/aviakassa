@@ -11,7 +11,7 @@ import {
   ArrowUpRight,
   Trash2,
 } from "lucide-react";
-import { formatUSD, formatDate } from "@/lib/format";
+import { formatUSD, formatDate, isBatchExpired } from "@/lib/format";
 import { FlightBar } from "@/components/FlightBar";
 
 interface BatchDetailViewProps {
@@ -234,7 +234,7 @@ export function BatchDetailView({
             </p>
           </div>
 
-          {batch.remainingQty > 0 && (
+          {batch.remainingQty > 0 && !isBatchExpired(batch) && (
             <button
               type="button"
               onClick={() => onOpenSaleModal(batch.id)}
@@ -243,6 +243,12 @@ export function BatchDetailView({
               <Plus className="w-4 h-4" />
               Chipta sotish
             </button>
+          )}
+
+          {isBatchExpired(batch) && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 text-xs font-bold">
+              Muddati o&apos;tgan — sotib bo&apos;lmaydi
+            </span>
           )}
         </div>
 

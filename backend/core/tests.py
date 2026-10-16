@@ -42,7 +42,7 @@ class DataImportResetAPITests(APITestCase):
                     "clientId": 2,
                     "qty": 2,
                     "sellPrice": 400,
-                    "saleDate": "2026-11-20",
+                    "saleDate": "2026-10-10",
                 }
             ],
             "payments": [
@@ -151,7 +151,7 @@ class BulkSaleAPITests(APITestCase):
     def _payload(self, qty=2, paid_now=100):
         return {
             "clientId": self.client_partner.id,
-            "saleDate": "2026-11-20",
+            "saleDate": "2026-10-10",
             "paidNow": paid_now,
             "paymentMethod": "CASH",
             "paymentNotes": "Sotuv to'lovi",

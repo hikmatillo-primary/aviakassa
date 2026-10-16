@@ -23,7 +23,7 @@ const PERIOD_OPTIONS = [
   { label: "6 oy", months: 6 },
   { label: "12 oy", months: 12 },
 ];
-import { formatMoney, formatUSD, formatDate } from "@/lib/format";
+import { formatMoney, formatUSD, formatDate, matchesRouteSearch, isBatchExpired } from "@/lib/format";
 
 interface DashboardViewProps {
   stats: any;
@@ -76,7 +76,7 @@ export function DashboardView({
     const q = search.toLowerCase();
     return (
       s.clientName?.toLowerCase().includes(q) ||
-      s.route?.toLowerCase().includes(q) ||
+      matchesRouteSearch(s.route, search) ||
       s.passengerNames?.toLowerCase().includes(q) ||
       String(s.id).includes(q)
     );
@@ -589,7 +589,7 @@ export function DashboardView({
                   <span className="truncate max-w-[160px]" title={b.supplierName}>
                     <strong className="text-slate-700 dark:text-slate-300 font-semibold">{b.supplierName}</strong>
                   </span>
-                  {onOpenSaleModal && b.remainingQty > 0 && (
+                  {onOpenSaleModal && b.remainingQty > 0 && !isBatchExpired(b) && (
                     <button
                       type="button"
                       onClick={(e) => {

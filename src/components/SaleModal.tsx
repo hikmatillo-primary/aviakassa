@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Modal } from "./Modal";
-import { formatUSD, formatDate } from "@/lib/format";
+import { formatUSD, formatDate, isBatchExpired, getBatchExpiryDate, getTodayISO } from "@/lib/format";
 import { DatePicker } from "./DatePicker";
 import { PartnerSelect } from "./PartnerSelect";
 import { FlightBar } from "./FlightBar";
@@ -62,13 +62,15 @@ export function SaleModal({
 
   const prevIsOpenRef = React.useRef(false);
 
-  // Omborda qoldig'i mavjud bo'lgan partiyalar
-  const activeBatches = batches.filter((b) => b.remainingQty > 0);
+  const todayISO = getTodayISO();
+
+  // Omborda qoldig'i mavjud va muddati o'tmagan partiyalar
+  const activeBatches = batches.filter((b) => b.remainingQty > 0 && !isBatchExpired(b));
 
   // Modal ochilganda qiymatlarni tiklash va partiyani sozlash (faqat yangi ochilganda)
   useEffect(() => {
     if (isOpen && !prevIsOpenRef.current) {
-      const active = batches.filter((b) => b.remainingQty > 0);
+      const active = batches.filter((b) => b.remainingQty > 0 && !isBatchExpired(b));
       const targetBatch = selectedBatchId
         ? batches.find((b) => b.id === selectedBatchId)
         : active[0];
@@ -78,7 +80,7 @@ export function SaleModal({
       setClientId("");
       setQty(1);
       setSellPrice(targetBatch ? Math.round(targetBatch.buyPrice + 30) : 0);
-      setSaleDate(new Date().toISOString().split("T")[0]);
+      setSaleDate(getTodayISO());
       setPaidNow(0);
       setNotes("");
       setError(null);
@@ -124,6 +126,16 @@ export function SaleModal({
       return;
     }
 
+    if (isBatchExpired(selectedBatch)) {
+      setError(
+        `"${selectedBatch.route}" partiyasining muddati o'tgan (${formatDate(
+          getBatchExpiryDate(selectedBatch) || "",
+          false
+        )}) — chipta sotib bo'lmaydi!`
+      );
+      return;
+    }
+
     if (!clientId) {
       setError("Iltimos, hamkorni tanlang!");
       return;
@@ -146,11 +158,16 @@ export function SaleModal({
       return;
     }
 
+    if (saleDate && saleDate > todayISO) {
+      setError("Sotuv sanasi bugundan keyin bo'lishi mumkin emas!");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       await onSave({
         clientId: Number(clientId),
-        saleDate: saleDate || new Date().toISOString().split("T")[0],
+        saleDate: saleDate || getTodayISO(),
         paidNow: numPaidNow,
         paymentMethod,
         notes,
@@ -289,6 +306,7 @@ export function SaleModal({
               label="Sotuv sanasi"
               value={saleDate}
               onChange={(val) => setSaleDate(val)}
+              maxDate={todayISO}
               required
             />
           </div>

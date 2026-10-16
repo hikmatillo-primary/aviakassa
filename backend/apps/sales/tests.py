@@ -1,7 +1,9 @@
 from decimal import Decimal
+from datetime import timedelta
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.core.exceptions import ValidationError
+from django.utils import timezone
 from rest_framework.test import APITestCase
 from rest_framework import status
 from apps.partners.models import Partner
@@ -143,7 +145,7 @@ class SaleAPITests(APITestCase):
             "clientId": self.client_partner.id,
             "qty": 3,
             "sellPrice": 425.50,
-            "saleDate": "2026-11-20",
+            "saleDate": "2026-10-10",
             "notes": "Test sotuv"
         }
         response = self.client.post("/api/sales/", payload, format="json")
@@ -221,7 +223,7 @@ class SaleAPITests(APITestCase):
             "clientId": self.client_partner.id,
             "qty": 15,  # Qoldiq 10 ta, so'ralgan 15 ta
             "sellPrice": 400.00,
-            "saleDate": "2026-11-20"
+            "saleDate": "2026-10-10"
         }
         response = self.client.post("/api/sales/", payload, format="json")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -237,10 +239,28 @@ class SaleAPITests(APITestCase):
             "clientId": self.client_partner.id,
             "qty": 0,
             "sellPrice": 400.00,
-            "saleDate": "2026-11-20"
+            "saleDate": "2026-10-10"
         }
         response = self.client.post("/api/sales/", payload, format="json")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_api_future_sale_date_rejected(self):
+        """Sotuv sanasi kelajakda bo'lsa 400 xatosi qaytishi kerak."""
+        tomorrow = timezone.localdate() + timedelta(days=1)
+        payload = {
+            "batchId": self.batch.id,
+            "clientId": self.client_partner.id,
+            "qty": 1,
+            "sellPrice": 400.00,
+            "saleDate": tomorrow.isoformat()
+        }
+        response = self.client.post("/api/sales/", payload, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("saleDate", response.data)
+
+        self.batch.refresh_from_db()
+        self.assertEqual(self.batch.remaining_qty, 10)
+        self.assertEqual(Sale.objects.count(), 0)
 
     def test_api_patch_sale_quantity_and_price(self):
         """Sotuv miqdori yoki narxi API orqali o'zgartirilganda qoldiq va foyda moslashishi."""
@@ -270,6 +290,56 @@ class SaleAPITests(APITestCase):
         self.assertEqual(sale.sell_price, Decimal("420.00"))
         self.assertEqual(sale.total_amount, Decimal("2520.00"))
         self.assertEqual(sale.profit, Decimal("720.00"))  # 2520 - (6 * 300)
+
+    def test_api_expired_batch_sale_rejected(self):
+        """Muddati o'tgan partiyadan (parvoz sanasi o'tgan) chipta sotib bo'lmaydi."""
+        past_date = timezone.localdate() - timedelta(days=1)
+        expired_batch = Batch.objects.create(
+            batch_number="TEST-EXPIRED-01",
+            route="TAS - DXB",
+            flight_date=past_date,
+            supplier=self.supplier,
+            total_qty=10,
+            buy_price=Decimal("300.00")
+        )
+        payload = {
+            "batchId": expired_batch.id,
+            "clientId": self.client_partner.id,
+            "qty": 2,
+            "sellPrice": 400.00,
+            "saleDate": timezone.localdate().isoformat()
+        }
+        response = self.client.post("/api/sales/", payload, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("batchId", response.data)
+
+        expired_batch.refresh_from_db()
+        self.assertEqual(expired_batch.remaining_qty, 10)
+        self.assertEqual(Sale.objects.filter(batch=expired_batch).count(), 0)
+
+    def test_api_round_trip_sale_allowed_until_return_date(self):
+        """Borish-kelish partiyasida qaytish sanasi kelmagan bo'lsa sotish mumkin."""
+        past_date = timezone.localdate() - timedelta(days=1)
+        future_date = timezone.localdate() + timedelta(days=10)
+        round_trip = Batch.objects.create(
+            batch_number="TEST-ROUND-01",
+            route="TAS - DXB",
+            flight_date=past_date,
+            is_round_trip=True,
+            return_date=future_date,
+            supplier=self.supplier,
+            total_qty=10,
+            buy_price=Decimal("300.00")
+        )
+        payload = {
+            "batchId": round_trip.id,
+            "clientId": self.client_partner.id,
+            "qty": 2,
+            "sellPrice": 400.00,
+            "saleDate": timezone.localdate().isoformat()
+        }
+        response = self.client.post("/api/sales/", payload, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
     def test_api_delete_sale_restores_inventory(self):
         """Sotuv o'chirilganda partiyadagi chiptalar to'liq qaytishi."""

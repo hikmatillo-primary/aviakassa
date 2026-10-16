@@ -131,6 +131,23 @@ class CashAPITests(APITestCase):
         self.assertEqual(self.supplier.net_balance, 2000.0)
         self.assertEqual(self.supplier.we_owe_them, 2000.0)
 
+    def test_api_card_payment_method_accepted(self):
+        """Frontend 'CARD' (Karta / O'tkazma) yuboradi — backend qabul qilishi kerak."""
+        payload = {
+            "partnerId": self.client_partner.id,
+            "type": "INCOME",
+            "amount": 200.0,
+            "paymentDate": "2026-10-16",
+            "paymentMethod": "CARD",
+            "notes": "Karta orqali to'lov"
+        }
+        res = self.client.post("/api/cash/payments/", payload, format="json")
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(res.data["paymentMethod"], "CARD")
+
+        self.client_partner.refresh_from_db()
+        self.assertEqual(self.client_partner.total_paid_to_us, 200.0)
+
     def test_api_overpayment_leads_to_positive_balance(self):
         """Mijoz qarzdorligidan ortiqcha to'lasa, uning balansi musbat (+) ga aylanadi."""
         Sale.objects.create(
