@@ -10,6 +10,8 @@ from django.utils import timezone
 
 from apps.flights.models import Batch
 
+from .models import BotGroup
+
 API_URL_TEMPLATE = "https://api.telegram.org/bot{token}/{method}"
 
 UZ_MONTHS = [
@@ -19,10 +21,12 @@ UZ_MONTHS = [
 
 HELP_TEXT = (
     "👋 <b>Aviakassa bot</b>\n\n"
-    "Buyruqlar:\n"
-    "/muddati — muddati yaqin (qoldig'i bor) chiptalar ro'yxati\n"
-    "/muddati 10 — kun sonini o'zgartirib ko'rish\n"
-    "/help — yordam"
+    "Tugmalar orqali:\n"
+    "• ⏳ 3 / 5 / 10 kun — muddati yaqin chiptalar ro'yxati\n"
+    "• 📤 Guruhga yuborish — hisobotni bot admin bo'lgan guruhlarga jo'natadi\n"
+    "• ℹ️ Yordam\n\n"
+    "Buyruqlar: /muddati, /muddati 10\n"
+    "Guruhda: /muddati@fireflyak_bot yoki tugmalardan foydalaning."
 )
 
 
@@ -38,7 +42,7 @@ def get_default_days() -> int:
 
 
 def get_allowed_chat_ids() -> set:
-    """Ruxsat etilgan chat ID'lar (bo'sh bo'lsa — hamma uchun ochiq)."""
+    """Shaxsiy chatlar uchun ruxsat etilgan ID'lar (bo'sh bo'lsa — hech kim)."""
     ids = set()
     for part in os.environ.get("TELEGRAM_ALLOWED_CHAT_IDS", "").split(","):
         part = part.strip()
@@ -48,6 +52,25 @@ def get_allowed_chat_ids() -> set:
             except ValueError:
                 pass
     return ids
+
+
+def is_chat_allowed(chat_id: int, chat_type: str) -> bool:
+    """Shaxsiy chat — allowlist'da bo'lishi kerak; guruh — bot admin bo'lishi kerak."""
+    if chat_type in ("group", "supergroup"):
+        return BotGroup.objects.filter(chat_id=chat_id, is_admin=True).exists()
+    return chat_id in get_allowed_chat_ids()
+
+
+def register_group(chat_id: int, title: str = "", is_admin: bool = False) -> BotGroup:
+    defaults = {"is_admin": is_admin}
+    if title:
+        defaults["title"] = title
+    group, _ = BotGroup.objects.update_or_create(chat_id=chat_id, defaults=defaults)
+    return group
+
+
+def get_admin_groups():
+    return list(BotGroup.objects.filter(is_admin=True))
 
 
 def api_call(method: str, payload: dict | None = None, timeout: int = 35):
@@ -66,22 +89,44 @@ def api_call(method: str, payload: dict | None = None, timeout: int = 35):
 def poll_updates(offset: int, timeout: int = 30):
     data = api_call(
         "getUpdates",
-        {"offset": offset, "timeout": timeout, "allowed_updates": ["message"]},
+        {
+            "offset": offset,
+            "timeout": timeout,
+            "allowed_updates": ["message", "callback_query", "my_chat_member"],
+        },
         timeout=timeout + 10,
     )
     return data.get("result", [])
 
 
-def send_message(chat_id: int, text: str) -> None:
-    api_call(
-        "sendMessage",
-        {
-            "chat_id": chat_id,
-            "text": text,
-            "parse_mode": "HTML",
-            "disable_web_page_preview": True,
-        },
-    )
+def send_message(chat_id: int, text: str, reply_markup: dict | None = None) -> None:
+    payload = {
+        "chat_id": chat_id,
+        "text": text,
+        "parse_mode": "HTML",
+        "disable_web_page_preview": True,
+    }
+    if reply_markup:
+        payload["reply_markup"] = reply_markup
+    api_call("sendMessage", payload)
+
+
+def answer_callback(callback_id: str) -> None:
+    api_call("answerCallbackQuery", {"callback_query_id": callback_id}, timeout=15)
+
+
+def main_keyboard() -> dict:
+    return {
+        "inline_keyboard": [
+            [
+                {"text": "⏳ 3 kun", "callback_data": "expiring:3"},
+                {"text": "⏳ 5 kun", "callback_data": "expiring:5"},
+                {"text": "📅 10 kun", "callback_data": "expiring:10"},
+            ],
+            [{"text": "📤 Guruhga yuborish", "callback_data": "send_group"}],
+            [{"text": "ℹ️ Yordam", "callback_data": "help"}],
+        ]
+    }
 
 
 def batch_expiry_expression():
@@ -171,8 +216,21 @@ def format_expiring_message(upcoming, overdue, days: int, today=None) -> str:
     return "\n".join(lines).strip()
 
 
-def handle_command(text: str, days_default: int) -> str | None:
-    """Foydalanuvchi xabariga javob matnini qaytaradi (buyruq bo'lmasa — None)."""
+def expiring_reply_text(days: int) -> str:
+    today = timezone.localdate()
+    upcoming, overdue = get_expiring_batches(days, today)
+    return format_expiring_message(upcoming, overdue, days, today)
+
+
+def reply_payload(text: str, with_keyboard: bool = False) -> dict:
+    payload = {"text": text}
+    if with_keyboard:
+        payload["reply_markup"] = main_keyboard()
+    return payload
+
+
+def handle_command(text: str, days_default: int) -> dict | None:
+    """Foydalanuvchi buyrug'iga javob ({text, reply_markup}) yoki None (buyruq bo'lmasa)."""
     text = (text or "").strip()
     if not text.startswith("/"):
         return None
@@ -180,7 +238,7 @@ def handle_command(text: str, days_default: int) -> str | None:
     command = parts[0].split("@")[0].lower()
 
     if command in ("/start", "/help", "/yordam"):
-        return HELP_TEXT
+        return reply_payload(HELP_TEXT, with_keyboard=True)
 
     if command in ("/muddati", "/tez"):
         days = days_default
@@ -188,9 +246,47 @@ def handle_command(text: str, days_default: int) -> str | None:
             try:
                 days = max(1, min(60, int(parts[1])))
             except ValueError:
-                return "⚠️ Kun sonini butun son sifatida yozing, masalan: /muddati 10"
-        today = timezone.localdate()
-        upcoming, overdue = get_expiring_batches(days, today)
-        return format_expiring_message(upcoming, overdue, days, today)
+                return reply_payload("⚠️ Kun sonini butun son sifatida yozing, masalan: /muddati 10")
+        return reply_payload(expiring_reply_text(days))
 
-    return "❓ Noma'lum buyruq. /help ni ko'ring."
+    return reply_payload("❓ Noma'lum buyruq. /help ni ko'ring.")
+
+
+def handle_callback(data: str, days_default: int) -> dict | None:
+    """Inline tugma bosilishiga javob ({text, reply_markup}) yoki None."""
+    data = (data or "").strip()
+
+    if data == "help":
+        return reply_payload(HELP_TEXT, with_keyboard=True)
+
+    if data == "send_group":
+        groups = get_admin_groups()
+        if not groups:
+            return reply_payload(
+                "⚠️ Bot hali hech qaysi guruhda admin emas.\n"
+                "Botni guruhga qo'shib, admin qilib tayinlang — shundan keyin "
+                "bu tugma hisobotni o'sha guruhga yuboradi."
+            )
+        report = expiring_reply_text(days_default)
+        sent, failed = [], []
+        for group in groups:
+            try:
+                send_message(group.chat_id, report)
+                sent.append(group.title or str(group.chat_id))
+            except Exception:  # noqa: BLE001
+                failed.append(group.title or str(group.chat_id))
+        parts = []
+        if sent:
+            parts.append("✅ Guruhga yuborildi: " + ", ".join(sent))
+        if failed:
+            parts.append("❌ Yuborilmadi: " + ", ".join(failed))
+        return reply_payload("\n".join(parts))
+
+    if data.startswith("expiring:"):
+        try:
+            days = max(1, min(60, int(data.split(":", 1)[1])))
+        except ValueError:
+            days = days_default
+        return reply_payload(expiring_reply_text(days), with_keyboard=True)
+
+    return None

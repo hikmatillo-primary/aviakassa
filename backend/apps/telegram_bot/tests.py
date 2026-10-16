@@ -1,4 +1,6 @@
+import os
 from datetime import timedelta
+from unittest import mock
 
 from django.test import TestCase
 from django.utils import timezone
@@ -7,6 +9,7 @@ from apps.flights.models import Batch
 from apps.partners.models import Partner
 
 from . import services
+from .models import BotGroup
 
 
 class ExpiringBatchesQueryTests(TestCase):
@@ -155,40 +158,134 @@ class HandleCommandTests(TestCase):
             buy_price=100,
         )
 
-    def test_start_returns_help(self):
-        self.assertEqual(services.handle_command("/start", 5), services.HELP_TEXT)
+    def test_start_returns_help_with_keyboard(self):
+        reply = services.handle_command("/start", 5)
+        self.assertEqual(reply["text"], services.HELP_TEXT)
+        buttons = reply["reply_markup"]["inline_keyboard"]
+        callback_data = [b["callback_data"] for row in buttons for b in row]
+        self.assertIn("send_group", callback_data)
+        self.assertIn("expiring:5", callback_data)
 
     def test_plain_text_ignored(self):
         self.assertIsNone(services.handle_command("salom", 5))
 
     def test_muddati_default_days(self):
         reply = services.handle_command("/muddati", 5)
-        self.assertIn("P00005", reply)
-        self.assertNotIn("P00006", reply)
+        self.assertIn("P00005", reply["text"])
+        self.assertNotIn("P00006", reply["text"])
 
     def test_muddati_custom_days(self):
         reply = services.handle_command("/muddati 30", 5)
-        self.assertIn("P00005", reply)
-        self.assertIn("P00006", reply)
+        self.assertIn("P00005", reply["text"])
+        self.assertIn("P00006", reply["text"])
 
     def test_muddati_invalid_days(self):
         reply = services.handle_command("/muddati abc", 5)
-        self.assertIn("butun son", reply)
+        self.assertIn("butun son", reply["text"])
 
     def test_muddati_with_bot_username_suffix(self):
         reply = services.handle_command("/muddati@aviakassa_bot", 5)
-        self.assertIn("P00005", reply)
+        self.assertIn("P00005", reply["text"])
 
     def test_unknown_command(self):
         reply = services.handle_command("/nomalum", 5)
-        self.assertIn("Noma'lum buyruq", reply)
+        self.assertIn("Noma'lum buyruq", reply["text"])
+
+
+class CallbackTests(TestCase):
+    def setUp(self):
+        self.today = timezone.localdate()
+        self.supplier = Partner.objects.create(name="Vendor", type=Partner.PartnerType.SUPPLIER)
+        Batch.objects.create(
+            batch_number="P00005",
+            route="TAS - DXB",
+            flight_date=self.today + timedelta(days=3),
+            supplier=self.supplier,
+            total_qty=10,
+            remaining_qty=4,
+            buy_price=100,
+        )
+        Batch.objects.create(
+            batch_number="P00006",
+            route="TAS - DXB",
+            flight_date=self.today + timedelta(days=20),
+            supplier=self.supplier,
+            total_qty=10,
+            remaining_qty=4,
+            buy_price=100,
+        )
+
+    def test_help_callback(self):
+        reply = services.handle_callback("help", 5)
+        self.assertEqual(reply["text"], services.HELP_TEXT)
+        self.assertIn("inline_keyboard", reply["reply_markup"])
+
+    def test_expiring_callback_respects_days(self):
+        reply = services.handle_callback("expiring:5", 5)
+        self.assertIn("P00005", reply["text"])
+        self.assertNotIn("P00006", reply["text"])
+
+        reply = services.handle_callback("expiring:30", 5)
+        self.assertIn("P00006", reply["text"])
+
+    def test_expiring_callback_invalid_days_falls_back(self):
+        reply = services.handle_callback("expiring:abc", 5)
+        self.assertIn("P00005", reply["text"])
+
+    def test_send_group_without_groups(self):
+        reply = services.handle_callback("send_group", 5)
+        self.assertIn("admin emas", reply["text"])
+
+    def test_send_group_sends_only_to_admin_groups(self):
+        BotGroup.objects.create(chat_id=-1001, title="Ish guruhi", is_admin=True)
+        BotGroup.objects.create(chat_id=-1002, title="Boshqa guruh", is_admin=False)
+
+        with mock.patch.object(services, "send_message") as send_mock:
+            reply = services.handle_callback("send_group", 5)
+
+        send_mock.assert_called_once()
+        called_chat_id, called_text = send_mock.call_args.args
+        self.assertEqual(called_chat_id, -1001)
+        self.assertIn("Muddati yaqin chiptalar", called_text)
+        self.assertIn("yuborildi", reply["text"])
+        self.assertIn("Ish guruhi", reply["text"])
+
+    def test_unknown_callback_ignored(self):
+        self.assertIsNone(services.handle_callback("nomalum", 5))
+
+
+class AccessControlTests(TestCase):
+    def test_private_requires_allowlist(self):
+        with mock.patch.dict(os.environ, {"TELEGRAM_ALLOWED_CHAT_IDS": ""}):
+            self.assertFalse(services.is_chat_allowed(123, "private"))
+
+        with mock.patch.dict(os.environ, {"TELEGRAM_ALLOWED_CHAT_IDS": "123,456"}):
+            self.assertTrue(services.is_chat_allowed(123, "private"))
+            self.assertFalse(services.is_chat_allowed(999, "private"))
+
+    def test_group_requires_admin_registration(self):
+        BotGroup.objects.create(chat_id=-1001, title="A", is_admin=True)
+        BotGroup.objects.create(chat_id=-1002, title="B", is_admin=False)
+
+        self.assertTrue(services.is_chat_allowed(-1001, "group"))
+        self.assertTrue(services.is_chat_allowed(-1001, "supergroup"))
+        self.assertFalse(services.is_chat_allowed(-1002, "group"))
+        self.assertFalse(services.is_chat_allowed(-1003, "supergroup"))
+
+    def test_register_group_upsert_keeps_title(self):
+        services.register_group(-1001, "Guruh 1", is_admin=False)
+        services.register_group(-1001, "", is_admin=True)
+
+        group = BotGroup.objects.get(chat_id=-1001)
+        self.assertEqual(group.title, "Guruh 1")
+        self.assertTrue(group.is_admin)
+
+        services.register_group(-1001, "", is_admin=False)
+        self.assertEqual(BotGroup.objects.get(chat_id=-1001).is_admin, False)
 
 
 class EnvSettingsTests(TestCase):
     def test_default_days(self):
-        import os
-        from unittest import mock
-
         with mock.patch.dict(os.environ, {}, clear=False):
             os.environ.pop("TELEGRAM_EXPIRING_DAYS", None)
             self.assertEqual(services.get_default_days(), 5)
@@ -200,9 +297,6 @@ class EnvSettingsTests(TestCase):
             self.assertEqual(services.get_default_days(), 5)
 
     def test_allowed_chat_ids(self):
-        import os
-        from unittest import mock
-
         with mock.patch.dict(os.environ, {"TELEGRAM_ALLOWED_CHAT_IDS": "1, 2 ,x,"}):
             self.assertEqual(services.get_allowed_chat_ids(), {1, 2})
 
