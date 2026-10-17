@@ -21,6 +21,10 @@ import {
 import { formatUSD, formatDate, paymentMethodLabel, matchesRouteSearch } from "@/lib/format";
 import { RowActionsMenu } from "@/components/RowActionsMenu";
 
+type CashMovement =
+  | { kind: "PAYMENT"; id: number; date: string; payment: any }
+  | { kind: "OFFSET"; id: number; date: string; offset: any };
+
 interface PartnerDetailViewProps {
   partnerId: number;
   partners: any[];
@@ -67,7 +71,7 @@ export function PartnerDetailView({
   onDeleteDebtOffset,
   onSelectBatch,
 }: PartnerDetailViewProps) {
-  const [activeTab, setActiveTab] = useState<"SALES" | "BATCHES" | "PAYMENTS" | "OFFSETS">("SALES");
+  const [activeTab, setActiveTab] = useState<"SALES" | "BATCHES" | "CASH">("SALES");
   const [searchQuery, setSearchQuery] = useState("");
 
   const partner = partners.find((p) => p.id === partnerId);
@@ -141,17 +145,33 @@ export function PartnerDetailView({
     );
   });
 
-  const filteredPayments = partnerPayments.filter((p) => {
-    if (!q) return true;
-    return (
-      p.notes?.toLowerCase().includes(q) ||
-      p.paymentDate?.toLowerCase().includes(q) ||
-      p.paymentMethod?.toLowerCase().includes(q)
-    );
-  });
+  // Kassa harakatlari: to'lovlar va qarz surishlar bitta oqimda (sana bo'yicha, yangisi yuqorida)
+  const cashMovements: CashMovement[] = [
+    ...partnerPayments.map((p) => ({
+      kind: "PAYMENT" as const,
+      id: p.id,
+      date: (p.paymentDate || "").slice(0, 10),
+      payment: p,
+    })),
+    ...partnerOffsets.map((o) => ({
+      kind: "OFFSET" as const,
+      id: o.id,
+      date: (o.date || "").slice(0, 10),
+      offset: o,
+    })),
+  ].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
 
-  const filteredOffsets = partnerOffsets.filter((o) => {
+  const filteredCashMovements = cashMovements.filter((m) => {
     if (!q) return true;
+    if (m.kind === "PAYMENT") {
+      const p = m.payment;
+      return (
+        p.notes?.toLowerCase().includes(q) ||
+        p.paymentDate?.toLowerCase().includes(q) ||
+        p.paymentMethod?.toLowerCase().includes(q)
+      );
+    }
+    const o = m.offset;
     return (
       o.fromPartnerName?.toLowerCase().includes(q) ||
       o.toPartnerName?.toLowerCase().includes(q) ||
@@ -382,31 +402,16 @@ export function PartnerDetailView({
 
             <button
               type="button"
-              onClick={() => setActiveTab("PAYMENTS")}
+              onClick={() => setActiveTab("CASH")}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${
-                activeTab === "PAYMENTS"
+                activeTab === "CASH"
                   ? "bg-white dark:bg-[#111726] text-blue-600 dark:text-blue-400 shadow-2xs font-bold"
                   : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
               }`}
             >
               <Wallet className="w-3.5 h-3.5" />
-              Kassa to‘lovlari ({partnerPayments.length})
+              Kassa harakatlari ({partnerPayments.length + partnerOffsets.length})
             </button>
-
-            {partnerOffsets.length > 0 && (
-              <button
-                type="button"
-                onClick={() => setActiveTab("OFFSETS")}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5 ${
-                  activeTab === "OFFSETS"
-                    ? "bg-white dark:bg-[#111726] text-blue-600 dark:text-blue-400 shadow-2xs font-bold"
-                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-                }`}
-              >
-                <ArrowRightLeft className="w-3.5 h-3.5" />
-                Qarz surish ({partnerOffsets.length})
-              </button>
-            )}
           </div>
 
           {/* Search bar */}
@@ -633,115 +638,113 @@ export function PartnerDetailView({
           </div>
         )}
 
-        {/* TAB CONTENT 3: KASSA TO'LOVLARI */}
-        {activeTab === "PAYMENTS" && (
+        {/* TAB CONTENT 3: KASSA HARAKATLARI (to'lovlar + qarz surishlar) */}
+        {activeTab === "CASH" && (
           <div className="space-y-3">
-            {filteredPayments.map((p) => (
-              <div
-                key={p.id}
-                className="bg-slate-50/60 dark:bg-white/[0.02] p-3.5 sm:p-4 rounded-xl border border-slate-200/70 dark:border-white/[0.06] flex items-center justify-between gap-3 hover:border-slate-300 dark:hover:border-white/[0.12] transition-colors"
-              >
-                <div className="space-y-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {p.type === "INCOME" ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                        <ArrowDownLeft className="w-3 h-3" /> Kirim
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400">
-                        <ArrowUpRight className="w-3 h-3" /> Chiqim
-                      </span>
-                    )}
-                    <span className="text-xs text-slate-400">
-                      • {formatDate(p.paymentDate)}
-                    </span>
-                    <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-slate-100 dark:bg-white/[0.06] text-slate-600 dark:text-slate-300">
-                      {paymentMethodLabel(p.paymentMethod)}
-                    </span>
-                  </div>
-                  {p.notes && (
-                    <p className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-md pt-0.5">
-                      {p.notes}
-                    </p>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-2 shrink-0">
-                  <span
-                    className={`text-base sm:text-lg font-black tabular-nums ${
-                      p.type === "INCOME"
-                        ? "text-emerald-600 dark:text-emerald-400"
-                        : "text-rose-600 dark:text-rose-400"
-                    }`}
+            {filteredCashMovements.map((m) => {
+              if (m.kind === "PAYMENT") {
+                const p = m.payment;
+                return (
+                  <div
+                    key={`p-${p.id}`}
+                    className="bg-slate-50/60 dark:bg-white/[0.02] p-3.5 sm:p-4 rounded-xl border border-slate-200/70 dark:border-white/[0.06] flex items-center justify-between gap-3 hover:border-slate-300 dark:hover:border-white/[0.12] transition-colors"
                   >
-                    {p.type === "INCOME" ? `+${formatUSD(p.amount)}` : `-${formatUSD(p.amount)}`}
-                  </span>
-                  {onDeletePayment && (
-                    <button
-                      type="button"
-                      onClick={() => onDeletePayment(p)}
-                      aria-label="To‘lovni o‘chirish"
-                      className="inline-flex items-center justify-center p-1.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 rounded-lg transition-all cursor-pointer border border-rose-200/80 dark:border-rose-500/20"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
+                    <div className="space-y-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {p.type === "INCOME" ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                            <ArrowDownLeft className="w-3 h-3" /> Kirim
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400">
+                            <ArrowUpRight className="w-3 h-3" /> Chiqim
+                          </span>
+                        )}
+                        <span className="text-xs text-slate-400">
+                          • {formatDate(p.paymentDate)}
+                        </span>
+                        <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-slate-100 dark:bg-white/[0.06] text-slate-600 dark:text-slate-300">
+                          {paymentMethodLabel(p.paymentMethod)}
+                        </span>
+                      </div>
+                      {p.notes && (
+                        <p className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-md pt-0.5">
+                          {p.notes}
+                        </p>
+                      )}
+                    </div>
 
-            {filteredPayments.length === 0 && (
-              <div className="py-10 text-center text-xs text-slate-400">
-                Ushbu hamkor bilan kassa to‘lovlari topilmadi
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* TAB CONTENT 4: QARZ SURISHLAR */}
-        {activeTab === "OFFSETS" && (
-          <div className="space-y-3">
-            {filteredOffsets.map((o) => (
-              <div
-                key={o.id}
-                className="bg-slate-50/60 dark:bg-white/[0.02] p-3.5 sm:p-4 rounded-xl border border-slate-200/70 dark:border-white/[0.06] flex items-center justify-between gap-3"
-              >
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 text-xs">
-                    <span className="font-semibold text-slate-800 dark:text-slate-200">
-                      {o.fromPartnerName}
-                    </span>
-                    <ArrowRightLeft className="w-3.5 h-3.5 text-blue-500" />
-                    <span className="font-semibold text-slate-800 dark:text-slate-200">
-                      {o.toPartnerName}
-                    </span>
-                    <span className="text-slate-400">• {formatDate(o.date)}</span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span
+                        className={`text-base sm:text-lg font-black tabular-nums ${
+                          p.type === "INCOME"
+                            ? "text-emerald-600 dark:text-emerald-400"
+                            : "text-rose-600 dark:text-rose-400"
+                        }`}
+                      >
+                        {p.type === "INCOME" ? `+${formatUSD(p.amount)}` : `-${formatUSD(p.amount)}`}
+                      </span>
+                      {onDeletePayment && (
+                        <button
+                          type="button"
+                          onClick={() => onDeletePayment(p)}
+                          aria-label="To‘lovni o‘chirish"
+                          className="inline-flex items-center justify-center p-1.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 rounded-lg transition-all cursor-pointer border border-rose-200/80 dark:border-rose-500/20"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  {o.notes && (
-                    <p className="text-xs text-slate-400">{o.notes}</p>
-                  )}
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className="tabular-nums font-bold text-sm text-blue-600 dark:text-blue-400">
-                    {formatUSD(o.amount)}
-                  </span>
-                  {onDeleteDebtOffset && (
-                    <button
-                      type="button"
-                      onClick={() => onDeleteDebtOffset(o)}
-                      aria-label="Qarz surishni o‘chirish"
-                      className="inline-flex items-center justify-center p-1.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 rounded-lg transition-all cursor-pointer border border-rose-200/80 dark:border-rose-500/20"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
+                );
+              }
 
-            {filteredOffsets.length === 0 && (
+              const o = m.offset;
+              return (
+                <div
+                  key={`o-${o.id}`}
+                  className="bg-slate-50/60 dark:bg-white/[0.02] p-3.5 sm:p-4 rounded-xl border border-slate-200/70 dark:border-white/[0.06] flex items-center justify-between gap-3"
+                >
+                  <div className="space-y-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                        <ArrowRightLeft className="w-3 h-3" /> Qarz surish
+                      </span>
+                      <span className="text-xs text-slate-400">
+                        • {formatDate(o.date)}
+                      </span>
+                      <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 truncate">
+                        {o.fromPartnerName} ➔ {o.toPartnerName}
+                      </span>
+                    </div>
+                    {o.notes && (
+                      <p className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-md pt-0.5">
+                        {o.notes}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="tabular-nums font-bold text-sm text-blue-600 dark:text-blue-400">
+                      {formatUSD(o.amount)}
+                    </span>
+                    {onDeleteDebtOffset && (
+                      <button
+                        type="button"
+                        onClick={() => onDeleteDebtOffset(o)}
+                        aria-label="Qarz surishni o‘chirish"
+                        className="inline-flex items-center justify-center p-1.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 rounded-lg transition-all cursor-pointer border border-rose-200/80 dark:border-rose-500/20"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+
+            {filteredCashMovements.length === 0 && (
               <div className="py-10 text-center text-xs text-slate-400">
-                O‘zaro surishlar mavjud emas
+                Ushbu hamkor bilan kassa harakatlari topilmadi
               </div>
             )}
           </div>

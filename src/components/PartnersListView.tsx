@@ -19,6 +19,7 @@ interface PartnersListViewProps {
   batches?: any[];
   sales?: any[];
   payments?: any[];
+  initialFilter?: "ALL" | "DEBT_US" | "DEBT_THEM";
   onSelectPartner: (partnerId: number) => void;
   onOpenPartnerModal: (type?: "CLIENT" | "SUPPLIER") => void;
   onOpenPaymentModal: (type: "INCOME" | "EXPENSE", partnerId: number) => void;
@@ -28,6 +29,7 @@ interface PartnersListViewProps {
 
 export function PartnersListView({
   partners,
+  initialFilter = "ALL",
   onSelectPartner,
   onOpenPartnerModal,
   onOpenPaymentModal,
@@ -35,7 +37,7 @@ export function PartnersListView({
   onDeletePartner,
 }: PartnersListViewProps) {
   const [search, setSearch] = useState("");
-  const [filterType, setFilterType] = useState<"ALL" | "CLIENT" | "SUPPLIER" | "DEBT_US" | "DEBT_THEM">("ALL");
+  const [filterType, setFilterType] = useState<"ALL" | "CLIENT" | "SUPPLIER" | "DEBT_US" | "DEBT_THEM">(initialFilter);
 
   // Filter logic
   const filteredPartners = partners.filter((p) => {
@@ -82,28 +84,6 @@ export function PartnersListView({
     (sum, p) => sum + (p.balance || 0),
     0
   );
-
-  const partnerTypeBadge = (type?: string) => {
-    if (type === "CLIENT") {
-      return (
-        <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[11px] font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400">
-          Mijoz
-        </span>
-      );
-    }
-    if (type === "SUPPLIER") {
-      return (
-        <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[11px] font-semibold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
-          Ta’minotchi
-        </span>
-      );
-    }
-    return (
-      <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[11px] font-semibold bg-slate-500/10 text-slate-600 dark:text-slate-400">
-        Hamkor
-      </span>
-    );
-  };
 
   const balanceText = (balance: number) =>
     balance < 0
@@ -314,15 +294,12 @@ export function PartnersListView({
                   <h3 className="font-bold text-slate-900 dark:text-white text-base truncate">
                     {pt.name}
                   </h3>
-                  <div className="flex items-center flex-wrap gap-2 mt-1">
-                    {partnerTypeBadge(pt.type)}
-                    {pt.phone && (
-                      <span className="flex items-center gap-1 text-[11px] text-slate-400 tabular-nums">
-                        <Phone className="w-3 h-3 text-slate-400" />
-                        {pt.phone}
-                      </span>
-                    )}
-                  </div>
+                  {pt.phone && (
+                    <div className="flex items-center gap-1 text-[11px] text-slate-400 mt-1 tabular-nums">
+                      <Phone className="w-3 h-3 text-slate-400" />
+                      {pt.phone}
+                    </div>
+                  )}
                 </div>
                 <div className="text-right shrink-0 tabular-nums">
                   <span className="text-[10px] text-slate-400 font-semibold block uppercase tracking-wider">
@@ -381,7 +358,6 @@ export function PartnersListView({
             <thead>
               <tr className="border-b border-slate-100 dark:border-white/[0.06] text-xs font-semibold text-slate-400 dark:text-slate-500">
                 <th className="py-3 px-4">Hamkor</th>
-                <th className="py-3 px-4">Turi</th>
                 <th className="py-3 px-4 text-right">Bizdan xarid</th>
                 <th className="py-3 px-4 text-right">Bizga sotgan</th>
                 <th className="py-3 px-4 text-right">Balans</th>
@@ -408,7 +384,6 @@ export function PartnersListView({
                         </div>
                       )}
                     </td>
-                    <td className="py-3.5 px-4">{partnerTypeBadge(pt.type)}</td>
                     <td className="py-3.5 px-4 text-right tabular-nums font-medium text-slate-600 dark:text-slate-300">
                       {formatUSD(pt.totalBoughtFromUs || 0)}
                     </td>
@@ -429,7 +404,7 @@ export function PartnersListView({
 
               {filteredPartners.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center space-y-3">
+                  <td colSpan={5} className="py-12 text-center space-y-3">
                     <Users className="w-8 h-8 text-slate-400 mx-auto" />
                     <p className="text-xs text-slate-400">
                       Qidiruv bo‘yicha hamkorlar topilmadi
@@ -450,7 +425,7 @@ export function PartnersListView({
             {filteredPartners.length > 0 && (
               <tfoot>
                 <tr className="border-t-2 border-slate-100 dark:border-white/[0.08] bg-slate-50/60 dark:bg-white/[0.02] text-xs font-bold text-slate-800 dark:text-slate-200 tabular-nums">
-                  <td colSpan={2} className="py-3 px-4 text-slate-500 dark:text-slate-400">
+                  <td colSpan={1} className="py-3 px-4 text-slate-500 dark:text-slate-400">
                     Jami ({filteredPartners.length} ta hamkor):
                   </td>
                   <td className="py-3 px-4 text-right">{formatUSD(filteredTotalBought)}</td>

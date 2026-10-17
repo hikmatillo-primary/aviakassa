@@ -141,6 +141,9 @@ export function PartnersView({
                     ? ` • ${batch.departureTime}–${batch.arrivalTime || ""}`
                     : ""}
                 </span>
+                <span className="text-[11px] text-slate-500 dark:text-slate-400 block mt-0.5 tabular-nums">
+                  Xarid: {formatDate(batch.purchaseDate, false)}
+                </span>
                 {batch.isRoundTrip && batch.returnDate && (
                   <span className="text-[11px] text-slate-500 dark:text-slate-400 block mt-0.5 tabular-nums">
                     ⇄ {formatDate(batch.returnDate, false)}
@@ -229,6 +232,7 @@ export function PartnersView({
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-slate-100 dark:border-white/[0.06] text-xs font-medium text-slate-400 dark:text-slate-500">
+                <th className="py-3.5 px-5 font-medium">Sana</th>
                 <th className="py-3.5 px-5 font-medium">Mahsulot / Reys</th>
                 <th className="py-3.5 px-5 font-medium">Hamkor</th>
                 <th className="py-3.5 px-5 font-medium text-center">Chiptalar soni</th>
@@ -244,6 +248,11 @@ export function PartnersView({
                   onClick={() => onSelectBatch?.(batch.id)}
                   className="hover:bg-blue-50/50 dark:hover:bg-blue-900/10 cursor-pointer transition-colors group"
                 >
+                  {/* Xarid sanasi */}
+                  <td className="py-4 px-5 text-slate-500 dark:text-slate-400 whitespace-nowrap tabular-nums">
+                    {formatDate(batch.purchaseDate, false)}
+                  </td>
+
                   {/* Aviation Product Title */}
                   <td className="py-4 px-5">
                     <FlightBar batch={batch} />
@@ -313,7 +322,7 @@ export function PartnersView({
               {filteredBatches.length === 0 && (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={7}
                     className="py-12 text-center text-xs text-slate-400 dark:text-slate-500 space-y-2"
                   >
                     <div>Mos keladigan xaridlar topilmadi</div>
@@ -333,7 +342,7 @@ export function PartnersView({
             {filteredBatches.length > 0 && (
               <tfoot>
                 <tr className="border-t-2 border-slate-200/80 dark:border-white/[0.08] bg-slate-50/70 dark:bg-white/[0.02] text-xs font-semibold text-slate-700 dark:text-slate-200 tabular-nums">
-                  <td colSpan={2} className="py-3.5 px-5 text-slate-500 dark:text-slate-400">
+                  <td colSpan={3} className="py-3.5 px-5 text-slate-500 dark:text-slate-400">
                     Jami ({filteredBatches.length} ta partiya):
                   </td>
                   <td className="py-3.5 px-5 text-center font-bold text-slate-900 dark:text-white">

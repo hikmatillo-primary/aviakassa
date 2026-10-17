@@ -36,6 +36,7 @@ interface DashboardViewProps {
   onSelectBatch?: (batchId: number) => void;
   onOpenSaleModal?: (batchId: number) => void;
   onNavigateTab?: (tab: string) => void;
+  onOpenPartnersDebt?: (filter: "DEBT_US" | "DEBT_THEM") => void;
   onRefresh?: () => void;
 }
 
@@ -48,6 +49,7 @@ export function DashboardView({
   onSelectBatch,
   onOpenSaleModal,
   onNavigateTab,
+  onOpenPartnersDebt,
 }: DashboardViewProps) {
   const [search, setSearch] = useState("");
   const [periodMonths, setPeriodMonths] = useState(6);
@@ -237,7 +239,7 @@ export function DashboardView({
 
         {/* Card 2: Hamkorlar qarzi (Olinishi kerak) */}
         <div
-          onClick={() => onNavigateTab && onNavigateTab("cash")}
+          onClick={() => onOpenPartnersDebt && onOpenPartnersDebt("DEBT_US")}
           className="bg-white dark:bg-[#111726] rounded-2xl p-5 sm:p-6 border border-slate-200/70 dark:border-white/[0.07] shadow-xs relative flex flex-col justify-between min-h-[155px] hover:border-blue-400 dark:hover:border-blue-500/50 cursor-pointer hover:scale-[1.015] active:scale-[0.99] transition-all group"
         >
           <div className="flex items-center justify-between">
@@ -268,7 +270,7 @@ export function DashboardView({
 
         {/* Card 3: Hamkorlar haqi (To‘lanishi kerak) */}
         <div
-          onClick={() => onNavigateTab && onNavigateTab("purchases")}
+          onClick={() => onOpenPartnersDebt && onOpenPartnersDebt("DEBT_THEM")}
           className="bg-white dark:bg-[#111726] rounded-2xl p-5 sm:p-6 border border-slate-200/70 dark:border-white/[0.07] shadow-xs relative flex flex-col justify-between min-h-[155px] hover:border-blue-400 dark:hover:border-blue-500/50 cursor-pointer hover:scale-[1.015] active:scale-[0.99] transition-all group"
         >
           <div className="flex items-center justify-between">

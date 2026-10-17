@@ -71,6 +71,7 @@ export function AppContainer() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [detailBatchId, setDetailBatchId] = useState<number | null>(null);
   const [detailPartnerId, setDetailPartnerId] = useState<number | null>(null);
+  const [partnersFilter, setPartnersFilter] = useState<"ALL" | "DEBT_US" | "DEBT_THEM">("ALL");
   const [isDark, setIsDark] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -885,6 +886,7 @@ export function AppContainer() {
           setActiveTab(tab);
           setDetailBatchId(null);
           setDetailPartnerId(null);
+          setPartnersFilter("ALL");
         }}
         isDark={isDark}
         currentUser={currentUser}
@@ -926,6 +928,12 @@ export function AppContainer() {
               setActiveTab(tab);
               setDetailBatchId(null);
               setDetailPartnerId(null);
+            }}
+            onOpenPartnersDebt={(filter) => {
+              setActiveTab("partners");
+              setDetailBatchId(null);
+              setDetailPartnerId(null);
+              setPartnersFilter(filter);
             }}
           />
         )}
@@ -1021,6 +1029,7 @@ export function AppContainer() {
               batches={batches}
               sales={sales}
               payments={payments}
+              initialFilter={partnersFilter}
               onSelectPartner={(partnerId) => setDetailPartnerId(partnerId)}
               onOpenPartnerModal={handleOpenPartnerModal}
               onOpenPaymentModal={handleOpenPaymentModal}
