@@ -3,18 +3,25 @@
  * Telefon tilidan (uz, ru va h.k.) qat'i nazar doim 3 xonadan keyin vergul (,) qo'yiladi.
  */
 export function formatMoney(amount: number | undefined | null): string {
-  const num = Math.round(Number(amount || 0));
-  const isNegative = num < 0;
-  const absStr = Math.abs(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-  return isNegative ? `-${absStr}` : absStr;
+  const value = Number(amount ?? 0);
+  if (!Number.isFinite(value)) return "0";
+  // Sentlar yo'qolmasligi kerak: 1234.5 -> "1,234.50", 1234 -> "1,234".
+  const rounded = Math.round(value * 100) / 100;
+  const negative = rounded < 0;
+  const abs = Math.abs(rounded);
+  const [intPart, fracPart] = abs.toFixed(2).split(".");
+  const intStr = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  const text = fracPart === "00" ? intStr : `${intStr}.${fracPart}`;
+  return negative ? `-${text}` : text;
 }
 
 export function formatUSD(amount: number | undefined | null): string {
-  const num = Math.round(Number(amount || 0));
-  if (num < 0) {
-    return `-$${formatMoney(Math.abs(num))}`;
+  const value = Number(amount ?? 0);
+  if (!Number.isFinite(value)) return "$0";
+  if (value < 0) {
+    return `-$${formatMoney(Math.abs(value))}`;
   }
-  return `$${formatMoney(num)}`;
+  return `$${formatMoney(value)}`;
 }
 
 /**
@@ -108,13 +115,11 @@ export function getBatchExpiryDate(batch: any): string | null {
 }
 
 /**
- * Partiya muddati o'tganmi — oxirgi parvoz sanasi bugundan oldin bo'lsa.
- * Sana mahalliy vaqt bo'yicha kun boshidan taqqoslanadi.
+ * Sana bugungi kundan oldinmi (mahalliy vaqt, kun boshidan taqqoslanadi).
  */
-export function isBatchExpired(batch: any, today: Date = new Date()): boolean {
-  const expiry = getBatchExpiryDate(batch);
-  if (!expiry) return false;
-  const parts = expiry.split("-");
+function isDateExpired(dateStr: string | undefined | null, today: Date = new Date()): boolean {
+  if (!dateStr) return false;
+  const parts = dateStr.split("-");
   if (parts.length !== 3) return false;
   const year = parseInt(parts[0], 10);
   const monthIdx = parseInt(parts[1], 10) - 1;
@@ -123,6 +128,80 @@ export function isBatchExpired(batch: any, today: Date = new Date()): boolean {
   const expiryDate = new Date(year, monthIdx, day);
   const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   return expiryDate < todayStart;
+}
+
+/**
+ * Partiya muddati o'tganmi — oxirgi parvoz sanasi bugundan oldin bo'lsa.
+ * Sana mahalliy vaqt bo'yicha kun boshidan taqqoslanadi.
+ */
+export function isBatchExpired(batch: any, today: Date = new Date()): boolean {
+  const expiry = getBatchExpiryDate(batch);
+  if (!expiry) return false;
+  return isDateExpired(expiry, today);
+}
+
+/** Sotuv segmentlari (borish/kelish partiyalari uchun). */
+export type SaleSegment = "" | "OUTBOUND" | "RETURN" | "BOTH";
+
+export const SALE_SEGMENT_OPTIONS: { value: SaleSegment; label: string; shortLabel: string }[] = [
+  { value: "OUTBOUND", label: "Borish", shortLabel: "Borish" },
+  { value: "RETURN", label: "Kelish", shortLabel: "Kelish" },
+  { value: "BOTH", label: "Borish-Kelish", shortLabel: "Borish+Kelish" },
+];
+
+export function saleSegmentLabel(segment: string | undefined | null): string {
+  const found = SALE_SEGMENT_OPTIONS.find((o) => o.value === segment);
+  return found ? found.label : "Borish-Kelish";
+}
+
+/**
+ * Segmentning o'sha qismi hali sotilishi mumkinmi (muddati o'tmaganmi).
+ * Borish — parvoz sanasiga, kelish — qaytish sanasiga (bo'lmasa parvoz sanasiga) qarab.
+ */
+export function isSegmentSellable(batch: any, segment: string, today: Date = new Date()): boolean {
+  if (!batch) return false;
+  const outExpired = isDateExpired(batch.flightDate, today);
+  if (!batch.isRoundTrip) return !outExpired;
+  const retExpired = isDateExpired(batch.returnDate || batch.flightDate, today);
+  if (segment === "OUTBOUND") return !outExpired;
+  if (segment === "RETURN") return !retExpired;
+  return !outExpired && !retExpired;
+}
+
+/**
+ * Partiyada segment bo'yicha sotish mumkin bo'lgan qoldiq.
+ * Borish — remainingQty, kelish — returnRemainingQty, ikkalasi — kichigi.
+ * Oddiy partiyada har doim remainingQty.
+ */
+export function getBatchSegmentRemaining(batch: any, segment: string): number {
+  const outLeft = Number(batch?.remainingQty ?? 0);
+  if (!batch?.isRoundTrip) return outLeft;
+  const retLeft = Number(batch?.returnRemainingQty ?? outLeft);
+  if (segment === "OUTBOUND") return outLeft;
+  if (segment === "RETURN") return retLeft;
+  return Math.min(outLeft, retLeft);
+}
+
+/**
+ * Segmentning tugash sanasi (ko'rsatish uchun): borish — parvoz, kelish — qaytish sanasi.
+ */
+export function getSegmentExpiryDate(batch: any, segment: string): string | null {
+  if (!batch) return null;
+  if (!batch.isRoundTrip) return batch.flightDate || null;
+  if (segment === "OUTBOUND") return batch.flightDate || null;
+  if (segment === "RETURN") return batch.returnDate || batch.flightDate || null;
+  return batch.returnDate || batch.flightDate || null;
+}
+
+/**
+ * Borish-kelish partiyasi uchun standart segment: ikkalasi ham sotilsa BOTH,
+ * faqat kelish qolsa RETURN, aks holda OUTBOUND.
+ */
+export function getDefaultSellableSegment(batch: any, today: Date = new Date()): SaleSegment {
+  if (!batch?.isRoundTrip) return "";
+  if (isSegmentSellable(batch, "BOTH", today)) return "BOTH";
+  if (isSegmentSellable(batch, "RETURN", today)) return "RETURN";
+  return "OUTBOUND";
 }
 
 /**

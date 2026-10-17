@@ -23,10 +23,38 @@ class FlightBatchTests(TestCase):
         )
         # remaining_qty avtomatik total_qty ga teng bo'lishi kerak
         self.assertEqual(batch.remaining_qty, 20)
+        # return_remaining_qty ham avtomatik to'ldiriladi (kelish pooli)
+        self.assertEqual(batch.return_remaining_qty, 20)
         # total_cost avtomatik buy_price * total_qty bo'lishi kerak
         self.assertEqual(batch.total_cost, Decimal("5000.00"))
         # status ACTIVE bo'lishi kerak
         self.assertEqual(batch.status, Batch.Status.ACTIVE)
+
+    def test_round_trip_batch_completes_only_when_both_pools_empty(self):
+        """Borish-kelish partiyasi faqat ikkala qoldiq ham tugaganda COMPLETED bo'ladi."""
+        batch = Batch.objects.create(
+            batch_number="TEST-SAM-RT",
+            route="Samarqand - Dubay",
+            flight_date="2026-11-01",
+            is_round_trip=True,
+            return_date="2026-11-10",
+            supplier=self.supplier,
+            total_qty=4,
+            buy_price=Decimal("250.00")
+        )
+        self.assertEqual(batch.return_remaining_qty, 4)
+
+        # Borish tugadi, kelish qoldig'i hali bor — hali COMPLETED emas
+        batch.remaining_qty = 0
+        batch.recalc_status()
+        batch.save(update_fields=["remaining_qty", "status"])
+        self.assertEqual(batch.status, Batch.Status.ACTIVE)
+
+        # Kelish ham tugadi — endi COMPLETED
+        batch.return_remaining_qty = 0
+        batch.recalc_status()
+        batch.save(update_fields=["return_remaining_qty", "status"])
+        self.assertEqual(batch.status, Batch.Status.COMPLETED)
 
     def test_batch_price_update(self):
         batch = Batch.objects.create(

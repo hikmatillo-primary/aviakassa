@@ -1,14 +1,15 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   Search,
   PackagePlus,
   Pencil,
+  SquarePen,
   ChevronRight,
   Trash2,
 } from "lucide-react";
-import { formatUSD, matchesBatchSearch, isDateInRange } from "@/lib/format";
+import { formatUSD, matchesBatchSearch, isDateInRange, getBatchSegmentRemaining } from "@/lib/format";
 import { FlightBar } from "@/components/FlightBar";
 import { RowActionsMenu } from "@/components/RowActionsMenu";
 import { DateRangeFilter } from "@/components/DateRangeFilter";
@@ -17,6 +18,7 @@ interface BatchesViewProps {
   batches: any[];
   onOpenBatchModal?: () => void;
   onEditBatch?: (batch: any) => void;
+  onFullEditBatch?: (batch: any) => void;
   onDeleteBatch?: (batch: any) => void;
   onOpenHistoryModal?: (partnerId: number) => void;
   onSelectBatch?: (batchId: number) => void;
@@ -26,6 +28,7 @@ export function BatchesView({
   batches,
   onOpenBatchModal,
   onEditBatch,
+  onFullEditBatch,
   onDeleteBatch,
   onOpenHistoryModal,
   onSelectBatch,
@@ -40,13 +43,27 @@ export function BatchesView({
     setDateTo("");
   };
 
-  const filteredBatches = batches.filter(
-    (b) => matchesBatchSearch(b, search) && isDateInRange(b.purchaseDate, dateFrom, dateTo)
-  );
-
-  const filteredTotalQty = filteredBatches.reduce((sum, b) => sum + (b.totalQty || 0), 0);
-  const filteredRemainingQty = filteredBatches.reduce((sum, b) => sum + (b.remainingQty || 0), 0);
-  const filteredTotalCost = filteredBatches.reduce((sum, b) => sum + (b.totalCost || 0), 0);
+  // Filtrlash va yig'indilar faqat filtr/ma'lumot o'zgarganda qayta hisoblanadi.
+  const { filteredBatches, filteredTotalQty, filteredRemainingQty, filteredTotalCost } =
+    useMemo(() => {
+      const rows = batches.filter(
+        (b) => matchesBatchSearch(b, search) && isDateInRange(b.purchaseDate, dateFrom, dateTo)
+      );
+      const totalQty = rows.reduce((sum, b) => sum + (b.totalQty || 0), 0);
+      // Borish-kelish partiyalarda ikkala qoldiq (borish + kelish) qo'shiladi.
+      const remainingQty = rows.reduce((sum, b) => {
+        const out = b.remainingQty || 0;
+        if (b.isRoundTrip) return sum + out + getBatchSegmentRemaining(b, "RETURN");
+        return sum + out;
+      }, 0);
+      const totalCost = rows.reduce((sum, b) => sum + (b.totalCost || 0), 0);
+      return {
+        filteredBatches: rows,
+        filteredTotalQty: totalQty,
+        filteredRemainingQty: remainingQty,
+        filteredTotalCost: totalCost,
+      };
+    }, [batches, search, dateFrom, dateTo]);
 
   return (
     <div className="space-y-5">
@@ -95,9 +112,15 @@ export function BatchesView({
       {/* MOBILE LIST VIEW */}
       <div className="space-y-3 block md:hidden">
         {filteredBatches.map((batch) => {
-          const soldQty = batch.totalQty - batch.remainingQty;
+          const retPool = getBatchSegmentRemaining(batch, "RETURN");
+          const soldOut = batch.totalQty - (batch.remainingQty || 0);
+          const soldRet = batch.isRoundTrip ? batch.totalQty - retPool : 0;
+          const soldQty = Math.max(soldOut, soldRet);
           const percentSold = Math.round((soldQty / batch.totalQty) * 100);
-          const isLowStock = batch.remainingQty > 0 && batch.remainingQty <= 5;
+          const isLowStock = batch.isRoundTrip
+            ? (batch.remainingQty > 0 && batch.remainingQty <= 5) || (retPool > 0 && retPool <= 5)
+            : batch.remainingQty > 0 && batch.remainingQty <= 5;
+          const isFinished = batch.status === "COMPLETED";
 
           return (
             <div
@@ -131,14 +154,16 @@ export function BatchesView({
                 <div className="flex items-center justify-between text-xs font-semibold mb-1.5 tabular-nums">
                   <span
                     className={
-                      batch.remainingQty === 0
+                      isFinished
                         ? "text-slate-400"
                         : isLowStock
                         ? "text-amber-600 dark:text-amber-400"
                         : "text-blue-600 dark:text-blue-400"
                     }
                   >
-                    {batch.remainingQty} ta qoldi
+                    {batch.isRoundTrip
+                      ? `Borish: ${batch.remainingQty} · Kelish: ${retPool} ta`
+                      : `${batch.remainingQty} ta qoldi`}
                   </span>
                   <span className="text-slate-400 font-normal">
                     {batch.totalQty} tadan ({percentSold}% sotildi)
@@ -147,7 +172,7 @@ export function BatchesView({
                 <div className="w-full bg-slate-100 dark:bg-white/[0.08] h-2 rounded-full overflow-hidden">
                   <div
                     className={`h-full rounded-full transition-all duration-300 ${
-                      batch.remainingQty === 0
+                      isFinished
                         ? "bg-slate-300 dark:bg-slate-600"
                         : isLowStock
                         ? "bg-amber-500"
@@ -172,6 +197,15 @@ export function BatchesView({
                 <div className="flex items-center gap-1.5">
                   <RowActionsMenu
                     actions={[
+                      ...(onFullEditBatch
+                        ? [
+                            {
+                              label: "Tahrirlash",
+                              icon: <SquarePen className="w-3.5 h-3.5" />,
+                              onClick: () => onFullEditBatch(batch),
+                            },
+                          ]
+                        : []),
                       ...(onEditBatch
                         ? [
                             {
@@ -232,9 +266,15 @@ export function BatchesView({
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-white/[0.05] text-xs text-slate-700 dark:text-slate-300">
               {filteredBatches.map((batch) => {
-                const soldQty = batch.totalQty - batch.remainingQty;
+                const retPool = getBatchSegmentRemaining(batch, "RETURN");
+                const soldOut = batch.totalQty - (batch.remainingQty || 0);
+                const soldRet = batch.isRoundTrip ? batch.totalQty - retPool : 0;
+                const soldQty = Math.max(soldOut, soldRet);
                 const percentSold = Math.round((soldQty / batch.totalQty) * 100);
-                const isLowStock = batch.remainingQty > 0 && batch.remainingQty <= 5;
+                const isLowStock = batch.isRoundTrip
+                  ? (batch.remainingQty > 0 && batch.remainingQty <= 5) || (retPool > 0 && retPool <= 5)
+                  : batch.remainingQty > 0 && batch.remainingQty <= 5;
+                const isFinished = batch.status === "COMPLETED";
 
                 return (
                   <tr
@@ -269,21 +309,23 @@ export function BatchesView({
                         <div className="flex items-center justify-between text-[11px] font-semibold mb-1">
                           <span
                             className={
-                              batch.remainingQty === 0
+                              isFinished
                                 ? "text-slate-400"
                                 : isLowStock
                                 ? "text-amber-600 dark:text-amber-400"
                                 : "text-blue-600 dark:text-blue-400"
                             }
                           >
-                            {batch.remainingQty} ta qoldi
+                            {batch.isRoundTrip
+                              ? `Borish: ${batch.remainingQty} · Kelish: ${retPool}`
+                              : `${batch.remainingQty} ta qoldi`}
                           </span>
                           <span className="text-slate-400">{batch.totalQty} tadan</span>
                         </div>
                         <div className="w-full bg-slate-100 dark:bg-white/[0.08] h-1.5 rounded-full overflow-hidden">
                           <div
                             className={`h-full rounded-full transition-all duration-300 ${
-                              batch.remainingQty === 0
+                              isFinished
                                 ? "bg-slate-300 dark:bg-slate-600"
                                 : isLowStock
                               ? "bg-amber-500"
@@ -313,6 +355,15 @@ export function BatchesView({
                       <div className="inline-flex items-center gap-1.5">
                         <RowActionsMenu
                           actions={[
+                            ...(onFullEditBatch
+                              ? [
+                                  {
+                                    label: "Tahrirlash",
+                                    icon: <SquarePen className="w-3.5 h-3.5" />,
+                                    onClick: () => onFullEditBatch(batch),
+                                  },
+                                ]
+                              : []),
                             ...(onEditBatch
                               ? [
                                   {

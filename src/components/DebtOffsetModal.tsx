@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { Modal } from "./Modal";
 import { ArrowRightLeft, Users, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 import { Partner } from "@/lib/storage";
-import { formatUSD } from "@/lib/format";
+import { formatUSD, getTodayISO } from "@/lib/format";
 import { DatePicker } from "./DatePicker";
 import { PartnerSelect } from "./PartnerSelect";
 import { getValidationMessage } from "@/lib/api";
@@ -53,7 +53,7 @@ export function DebtOffsetModal({
 
   useEffect(() => {
     if (!date) {
-      setDate(new Date().toISOString().split("T")[0]);
+      setDate(getTodayISO());
     }
   }, [date]);
 
@@ -118,7 +118,7 @@ export function DebtOffsetModal({
         fromPartnerId: Number(fromPartnerId),
         toPartnerId: Number(toPartnerId),
         amount: Number(amount),
-        date: date || new Date().toISOString().split("T")[0],
+        date: date || getTodayISO(),
         notes: notes.trim(),
       });
       onClose();

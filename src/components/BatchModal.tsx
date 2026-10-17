@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Modal } from "./Modal";
 import { Plus, Trash2, Sparkles, PlaneTakeoff, PlaneLanding, X, Loader2 } from "lucide-react";
-import { formatUSD } from "@/lib/format";
+import { formatUSD, getTodayISO } from "@/lib/format";
 import { CashAccount } from "@/lib/storage";
 
 export interface BatchItemInput {
@@ -91,7 +91,7 @@ export function BatchModal({
 
   useEffect(() => {
     if (isOpen && !prevIsOpenRef.current) {
-      const today = new Date().toISOString().split("T")[0];
+      const today = getTodayISO();
       setItems([
         {
           id: Math.random().toString(),
@@ -130,7 +130,7 @@ export function BatchModal({
   }, [newlyCreatedPartnerId]);
 
   const handleAddItem = () => {
-    const today = new Date().toISOString().split("T")[0];
+    const today = getTodayISO();
     setItems((prev) => [
       ...prev,
       {
@@ -211,7 +211,7 @@ export function BatchModal({
     try {
       await onSave({
         supplierId: Number(supplierId),
-        purchaseDate: purchaseDate || new Date().toISOString().split("T")[0],
+        purchaseDate: purchaseDate || getTodayISO(),
         paidNow: Number(paidNow) || 0,
         paymentMethod,
         accountId: accounts.length > 0 ? Number(accountId || accounts[0].id) : undefined,

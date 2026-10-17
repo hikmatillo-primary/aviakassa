@@ -13,7 +13,7 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,
 )
 
-from .data_views import import_data, reset_data
+from .data_views import import_data, reset_data, snapshot
 
 
 class LoginRateThrottle(AnonRateThrottle):
@@ -71,6 +71,7 @@ urlpatterns = [
     path("api/sales/", include("apps.sales.urls")),
     path("api/cash/", include("apps.cash.urls")),
     path("api/databases/", include("apps.control.urls")),
+    path("api/data/snapshot/", snapshot, name="data-snapshot"),
     path("api/data/import/", import_data, name="data-import"),
     path("api/data/reset/", reset_data, name="data-reset"),
 ]

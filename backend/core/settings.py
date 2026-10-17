@@ -163,8 +163,11 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
-    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "DEFAULT_PAGINATION_CLASS": "core.pagination.AviakassaPagination",
     "PAGE_SIZE": 100,
+    # Pul maydonlari API'da son sifatida qaytadi, lekin ichkarida Decimal bilan
+    # hisoblanadi (float yaxlitlash xatosi bo'lmasligi uchun).
+    "COERCE_DECIMAL_TO_STRING": False,
     "EXCEPTION_HANDLER": "core.exceptions.api_exception_handler",
     "DATETIME_FORMAT": "%Y-%m-%d %H:%M:%S",
     "DATE_FORMAT": "%Y-%m-%d",

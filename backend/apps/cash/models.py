@@ -40,7 +40,7 @@ class Payment(models.Model):
         verbose_name="To'lov turi"
     )
     amount = models.DecimalField(max_digits=14, decimal_places=2, verbose_name="Summa ($)")
-    payment_date = models.DateField(verbose_name="To'lov sanasi")
+    payment_date = models.DateField(db_index=True, verbose_name="To'lov sanasi")
     payment_method = models.CharField(
         max_length=50,
         choices=PaymentMethod.choices,
@@ -56,12 +56,18 @@ class Payment(models.Model):
         verbose_name="Hisob"
     )
     notes = models.TextField(blank=True, null=True, verbose_name="Izoh")
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Yaratilgan vaqti")
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True, verbose_name="Yaratilgan vaqti")
 
     class Meta:
         verbose_name = "To'lov"
         verbose_name_plural = "Kassa to'lovlari"
         ordering = ["-created_at"]
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(amount__gt=0),
+                name="payment_amount_positive",
+            ),
+        ]
 
     def __str__(self):
         return f"{self.get_type_display()}: {self.partner.name} - ${self.amount:,.2f}"
@@ -89,14 +95,24 @@ class DebtOffset(models.Model):
         verbose_name="Haqdor hamkor"
     )
     amount = models.DecimalField(max_digits=14, decimal_places=2, verbose_name="Qoplangan summa ($)")
-    date = models.DateField(verbose_name="O'tkazilgan sana")
+    date = models.DateField(db_index=True, verbose_name="O'tkazilgan sana")
     notes = models.TextField(blank=True, null=True, verbose_name="Izoh")
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Yaratilgan vaqti")
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True, verbose_name="Yaratilgan vaqti")
 
     class Meta:
         verbose_name = "O'zaro hisob-kitob (Sal'do qoplash)"
         verbose_name_plural = "O'zaro hisob-kitoblar"
         ordering = ["-created_at"]
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(amount__gt=0),
+                name="debt_offset_amount_positive",
+            ),
+            models.CheckConstraint(
+                condition=~models.Q(from_partner=models.F("to_partner")),
+                name="debt_offset_partners_differ",
+            ),
+        ]
 
     def __str__(self):
         return f"Sal'do: {self.from_partner.name} ➔ {self.to_partner.name} (${self.amount:,.2f})"

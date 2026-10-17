@@ -2,13 +2,32 @@
 
 import React, { useState, useEffect } from "react";
 import { Modal } from "./Modal";
-import { formatUSD, formatDate, isBatchExpired, getBatchExpiryDate, getTodayISO } from "@/lib/format";
+import {
+  formatUSD,
+  formatDate,
+  getTodayISO,
+  SALE_SEGMENT_OPTIONS,
+  saleSegmentLabel,
+  isSegmentSellable,
+  getBatchSegmentRemaining,
+  getDefaultSellableSegment,
+  getSegmentExpiryDate,
+  type SaleSegment,
+} from "@/lib/format";
 import { DatePicker } from "./DatePicker";
 import { PartnerSelect } from "./PartnerSelect";
 import { FlightBar } from "./FlightBar";
 import { getValidationMessage } from "@/lib/api";
 import { CashAccount } from "@/lib/storage";
 import { Loader2 } from "lucide-react";
+
+/** Partiyada sotilishi mumkin bo'lgan o'rin bormi (segment-muddati hisobga olinadi). */
+function hasSellableSeats(b: any): boolean {
+  if (!b?.isRoundTrip) return (b.remainingQty || 0) > 0 && isSegmentSellable(b, "");
+  const outOk = (b.remainingQty || 0) > 0 && isSegmentSellable(b, "OUTBOUND");
+  const retOk = getBatchSegmentRemaining(b, "RETURN") > 0 && isSegmentSellable(b, "RETURN");
+  return outOk || retOk;
+}
 
 interface SaleModalProps {
   isOpen: boolean;
@@ -29,6 +48,7 @@ interface SaleModalProps {
       qty: number;
       sellPrice: number;
       passengerNames?: string;
+      segment?: string;
       departureTime?: string;
       arrivalTime?: string;
       isRoundTrip?: boolean;
@@ -60,6 +80,7 @@ export function SaleModal({
   const [saleDate, setSaleDate] = useState<string>("");
   const [qty, setQty] = useState<number | string>(1);
   const [sellPrice, setSellPrice] = useState<number | string>(0);
+  const [segment, setSegment] = useState<SaleSegment>("");
   const [paidNow, setPaidNow] = useState<number | string>(0);
   const [paymentMethod, setPaymentMethod] = useState<string>("CASH");
   const [accountId, setAccountId] = useState<string>("");
@@ -69,13 +90,13 @@ export function SaleModal({
 
   const todayISO = getTodayISO();
 
-  // Omborda qoldig'i mavjud va muddati o'tmagan partiyalar
-  const activeBatches = batches.filter((b) => b.remainingQty > 0 && !isBatchExpired(b));
+  // Omborda sotilishi mumkin bo'lgan o'rni bor va muddati o'tmagan partiyalar
+  const activeBatches = batches.filter(hasSellableSeats);
 
   // Modal ochilganda qiymatlarni tiklash va partiyani sozlash (faqat yangi ochilganda)
   useEffect(() => {
     if (isOpen && !prevIsOpenRef.current) {
-      const active = batches.filter((b) => b.remainingQty > 0 && !isBatchExpired(b));
+      const active = batches.filter(hasSellableSeats);
       const targetBatch = selectedBatchId
         ? batches.find((b) => b.id === selectedBatchId)
         : active[0];
@@ -85,6 +106,7 @@ export function SaleModal({
       setClientId("");
       setQty(1);
       setSellPrice(targetBatch ? Math.round(targetBatch.buyPrice + 30) : 0);
+      setSegment(targetBatch?.isRoundTrip ? getDefaultSellableSegment(targetBatch) : "");
       setSaleDate(getTodayISO());
       setPaidNow(0);
       setNotes("");
@@ -108,11 +130,17 @@ export function SaleModal({
     if (found) {
       setSellPrice(Math.round(found.buyPrice + 30));
       setQty(1);
+      setSegment(found.isRoundTrip ? getDefaultSellableSegment(found) : "");
     }
   };
 
   const selectedBatch = batches.find((b) => String(b.id) === currentBatchId);
   const isLocked = Boolean(selectedBatchId);
+
+  // Tanlangan segment bo'yicha maksimal sotish mumkin bo'lgan son
+  const maxQty = selectedBatch ? getBatchSegmentRemaining(selectedBatch, segment) : 9999;
+  const outPoolLeft = selectedBatch ? selectedBatch.remainingQty || 0 : 0;
+  const retPoolLeft = selectedBatch ? getBatchSegmentRemaining(selectedBatch, "RETURN") : 0;
 
   // Hisob-kitoblar (bo'sh qatorda ham xatoliksiz)
   const numQty = qty === "" ? 0 : Number(qty);
@@ -132,12 +160,18 @@ export function SaleModal({
       return;
     }
 
-    if (isBatchExpired(selectedBatch)) {
+    const effectiveSegment: SaleSegment = selectedBatch.isRoundTrip ? segment : "";
+
+    if (!isSegmentSellable(selectedBatch, effectiveSegment)) {
+      const expiry = getSegmentExpiryDate(selectedBatch, effectiveSegment);
+      const subject = selectedBatch.isRoundTrip
+        ? `"${saleSegmentLabel(effectiveSegment)}" qismining`
+        : "partiyaning";
       setError(
-        `"${selectedBatch.route}" partiyasining muddati o'tgan (${formatDate(
-          getBatchExpiryDate(selectedBatch) || "",
+        `"${selectedBatch.route}" ${subject} muddati o'tgan (${formatDate(
+          expiry || "",
           false
-        )}) — chipta sotib bo'lmaydi!`
+        )}) — chipta sotib bo'linmaydi!`
       );
       return;
     }
@@ -152,9 +186,12 @@ export function SaleModal({
       return;
     }
 
-    if (numQty > selectedBatch.remainingQty) {
+    if (numQty > maxQty) {
+      const poolLabel = selectedBatch.isRoundTrip
+        ? `${saleSegmentLabel(effectiveSegment)} qoldig'i`
+        : "Partiyada";
       setError(
-        `"${selectedBatch.route}" partiyasida faqat ${selectedBatch.remainingQty} ta chipta mavjud! (${numQty} ta so'ralgan)`
+        `"${selectedBatch.route}" ${poolLabel}: faqat ${maxQty} ta mavjud! (${numQty} ta so'ralgan)`
       );
       return;
     }
@@ -184,6 +221,7 @@ export function SaleModal({
             qty: numQty,
             sellPrice: numSellPrice,
             passengerNames: "",
+            segment: selectedBatch.isRoundTrip ? effectiveSegment || "BOTH" : "",
             departureTime: selectedBatch.departureTime || "",
             arrivalTime: selectedBatch.arrivalTime || "",
             isRoundTrip: Boolean(selectedBatch.isRoundTrip),
@@ -260,7 +298,15 @@ export function SaleModal({
               <option value="">-- Partiya tanlang --</option>
               {activeBatches.map((b) => (
                 <option key={b.id} value={b.id}>
-                  {b.route} ({formatDate(b.flightDate, false)} • Qoldiq: {b.remainingQty} ta • Tannarx: {formatUSD(b.buyPrice)})
+                  {b.isRoundTrip
+                    ? `${b.route} (${formatDate(b.flightDate, false)} • Borish: ${
+                        b.remainingQty
+                      } ta • Kelish: ${getBatchSegmentRemaining(b, "RETURN")} ta • Tannarx: ${formatUSD(
+                        b.buyPrice
+                      )})`
+                    : `${b.route} (${formatDate(b.flightDate, false)} • Qoldiq: ${
+                        b.remainingQty
+                      } ta • Tannarx: ${formatUSD(b.buyPrice)})`}
                 </option>
               ))}
             </select>
@@ -276,9 +322,21 @@ export function SaleModal({
               </div>
               <div className="text-right shrink-0">
                 <div className="text-[11px] text-slate-400 font-medium">Ombordagi qoldiq:</div>
-                <div className="text-base sm:text-xl font-black text-blue-600 dark:text-blue-400 tabular-nums">
-                  {selectedBatch.remainingQty} <span className="text-xs font-semibold text-slate-500">ta</span>
-                </div>
+                {selectedBatch.isRoundTrip ? (
+                  <div className="text-xs sm:text-base font-black tabular-nums flex items-center gap-2.5 justify-end">
+                    <span className="text-blue-600 dark:text-blue-400">
+                      Borish: {outPoolLeft} ta
+                    </span>
+                    <span className="text-amber-600 dark:text-amber-400">
+                      Kelish: {retPoolLeft} ta
+                    </span>
+                  </div>
+                ) : (
+                  <div className="text-base sm:text-xl font-black text-blue-600 dark:text-blue-400 tabular-nums">
+                    {selectedBatch.remainingQty}{" "}
+                    <span className="text-xs font-semibold text-slate-500">ta</span>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -290,6 +348,61 @@ export function SaleModal({
                 <span>Marshrut: <strong className="text-slate-800 dark:text-slate-200">{selectedBatch.route}</strong></span>
               </div>
               <span>Tannarx: <strong className="text-slate-800 dark:text-slate-200 font-mono">{formatUSD(selectedBatch.buyPrice)}</strong></span>
+            </div>
+          </div>
+        )}
+
+        {/* 2b. BORISH-KELISH PARTIYASIDA SOTILADIGAN QISMNI TANLASH */}
+        {selectedBatch?.isRoundTrip && (
+          <div>
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+              Sotiladigan qism (borish / kelish) *
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              {SALE_SEGMENT_OPTIONS.map((opt) => {
+                const sellable = isSegmentSellable(selectedBatch, opt.value);
+                const avail = getBatchSegmentRemaining(selectedBatch, opt.value);
+                const isDisabled = !sellable || avail === 0;
+                const isActive = segment === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    disabled={isDisabled}
+                    onClick={() => {
+                      setSegment(opt.value);
+                      setQty(1);
+                    }}
+                    title={
+                      isDisabled
+                        ? avail === 0
+                          ? "Bu qismda sotiladigan o'rin qolmagan"
+                          : "Bu qismning muddati o'tgan"
+                        : undefined
+                    }
+                    className={`px-2 py-2 rounded-xl border text-center transition-all ${
+                      isActive
+                        ? "bg-blue-600 border-blue-600 text-white shadow-sm shadow-blue-500/20 cursor-pointer"
+                        : isDisabled
+                        ? "bg-slate-100 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500 opacity-60 cursor-not-allowed"
+                        : "bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-blue-400 hover:bg-blue-50/60 dark:hover:bg-blue-950/30 cursor-pointer"
+                    }`}
+                  >
+                    <span className="block font-bold text-xs sm:text-sm">{opt.label}</span>
+                    <span
+                      className={`block text-[10px] mt-0.5 tabular-nums ${
+                        isActive ? "text-blue-100" : ""
+                      }`}
+                    >
+                      {isDisabled
+                        ? avail === 0
+                          ? "Qoldiq yo'q"
+                          : "Muddati o'tgan"
+                        : `${avail} ta bor`}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
@@ -336,7 +449,7 @@ export function SaleModal({
               <input
                 type="number"
                 min="1"
-                max={selectedBatch?.remainingQty || 9999}
+                max={maxQty || 9999}
                 value={qty}
                 onChange={(e) => {
                   const val = e.target.value;
@@ -353,7 +466,7 @@ export function SaleModal({
                   }
                 }}
                 className={`w-full text-center py-2 text-sm sm:text-base bg-white dark:bg-slate-800 border-y focus:outline-none font-black tabular-nums ${
-                  selectedBatch && numQty > selectedBatch.remainingQty
+                  selectedBatch && numQty > maxQty
                     ? "border-rose-400 dark:border-rose-500 text-rose-600 dark:text-rose-400"
                     : "text-slate-900 dark:text-white border-slate-300 dark:border-slate-700"
                 }`}
@@ -369,13 +482,20 @@ export function SaleModal({
             </div>
             {selectedBatch && (
               <span className="text-[11px] text-slate-400 mt-1 block">
-                Maksimal sotish mumkin: <b>{selectedBatch.remainingQty} ta</b>
+                {selectedBatch.isRoundTrip && (
+                  <>
+                    Borish: <b>{outPoolLeft} ta</b> • Kelish: <b>{retPoolLeft} ta</b> •{" "}
+                  </>
+                )}
+                Maksimal sotish mumkin: <b>{maxQty} ta</b>
               </span>
             )}
-            {selectedBatch && numQty > selectedBatch.remainingQty && (
+            {selectedBatch && numQty > maxQty && (
               <span className="text-[11px] text-rose-600 dark:text-rose-400 mt-1 block font-semibold">
-                Omborda faqat {selectedBatch.remainingQty} ta qoldi — {numQty} ta
-                kiritdingiz. Soni kamaytiring yoki boshqa partiya tanlang.
+                {selectedBatch.isRoundTrip
+                  ? `${saleSegmentLabel(segment)} qoldig'ida faqat ${maxQty} ta qoldi`
+                  : `Omborda faqat ${maxQty} ta qoldi`}{" "}
+                — {numQty} ta kiritdingiz. Soni kamaytiring yoki boshqa partiya tanlang.
               </span>
             )}
           </div>

@@ -5,13 +5,20 @@ import {
   ArrowLeft,
   Plus,
   Pencil,
+  SquarePen,
   Search,
   UserCheck,
   TrendingUp,
   ArrowUpRight,
   Trash2,
 } from "lucide-react";
-import { formatUSD, formatDate, isBatchExpired } from "@/lib/format";
+import {
+  formatUSD,
+  formatDate,
+  isSegmentSellable,
+  getBatchSegmentRemaining,
+  saleSegmentLabel,
+} from "@/lib/format";
 import { FlightBar } from "@/components/FlightBar";
 import { RowActionsMenu } from "@/components/RowActionsMenu";
 
@@ -23,7 +30,9 @@ interface BatchDetailViewProps {
   onOpenBatchModal: () => void;
   onOpenSaleModal: (batchId: number) => void;
   onEditBatch: (batch: any) => void;
+  onFullEditBatch?: (batch: any) => void;
   onEditSale: (sale: any) => void;
+  onFullEditSale?: (sale: any) => void;
   onDeleteBatch?: (batch: any) => void;
   onDeleteSale?: (sale: any) => void;
   onOpenHistoryModal?: (partnerId: number) => void;
@@ -41,7 +50,9 @@ export function BatchDetailView({
   onBack,
   onOpenSaleModal,
   onEditBatch,
+  onFullEditBatch,
   onEditSale,
+  onFullEditSale,
   onDeleteBatch,
   onDeleteSale,
   onOpenHistoryModal,
@@ -67,8 +78,17 @@ export function BatchDetailView({
   // Shu partiya bo'yicha hisob-kitoblar
   const totalQty = batch.totalQty || 0;
   const remainingQty = batch.remainingQty || 0;
-  const soldQty = Math.max(0, totalQty - remainingQty);
+  const retRemainingQty = getBatchSegmentRemaining(batch, "RETURN");
+  const soldOut = Math.max(0, totalQty - remainingQty);
+  const soldRet = batch.isRoundTrip ? Math.max(0, totalQty - retRemainingQty) : 0;
+  const soldQty = Math.max(soldOut, soldRet);
   const percentSold = totalQty > 0 ? Math.round((soldQty / totalQty) * 100) : 0;
+
+  // Borish-kelish partiyasida sotilishi mumkin bo'lgan qism bormi
+  const outSellable = remainingQty > 0 && isSegmentSellable(batch, "OUTBOUND");
+  const retSellable = retRemainingQty > 0 && isSegmentSellable(batch, "RETURN");
+  const hasSellableSeats = batch.isRoundTrip ? outSellable || retSellable : outSellable;
+  const allExpired = !isSegmentSellable(batch, batch.isRoundTrip ? "BOTH" : "");
 
   const totalPurchaseCost = batch.totalCost || totalQty * (batch.buyPrice || 0);
   const totalSalesAmount = batchSales.reduce((sum, s) => sum + (s.totalAmount || 0), 0);
@@ -118,7 +138,9 @@ export function BatchDetailView({
             <div className="pt-2 border-t border-slate-200/60 dark:border-white/[0.06] tabular-nums">
               <div className="flex items-center justify-between text-[11px] sm:text-xs font-semibold mb-1.5">
                 <span className="text-blue-600 dark:text-blue-400">
-                  Qoldiq: {remainingQty} ta
+                  {batch.isRoundTrip
+                    ? `Borish: ${remainingQty} ta · Kelish: ${retRemainingQty} ta`
+                    : `Qoldiq: ${remainingQty} ta`}
                 </span>
                 <span className="text-slate-500 dark:text-slate-400">
                   Jami {totalQty} tadan ({soldQty} ta sotildi • {percentSold}%)
@@ -231,6 +253,15 @@ export function BatchDetailView({
                 )}
                 <RowActionsMenu
                   actions={[
+                    ...(onFullEditBatch
+                      ? [
+                          {
+                            label: "Tahrirlash",
+                            icon: <SquarePen className="w-3.5 h-3.5" />,
+                            onClick: () => onFullEditBatch(batch),
+                          },
+                        ]
+                      : []),
                     {
                       label: "Narx",
                       icon: <Pencil className="w-3.5 h-3.5" />,
@@ -270,7 +301,7 @@ export function BatchDetailView({
             </p>
           </div>
 
-          {batch.remainingQty > 0 && !isBatchExpired(batch) && (
+          {hasSellableSeats && (
             <button
               type="button"
               onClick={() => onOpenSaleModal(batch.id)}
@@ -281,9 +312,9 @@ export function BatchDetailView({
             </button>
           )}
 
-          {isBatchExpired(batch) && (
+          {!hasSellableSeats && (
             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 text-xs font-bold">
-              Muddati o&apos;tgan — sotib bo&apos;lmaydi
+              {allExpired ? "Muddati o&apos;tgan — sotib bo&apos;lmaydi" : "Barcha chiptalar sotilgan"}
             </span>
           )}
         </div>
@@ -315,7 +346,7 @@ export function BatchDetailView({
                   </span>
                   {s.isRoundTrip && (
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
-                      ⇄ Borish-kelish
+                      ⇄ {saleSegmentLabel(s.segment)}
                     </span>
                   )}
                   <span className="text-xs text-slate-400">• {formatDate(s.saleDate)}</span>
@@ -372,6 +403,15 @@ export function BatchDetailView({
                 <div className="flex items-center gap-1.5">
                   <RowActionsMenu
                     actions={[
+                      ...(onFullEditSale
+                        ? [
+                            {
+                              label: "Tahrirlash",
+                              icon: <SquarePen className="w-3.5 h-3.5" />,
+                              onClick: () => onFullEditSale(s),
+                            },
+                          ]
+                        : []),
                       {
                         label: "Narx",
                         icon: <Pencil className="w-3.5 h-3.5" />,
@@ -397,7 +437,7 @@ export function BatchDetailView({
           {filteredSales.length === 0 && (
             <div className="py-12 text-center text-xs sm:text-sm text-slate-400 space-y-3">
               <p>Ushbu partiyadan hozircha sotuv amalga oshirilmagan</p>
-              {batch.remainingQty > 0 && (
+              {hasSellableSeats && (
                 <button
                   type="button"
                   onClick={() => onOpenSaleModal(batch.id)}

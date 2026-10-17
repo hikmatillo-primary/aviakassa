@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Search, PackagePlus, Users, Calendar, Pencil, Trash2 } from "lucide-react";
+import { Search, PackagePlus, Users, Calendar, Pencil, SquarePen, Trash2 } from "lucide-react";
 import { formatUSD, formatDate, matchesBatchSearch, isDateInRange } from "@/lib/format";
 import { FlightBar } from "@/components/FlightBar";
 import { RowActionsMenu } from "@/components/RowActionsMenu";
@@ -13,6 +13,7 @@ interface PartnersViewProps {
   onOpenBatchModal?: () => void;
   onOpenPartnerModal?: (type?: "SUPPLIER") => void;
   onEditBatch?: (batch: any) => void;
+  onFullEditBatch?: (batch: any) => void;
   onDeleteBatch?: (batch: any) => void;
   onOpenHistoryModal?: (partnerId: number) => void;
   onSelectBatch?: (batchId: number) => void;
@@ -24,6 +25,7 @@ export function PartnersView({
   onOpenBatchModal,
   onOpenPartnerModal,
   onEditBatch,
+  onFullEditBatch,
   onDeleteBatch,
   onOpenHistoryModal,
   onSelectBatch,
@@ -184,6 +186,15 @@ export function PartnersView({
               <div className="flex items-center gap-1.5">
                 <RowActionsMenu
                   actions={[
+                    ...(onFullEditBatch
+                      ? [
+                          {
+                            label: "Tahrirlash",
+                            icon: <SquarePen className="w-3.5 h-3.5" />,
+                            onClick: () => onFullEditBatch(batch),
+                          },
+                        ]
+                      : []),
                     ...(onEditBatch
                       ? [
                           {
@@ -293,6 +304,15 @@ export function PartnersView({
                     <div className="inline-flex items-center gap-1.5">
                       <RowActionsMenu
                         actions={[
+                          ...(onFullEditBatch
+                            ? [
+                                {
+                                  label: "Tahrirlash",
+                                  icon: <SquarePen className="w-3.5 h-3.5" />,
+                                  onClick: () => onFullEditBatch(batch),
+                                },
+                              ]
+                            : []),
                           ...(onEditBatch
                             ? [
                                 {

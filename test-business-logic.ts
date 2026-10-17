@@ -551,9 +551,9 @@ test("9. Murakkab kombinatsiyalashgan tranzaksiyalar va qarz surish", () => {
 });
 
 // ----------------------------------------------------
-// 10. Partiya tannarxi yangilanganda sotuv foydasining dinamik hisoblanishi
+// 10. Server — yagona haqiqat manbasi: frontend pulni qayta hisoblamaydi
 // ----------------------------------------------------
-test("10. Partiya tannarxi yangilanganda foydaning dinamik hisoblanishi", () => {
+test("10. Server qiymatlari ustuvor (frontend foydani o'zicha qayta hisoblamaydi)", () => {
   const batches: Batch[] = [
     {
       id: 50,
@@ -563,7 +563,7 @@ test("10. Partiya tannarxi yangilanganda foydaning dinamik hisoblanishi", () => 
       supplierId: 1,
       totalQty: 10,
       remainingQty: 6,
-      buyPrice: 350, // Yangilangan tannarx: $350 (avval 300 edi)
+      buyPrice: 350,
       totalCost: 3500,
       status: "ACTIVE",
       createdAt: "2026-10-01",
@@ -577,8 +577,8 @@ test("10. Partiya tannarxi yangilanganda foydaning dinamik hisoblanishi", () => 
       qty: 4,
       sellPrice: 450,
       totalAmount: 1800,
-      buyPrice: 300, // Eski saqlangan buyPrice
-      profit: 600,   // Eski foyda: (450 - 300) * 4 = 600
+      buyPrice: 350,
+      profit: 400, // server hisoblagan: (450 - 350) * 4
       saleDate: "2026-10-02",
       createdAt: "2026-10-02",
     },
@@ -593,10 +593,53 @@ test("10. Partiya tannarxi yangilanganda foydaning dinamik hisoblanishi", () => 
   });
 
   const s = enriched.sales[0];
-  // calculateEnrichedData batchning joriy buyPrice (350) ini olib foydani qayta hisoblashi kerak!
-  assert.equal(s.buyPrice, 350, "Joriy partiya tannarxi olindi");
-  assert.equal(s.profit, 400, "Yangi sof foyda: (450 - 350) * 4 = 400 bo'lishi kerak");
-  assert.equal(enriched.stats.totalProfit, 400, "Dashboard foydasi ham yangilandi");
+  assert.equal(s.buyPrice, 350, "Server tannarxi o'zgartirilmaydi");
+  assert.equal(s.profit, 400, "Server foydasi o'zgartirilmaydi");
+  assert.equal(enriched.stats.totalProfit, 400, "Dashboard foydasi server qiymatidan olinadi");
+});
+
+// 10b. Eski zaxira nusxada server maydonlari bo'lmasa — sentgacha aniq zaxira hisob
+// ----------------------------------------------------
+test("10b. Server maydonlari yo'q bo'lsa ham sentgacha aniq hisoblanadi", () => {
+  const batches: Batch[] = [
+    {
+      id: 60,
+      batchNumber: "P-CENT-60",
+      route: "TAS - IST",
+      flightDate: "2026-11-21",
+      supplierId: 1,
+      totalQty: 10,
+      remainingQty: 7,
+      buyPrice: 90.05,
+      totalCost: 900.5,
+      status: "ACTIVE",
+      createdAt: "2026-10-01",
+    },
+  ];
+  const sales = [
+    {
+      id: 1,
+      batchId: 60,
+      clientId: 2,
+      qty: 3,
+      sellPrice: 100.1,
+      saleDate: "2026-10-03",
+      createdAt: "2026-10-03",
+    },
+  ] as unknown as Sale[];
+
+  const enriched = calculateEnrichedData({
+    partners: [],
+    batches,
+    sales,
+    payments: [],
+    debtOffsets: [],
+  });
+
+  const s = enriched.sales[0];
+  assert.equal(s.totalAmount, 300.3, "Jami summa aniq: 100.10 * 3");
+  assert.equal(s.profit, 30.15, "Foyda aniq: (100.10 - 90.05) * 3");
+  assert.equal(enriched.stats.totalProfit, 30.15, "Yig'indi ham aniq");
 });
 
 // ----------------------------------------------------

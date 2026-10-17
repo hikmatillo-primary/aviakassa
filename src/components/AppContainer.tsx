@@ -14,14 +14,14 @@ import { PaymentModal } from "./PaymentModal";
 import { PartnerModal } from "./PartnerModal";
 import { DebtOffsetModal } from "./DebtOffsetModal";
 import { EditPriceModal } from "./EditPriceModal";
+import { EditBatchModal, BatchUpdatePayload } from "./EditBatchModal";
+import { EditSaleModal, SaleUpdatePayload } from "./EditSaleModal";
 import { BatchDetailView } from "./BatchDetailView";
 import { PartnersListView } from "./PartnersListView";
 import { PartnerDetailView } from "./PartnerDetailView";
 import {
   AviakassaData,
   EMPTY_AVIAKASSA_DATA,
-  loadData,
-  saveData,
   calculateEnrichedData,
   Sale,
   Batch,
@@ -57,7 +57,7 @@ import { LoginView } from "./LoginView";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { DatabaseModal } from "./DatabaseModal";
 import { getStoredUser, isAuthenticated, logoutUser, AuthUser } from "@/lib/auth";
-import { formatDate } from "@/lib/format";
+import { formatDate, getTodayISO } from "@/lib/format";
 
 const ACTIVE_TAB_STORAGE_KEY = "aviakassa_active_tab";
 const VALID_TABS = ["dashboard", "purchases", "inventory", "sales", "partners", "cash"];
@@ -66,6 +66,8 @@ export function AppContainer() {
   const [data, setData] = useState<AviakassaData>(EMPTY_AVIAKASSA_DATA);
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [isAuthChecking, setIsAuthChecking] = useState(true);
+  const [syncError, setSyncError] = useState<string | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [databases, setDatabases] = useState<DatabaseInfo[]>([]);
   const [isDatabaseModalOpen, setIsDatabaseModalOpen] = useState(false);
 
@@ -151,6 +153,9 @@ export function AppContainer() {
   // Check authentication on mount
   useEffect(() => {
     if (typeof window !== "undefined") {
+      // Eski versiya ma'lumotni brauzerda saqlagan — endi ishlatilmaydi va
+      // umumiy kompyuterda qolib ketmasligi uchun o'chiramiz.
+      localStorage.removeItem("aviakassa_pro_data_v1");
       const user = getStoredUser();
       const isAuth = isAuthenticated();
       if (isAuth && user) {
@@ -160,21 +165,31 @@ export function AppContainer() {
     }
   }, []);
 
-  // Sync data with Django backend when authenticated
+  // Serverdan ma'lumot yuklash (yagona haqiqat manbai — server).
+  // Lokal nusxa ishlatilmaydi: eski ma'lumotni "hozirgi" deb ko'rsatish xavfli.
   useEffect(() => {
     if (!currentUser) return;
-    const saved = loadData();
-    setData(saved);
-
-    // Backend bilan sinxronlash
+    let cancelled = false;
+    setIsSyncing(true);
     apiFetchAll()
       .then((backendData) => {
+        if (cancelled) return;
         setData(backendData);
-        saveData(backendData);
+        setSyncError(null);
       })
       .catch((err) => {
-        console.warn("Backend bilan ulanib bo'lmadi, lokal ma'lumotlar ishlatilmoqda:", err);
+        if (cancelled) return;
+        console.error("Serverdan ma'lumot yuklashda xato:", err);
+        setSyncError(
+          "Server bilan aloqa yo'q. Ma'lumotlar yangilanmagan — iltimos, keyinroq qayta urinib ko'ring."
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setIsSyncing(false);
       });
+    return () => {
+      cancelled = true;
+    };
   }, [currentUser]);
 
   // Token muddati tugaganda (401) avtomatik chiqarish
@@ -216,14 +231,20 @@ export function AppContainer() {
 
   // Serverdan eng so'nggi holatni yuklash (yagona haqiqat manbai = server)
   const syncFromServer = async (): Promise<boolean> => {
+    setIsSyncing(true);
     try {
       const synced = await apiFetchAll();
       setData(synced);
-      saveData(synced);
+      setSyncError(null);
       return true;
     } catch (e) {
-      console.warn("Serverdan ma'lumot yuklashda xato:", e);
+      console.error("Serverdan ma'lumot yuklashda xato:", e);
+      setSyncError(
+        "Server bilan aloqa yo'q. Oxirgi o'zgarish saqlangan bo'lishi mumkin emas — tekshirib ko'ring."
+      );
       return false;
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -274,6 +295,9 @@ export function AppContainer() {
     item: null,
   });
 
+  const [fullEditingBatch, setFullEditingBatch] = useState<Batch | null>(null);
+  const [fullEditingSale, setFullEditingSale] = useState<Sale | null>(null);
+
   // Quick Open Handlers
   const handleOpenSaleModal = (batchId?: number) => {
     setSelectedBatchId(batchId || null);
@@ -300,6 +324,14 @@ export function AppContainer() {
       mode: "SALE",
       item: sale,
     });
+  };
+
+  const handleOpenFullEditBatch = (batch: Batch) => {
+    setFullEditingBatch(batch);
+  };
+
+  const handleOpenFullEditSale = (sale: Sale) => {
+    setFullEditingSale(sale);
   };
 
   const handleOpenPaymentModal = (
@@ -372,6 +404,7 @@ export function AppContainer() {
       qty: number;
       sellPrice: number;
       passengerNames?: string;
+      segment?: string;
       departureTime?: string;
       arrivalTime?: string;
       isRoundTrip?: boolean;
@@ -405,6 +438,7 @@ export function AppContainer() {
           qty: item.qty,
           sellPrice: item.sellPrice,
           passengerNames: item.passengerNames || "",
+          segment: item.segment || "",
           departureTime: item.departureTime,
           arrivalTime: item.arrivalTime,
           isRoundTrip: item.isRoundTrip,
@@ -481,7 +515,7 @@ export function AppContainer() {
 
       await apiCreateBatchesBulk({
         supplierId: batchInput.supplierId,
-        purchaseDate: batchInput.purchaseDate || new Date().toISOString().split("T")[0],
+        purchaseDate: batchInput.purchaseDate || getTodayISO(),
         paidNow: batchInput.paidNow || 0,
         paymentMethod: batchInput.paymentMethod || "CASH",
         accountId: batchInput.accountId,
@@ -807,13 +841,39 @@ export function AppContainer() {
     }
   };
 
+  // Partiyani to'liq tahrirlash (barcha maydonlar)
+  const handleSaveFullBatch = async (batchId: number, payload: BatchUpdatePayload) => {
+    try {
+      await apiUpdateBatch(batchId, payload);
+      await syncFromServer();
+      showToast("Partiya ma'lumotlari yangilandi! \u2708\uFE0F");
+    } catch (e) {
+      console.error("Partiyani tahrirlashda xato:", e);
+      await syncFromServer();
+      throw e;
+    }
+  };
+
+  // Sotuvni to'liq tahrirlash (barcha maydonlar, partiyani almashtirish ham)
+  const handleSaveFullSale = async (saleId: number, payload: SaleUpdatePayload) => {
+    try {
+      await apiUpdateSale(saleId, payload);
+      await syncFromServer();
+      showToast("Sotuv ma'lumotlari yangilandi! \u{1F389}");
+    } catch (e) {
+      console.error("Sotuvni tahrirlashda xato:", e);
+      await syncFromServer();
+      throw e;
+    }
+  };
+
   // Backup & Restore
   const handleExportBackup = () => {
     const jsonStr = JSON.stringify(data, null, 2);
     const blob = new Blob([jsonStr], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    const dateStr = new Date().toISOString().split("T")[0];
+    const dateStr = getTodayISO();
     a.href = url;
     a.download = `5tour_zaxira_${dateStr}.json`;
     a.click();
@@ -891,6 +951,26 @@ export function AppContainer() {
         className="hidden"
       />
 
+      {syncError && (
+        <div
+          role="alert"
+          className="bg-rose-50 dark:bg-rose-950/40 border-b border-rose-200 dark:border-rose-900/40 px-4 py-2.5 text-rose-700 dark:text-rose-300 text-xs sm:text-sm font-medium flex flex-wrap items-center justify-center gap-x-3 gap-y-1"
+        >
+          <span className="inline-flex items-center gap-1.5">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            {syncError}
+          </span>
+          <button
+            type="button"
+            onClick={() => void syncFromServer()}
+            disabled={isSyncing}
+            className="underline font-bold cursor-pointer disabled:opacity-60"
+          >
+            {isSyncing ? "Yuklanmoqda..." : "Qayta urinish"}
+          </button>
+        </div>
+      )}
+
       {/* Navbar with exact requested tabs, dark mode toggle and user profile */}
       <Navbar
         activeTab={activeTab}
@@ -958,6 +1038,7 @@ export function AppContainer() {
             onOpenBatchModal={handleOpenBatchModal}
             onOpenPartnerModal={() => handleOpenPartnerModal("SUPPLIER")}
             onEditBatch={handleOpenEditBatch}
+            onFullEditBatch={handleOpenFullEditBatch}
             onDeleteBatch={handleDeleteBatch}
             onOpenHistoryModal={handleOpenHistoryModal}
             onSelectBatch={(batchId) => {
@@ -978,7 +1059,9 @@ export function AppContainer() {
               onOpenBatchModal={handleOpenBatchModal}
               onOpenSaleModal={(batchId) => handleOpenSaleModal(batchId)}
               onEditBatch={handleOpenEditBatch}
+              onFullEditBatch={handleOpenFullEditBatch}
               onEditSale={handleOpenEditSale}
+              onFullEditSale={handleOpenFullEditSale}
               onDeleteBatch={handleDeleteBatch}
               onDeleteSale={handleDeleteSale}
               onOpenHistoryModal={handleOpenHistoryModal}
@@ -989,6 +1072,7 @@ export function AppContainer() {
               batches={batches}
               onOpenBatchModal={handleOpenBatchModal}
               onEditBatch={handleOpenEditBatch}
+              onFullEditBatch={handleOpenFullEditBatch}
               onDeleteBatch={handleDeleteBatch}
               onOpenHistoryModal={handleOpenHistoryModal}
               onSelectBatch={(batchId) => setDetailBatchId(batchId)}
@@ -1004,6 +1088,7 @@ export function AppContainer() {
             onOpenSaleModal={() => handleOpenSaleModal()}
             onOpenPartnerModal={() => handleOpenPartnerModal("CLIENT")}
             onEditSale={handleOpenEditSale}
+            onFullEditSale={handleOpenFullEditSale}
             onDeleteSale={handleDeleteSale}
             onOpenHistoryModal={handleOpenHistoryModal}
           />
@@ -1023,7 +1108,9 @@ export function AppContainer() {
               onOpenPaymentModal={handleOpenPaymentModal}
               onOpenDebtOffsetModal={handleOpenDebtOffsetModal}
               onEditBatch={handleOpenEditBatch}
+              onFullEditBatch={handleOpenFullEditBatch}
               onEditSale={handleOpenEditSale}
+              onFullEditSale={handleOpenFullEditSale}
               onEditPartner={handleOpenEditPartner}
               onDeletePartner={handleDeletePartner}
               onDeleteBatch={handleDeleteBatch}
@@ -1144,6 +1231,25 @@ export function AppContainer() {
         item={editPriceModal.item}
         onSaveBatch={handleUpdateBatchPrice}
         onSaveSale={handleUpdateSalePrice}
+      />
+
+      <EditBatchModal
+        isOpen={fullEditingBatch !== null}
+        onClose={() => setFullEditingBatch(null)}
+        batch={fullEditingBatch}
+        suppliers={suppliers}
+        onOpenSupplierModal={() => handleOpenPartnerModal("SUPPLIER")}
+        onSave={handleSaveFullBatch}
+      />
+
+      <EditSaleModal
+        isOpen={fullEditingSale !== null}
+        onClose={() => setFullEditingSale(null)}
+        sale={fullEditingSale}
+        batches={batches}
+        clients={clients}
+        onOpenClientModal={() => handleOpenPartnerModal("CLIENT")}
+        onSave={handleSaveFullSale}
       />
 
       <ConfirmDialog

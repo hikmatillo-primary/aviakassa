@@ -21,6 +21,15 @@ class DatabaseRegistry(models.Model):
         verbose_name = "Baza"
         verbose_name_plural = "Bazalar"
         ordering = ["-created_at"]
+        constraints = [
+            # Bir vaqtda faqat bitta baza faol bo'lishi mumkin (parallel almashishda
+            # ikkita faol baza qolib ketmasligi uchun).
+            models.UniqueConstraint(
+                fields=["is_active"],
+                condition=models.Q(is_active=True),
+                name="single_active_database",
+            ),
+        ]
 
     def __str__(self):
         return f"{self.name} ({self.db_name})"

@@ -1,10 +1,34 @@
 """Telegram botni long-polling rejimida ishga tushiruvchi management command."""
 import signal
 import time
+from contextlib import contextmanager
 
 from django.core.management.base import BaseCommand, CommandError
 
 from apps.telegram_bot import services
+from core.db_state import reset_active_alias, set_active_alias
+
+
+@contextmanager
+def active_database():
+    """Bot so'rovi faol bazaga yo'naltirilishini ta'minlaydi.
+
+    Bot management command sifatida ishlaydi — unda HTTP middleware yo'q, shuning
+    uchun faol bazani o'zi aniqlab qo'yishi kerak. Aks holda boshqa baza faol
+    bo'lganda bot `default` bazadan noto'g'ri ma'lumot o'qib yuboradi.
+    """
+    token = None
+    try:
+        from apps.control.services import resolve_active_alias
+
+        token = set_active_alias(resolve_active_alias())
+    except Exception:  # noqa: BLE001 - baza topilmasa `default` bilan davom etamiz
+        token = None
+    try:
+        yield
+    finally:
+        if token is not None:
+            reset_active_alias(token)
 
 COMMANDS_MENU = [
     {"command": "muddati", "description": "Muddati yaqin chiptalar ro'yxati"},
@@ -60,6 +84,10 @@ class Command(BaseCommand):
         self.stdout.write("Bot to'xtatildi.")
 
     def _handle_update(self, update):
+        with active_database():
+            self._dispatch_update(update)
+
+    def _dispatch_update(self, update):
         if "callback_query" in update:
             self._handle_callback_query(update["callback_query"])
             return

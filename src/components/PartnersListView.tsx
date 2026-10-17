@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   Users,
   Search,
@@ -39,51 +39,53 @@ export function PartnersListView({
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState<"ALL" | "CLIENT" | "SUPPLIER" | "DEBT_US" | "DEBT_THEM">(initialFilter);
 
-  // Filter logic
-  const filteredPartners = partners.filter((p) => {
-    // Type filter
-    if (filterType === "CLIENT" && p.type === "SUPPLIER") return false;
-    if (filterType === "SUPPLIER" && p.type === "CLIENT") return false;
-    if (filterType === "DEBT_US" && (p.balance || 0) >= 0) return false;
-    if (filterType === "DEBT_THEM" && (p.balance || 0) <= 0) return false;
+  // Filtrlash va yig'indilar — faqat ma'lumot/filtr o'zgarganda.
+  const {
+    filteredPartners,
+    totalDebtorsCount,
+    totalCreditorsCount,
+    totalClientsDebt,
+    totalSuppliersCredit,
+    filteredTotalBought,
+    filteredTotalSold,
+    filteredNetBalance,
+  } = useMemo(() => {
+    const rows = partners.filter((p) => {
+      // Type filter
+      if (filterType === "CLIENT" && p.type === "SUPPLIER") return false;
+      if (filterType === "SUPPLIER" && p.type === "CLIENT") return false;
+      if (filterType === "DEBT_US" && (p.balance || 0) >= 0) return false;
+      if (filterType === "DEBT_THEM" && (p.balance || 0) <= 0) return false;
 
-    // Search filter
-    if (!search.trim()) return true;
-    const q = search.toLowerCase();
-    const matchName = p.name?.toLowerCase().includes(q);
-    const matchPhone = p.phone?.toLowerCase().includes(q);
-    const matchNotes = p.notes?.toLowerCase().includes(q);
-    const matchTags = p.tags?.some((t: string) => t.toLowerCase().includes(q));
-    return matchName || matchPhone || matchNotes || matchTags;
-  });
+      // Search filter
+      if (!search.trim()) return true;
+      const q = search.toLowerCase();
+      const matchName = p.name?.toLowerCase().includes(q);
+      const matchPhone = p.phone?.toLowerCase().includes(q);
+      const matchNotes = p.notes?.toLowerCase().includes(q);
+      const matchTags = p.tags?.some((t: string) => t.toLowerCase().includes(q));
+      return matchName || matchPhone || matchNotes || matchTags;
+    });
+
+    const debtors = partners.filter((p) => (p.balance || 0) < 0);
+    const creditors = partners.filter((p) => (p.balance || 0) > 0);
+
+    return {
+      filteredPartners: rows,
+      totalDebtorsCount: debtors.length,
+      totalCreditorsCount: creditors.length,
+      totalClientsDebt: debtors.reduce((sum, p) => sum + Math.abs(p.balance || 0), 0),
+      totalSuppliersCredit: creditors.reduce((sum, p) => sum + (p.balance || 0), 0),
+      filteredTotalBought: rows.reduce((sum, p) => sum + (p.totalBoughtFromUs || 0), 0),
+      filteredTotalSold: rows.reduce((sum, p) => sum + (p.totalSoldToUs || 0), 0),
+      filteredNetBalance: rows.reduce((sum, p) => sum + (p.balance || 0), 0),
+    };
+  }, [partners, search, filterType]);
 
   const clearAllFilters = () => {
     setSearch("");
     setFilterType("ALL");
   };
-
-  // Calculate totals
-  const totalDebtorsCount = partners.filter((p) => (p.balance || 0) < 0).length;
-  const totalCreditorsCount = partners.filter((p) => (p.balance || 0) > 0).length;
-  const totalClientsDebt = partners
-    .filter((p) => (p.balance || 0) < 0)
-    .reduce((sum, p) => sum + Math.abs(p.balance || 0), 0);
-  const totalSuppliersCredit = partners
-    .filter((p) => (p.balance || 0) > 0)
-    .reduce((sum, p) => sum + (p.balance || 0), 0);
-
-  const filteredTotalBought = filteredPartners.reduce(
-    (sum, p) => sum + (p.totalBoughtFromUs || 0),
-    0
-  );
-  const filteredTotalSold = filteredPartners.reduce(
-    (sum, p) => sum + (p.totalSoldToUs || 0),
-    0
-  );
-  const filteredNetBalance = filteredPartners.reduce(
-    (sum, p) => sum + (p.balance || 0),
-    0
-  );
 
   const balanceText = (balance: number) =>
     balance < 0

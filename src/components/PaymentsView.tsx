@@ -19,7 +19,7 @@ import {
 import { formatUSD, formatDate, paymentMethodLabel, isDateInRange } from "@/lib/format";
 import { DateRangeFilter } from "@/components/DateRangeFilter";
 import { RowActionsMenu, RowActionItem } from "@/components/RowActionsMenu";
-import { CashAccount } from "@/lib/storage";
+import { CashAccount, moneySum, roundCents } from "@/lib/storage";
 import { getValidationMessage } from "@/lib/api";
 
 interface PaymentsViewProps {
@@ -108,22 +108,59 @@ export function PaymentsView({
 
   const unassignedPayments = paymentsForAccount(null);
 
-  const filteredAccounts = accounts.filter((a) =>
-    !search.trim() ? true : a.name.toLowerCase().includes(search.toLowerCase())
-  );
-
-  const filteredPayments = payments.filter((p) => {
-    if (!isDateInRange(p.paymentDate, dateFrom, dateTo)) return false;
-    if (filter === "INCOME" && p.type !== "INCOME") return false;
-    if (filter === "EXPENSE" && p.type !== "EXPENSE") return false;
-    if (!search.trim()) return true;
-    const q = search.toLowerCase();
-    return (
-      p.partnerName?.toLowerCase().includes(q) ||
-      p.notes?.toLowerCase().includes(q) ||
-      p.paymentDate?.toLowerCase().includes(q)
+  const {
+    filteredAccounts,
+    filteredPayments,
+    totalIncome,
+    totalExpense,
+    netCashFlow,
+    totalOffsetsAmount,
+    filteredCashIncome,
+    filteredCashExpense,
+    filteredCashNet,
+  } = React.useMemo(() => {
+    const accountsFiltered = accounts.filter((a) =>
+      !search.trim() ? true : a.name.toLowerCase().includes(search.toLowerCase())
     );
-  });
+
+    const filtered = payments.filter((p) => {
+      if (!isDateInRange(p.paymentDate, dateFrom, dateTo)) return false;
+      if (filter === "INCOME" && p.type !== "INCOME") return false;
+      if (filter === "EXPENSE" && p.type !== "EXPENSE") return false;
+      if (!search.trim()) return true;
+      const q = search.toLowerCase();
+      return (
+        p.partnerName?.toLowerCase().includes(q) ||
+        p.notes?.toLowerCase().includes(q) ||
+        p.paymentDate?.toLowerCase().includes(q)
+      );
+    });
+
+    const income = moneySum(
+      payments.filter((p) => p.type === "INCOME").map((p) => p.amount)
+    );
+    const expense = moneySum(
+      payments.filter((p) => p.type === "EXPENSE").map((p) => p.amount)
+    );
+    const filteredIncome = moneySum(
+      filtered.filter((p) => p.type === "INCOME").map((p) => p.amount)
+    );
+    const filteredExpense = moneySum(
+      filtered.filter((p) => p.type === "EXPENSE").map((p) => p.amount)
+    );
+
+    return {
+      filteredAccounts: accountsFiltered,
+      filteredPayments: filtered,
+      totalIncome: income,
+      totalExpense: expense,
+      netCashFlow: roundCents(income - expense),
+      totalOffsetsAmount: moneySum(debtOffsets.map((o) => o.amount)),
+      filteredCashIncome: filteredIncome,
+      filteredCashExpense: filteredExpense,
+      filteredCashNet: roundCents(filteredIncome - filteredExpense),
+    };
+  }, [payments, accounts, debtOffsets, search, filter, dateFrom, dateTo]);
 
   const clearCashFilters = () => {
     setSearch("");
@@ -131,24 +168,6 @@ export function PaymentsView({
     setDateFrom("");
     setDateTo("");
   };
-
-  const totalIncome = payments
-    .filter((p) => p.type === "INCOME")
-    .reduce((acc, p) => acc + (p.amount || 0), 0);
-  const totalExpense = payments
-    .filter((p) => p.type === "EXPENSE")
-    .reduce((acc, p) => acc + (p.amount || 0), 0);
-  const netCashFlow = totalIncome - totalExpense;
-
-  const totalOffsetsAmount = debtOffsets.reduce((acc, o) => acc + (o.amount || 0), 0);
-
-  const filteredCashIncome = filteredPayments
-    .filter((p) => p.type === "INCOME")
-    .reduce((acc, p) => acc + (p.amount || 0), 0);
-  const filteredCashExpense = filteredPayments
-    .filter((p) => p.type === "EXPENSE")
-    .reduce((acc, p) => acc + (p.amount || 0), 0);
-  const filteredCashNet = filteredCashIncome - filteredCashExpense;
 
   return (
     <div className="space-y-5">

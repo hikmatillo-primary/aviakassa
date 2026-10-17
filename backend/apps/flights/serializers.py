@@ -1,8 +1,15 @@
 from decimal import Decimal
+
 from rest_framework import serializers
+
+from core.db_state import get_active_alias
+from core.fields import MoneyField
+from core.money import to_money
+
 from .models import Batch
 from apps.partners.models import Partner
 from apps.sales.models import Sale
+
 
 class BatchSerializer(serializers.ModelSerializer):
     batchNumber = serializers.CharField(source='batch_number', required=False, allow_blank=True)
@@ -20,8 +27,10 @@ class BatchSerializer(serializers.ModelSerializer):
     supplierName = serializers.CharField(source='supplier.name', read_only=True)
     totalQty = serializers.IntegerField(source='total_qty', min_value=1)
     remainingQty = serializers.IntegerField(source='remaining_qty', read_only=True)
-    buyPrice = serializers.FloatField(source='buy_price', min_value=0)
-    totalCost = serializers.FloatField(source='total_cost', read_only=True)
+    # Borish-kelish partiyalarida kelish o'rinlari qoldig'i (oddiy partiyada ahamiyatsiz).
+    returnRemainingQty = serializers.IntegerField(source='return_remaining_qty', read_only=True)
+    buyPrice = MoneyField(source='buy_price', min_value=Decimal("0"))
+    totalCost = MoneyField(source='total_cost', max_digits=14, read_only=True)
     # Holat qoldiqdan avtomatik hisoblanadi (Batch.save), shuning uchun faqat o'qish uchun.
     status = serializers.ChoiceField(choices=Batch.Status.choices, read_only=True)
     createdAt = serializers.DateTimeField(source='created_at', read_only=True)
@@ -47,6 +56,7 @@ class BatchSerializer(serializers.ModelSerializer):
             'supplierName',
             'totalQty',
             'remainingQty',
+            'returnRemainingQty',
             'buyPrice',
             'totalCost',
             'status',
@@ -55,42 +65,63 @@ class BatchSerializer(serializers.ModelSerializer):
         ]
 
     def create(self, validated_data):
-        if not validated_data.get('batch_number'):
-            validated_data['batch_number'] = Batch.generate_next_batch_number()
-        else:
-            if Batch.objects.filter(batch_number=validated_data['batch_number']).exists():
-                validated_data['batch_number'] = Batch.generate_next_batch_number()
-
-        validated_data['remaining_qty'] = validated_data['total_qty']
-        validated_data['total_cost'] = validated_data['buy_price'] * validated_data['total_qty']
+        # Raqam bo'sh bo'lsa model o'zi generatsiya qiladi; band bo'lsa model
+        # aniq xato qaytaradi (jim ravishda boshqa raqam qo'yilmaydi).
         return super().create(validated_data)
 
     def validate(self, attrs):
-        # Sotilgan chiptadan kam qilib jami sonni o'zgartirib bo'lmaydi
+        # Sotilgan chiptadan kam qilib jami sonni o'zgartirib bo'lmaydi.
+        # Borish-kelish partiyada ikkita qoldiq (borish/kelish) alohida yuritiladi —
+        # jami son ikkalasidan ham kichik bo'lmasligi kerak.
         total_qty = attrs.get('total_qty', getattr(self.instance, 'total_qty', None))
         if self.instance is not None and total_qty is not None:
-            sold = self.instance.total_qty - self.instance.remaining_qty
+            sold_out = self.instance.total_qty - self.instance.remaining_qty
+            sold_ret = 0
+            if self.instance.is_round_trip:
+                ret_left = self.instance.return_remaining_qty
+                if ret_left is None:
+                    ret_left = self.instance.total_qty
+                sold_ret = self.instance.total_qty - ret_left
+            sold = max(sold_out, sold_ret)
             if total_qty < sold:
-                raise serializers.ValidationError({
-                    "totalQty": f"Jami son sotilgan ({sold} ta) dan kam bo'lishi mumkin emas."
-                })
+                if sold_ret > sold_out:
+                    detail = (
+                        f"Jami son sotilgan kelish chiptalari ({sold} ta) dan kam bo'lishi mumkin emas. "
+                        f"Borish: {sold_out} ta, kelish: {sold_ret} ta sotilgan."
+                    )
+                else:
+                    detail = f"Jami son sotilgan ({sold} ta) dan kam bo'lishi mumkin emas."
+                raise serializers.ValidationError({"totalQty": detail})
         return attrs
 
     def update(self, instance, validated_data):
-        # total_qty o'zgarsa, qoldiqni shu farqqa moslab o'zgartiramiz (sotilganlar saqlanadi)
+        # total_qty o'zgarsa, qoldiqni shu farqqa moslab o'zgartiramiz (sotilganlar saqlanadi).
+        # Borish-kelish partiyada ikkala pool ham delta bo'yicha moslashadi.
         if 'total_qty' in validated_data:
             delta = validated_data['total_qty'] - instance.total_qty
             if delta:
                 validated_data['remaining_qty'] = max(0, instance.remaining_qty + delta)
+                new_round_trip = validated_data.get('is_round_trip', instance.is_round_trip)
+                if new_round_trip:
+                    ret_left = instance.return_remaining_qty
+                    if ret_left is None:
+                        ret_left = instance.total_qty
+                    validated_data['return_remaining_qty'] = max(0, ret_left + delta)
 
         old_buy_price = instance.buy_price
         obj = super().update(instance, validated_data)
 
         # Tan narx o'zgargan bo'lsa, shu partiyaga tegishli sotuvlarning
-        # tan narxi va sof foydasini qayta hisoblaymiz (total_amount o'zgarmaydi).
+        # tan narxi va sof foydasini aniq Decimal bilan qayta hisoblaymiz.
         if 'buy_price' in validated_data and obj.buy_price != old_buy_price:
-            new_price = Decimal(str(obj.buy_price))
-            for sale in obj.sales.all():
-                profit = sale.total_amount - new_price * Decimal(sale.qty)
-                Sale.objects.filter(pk=sale.pk).update(buy_price=new_price, profit=profit)
+            new_price = to_money(obj.buy_price)
+            db = get_active_alias()
+            sales = list(
+                Sale.objects.using(db).filter(batch=obj).only("pk", "total_amount", "qty")
+            )
+            for sale in sales:
+                sale.buy_price = new_price
+                sale.profit = to_money(sale.total_amount - new_price * sale.qty)
+            if sales:
+                Sale.objects.using(db).bulk_update(sales, ["buy_price", "profit"], batch_size=500)
         return obj

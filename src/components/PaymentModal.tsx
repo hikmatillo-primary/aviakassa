@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { Modal } from "./Modal";
 import { ArrowDownLeft, ArrowUpRight, Loader2 } from "lucide-react";
-import { formatUSD } from "@/lib/format";
+import { formatUSD, getTodayISO } from "@/lib/format";
 import { DatePicker } from "./DatePicker";
 import { PartnerSelect } from "./PartnerSelect";
 import { getValidationMessage } from "@/lib/api";
@@ -59,7 +59,7 @@ export function PaymentModal({
       setPartnerId(defaultPartnerId ? String(defaultPartnerId) : "");
       setAmount(defaultAmount !== undefined ? defaultAmount : 0);
       setNotes(defaultNotes || "");
-      setPaymentDate(new Date().toISOString().split("T")[0]);
+      setPaymentDate(getTodayISO());
       setAccountId("");
     }
   }, [isOpen, defaultType, defaultPartnerId, defaultNotes, defaultAmount]);
@@ -81,7 +81,7 @@ export function PaymentModal({
         partnerId: Number(partnerId),
         type,
         amount: Number(amount),
-        paymentDate: paymentDate || new Date().toISOString().split("T")[0],
+        paymentDate: paymentDate || getTodayISO(),
         paymentMethod,
         accountId: accounts.length > 0 ? Number(accountId || accounts[0].id) : undefined,
         notes,

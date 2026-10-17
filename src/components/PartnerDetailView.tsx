@@ -8,6 +8,7 @@ import {
   ArrowRightLeft,
   Search,
   Pencil,
+  SquarePen,
   ShoppingBag,
   Package,
   Wallet,
@@ -18,7 +19,7 @@ import {
   ChevronRight,
   Trash2,
 } from "lucide-react";
-import { formatUSD, formatDate, paymentMethodLabel, matchesRouteSearch } from "@/lib/format";
+import { formatUSD, formatDate, paymentMethodLabel, matchesRouteSearch, getBatchSegmentRemaining } from "@/lib/format";
 import { RowActionsMenu } from "@/components/RowActionsMenu";
 
 type CashMovement =
@@ -41,7 +42,9 @@ interface PartnerDetailViewProps {
   ) => void;
   onOpenDebtOffsetModal?: (fromPartnerId?: number, toPartnerId?: number) => void;
   onEditBatch?: (batch: any) => void;
+  onFullEditBatch?: (batch: any) => void;
   onEditSale?: (sale: any) => void;
+  onFullEditSale?: (sale: any) => void;
   onEditPartner?: (partner: any) => void;
   onDeletePartner?: (partner: any) => void;
   onDeleteBatch?: (batch: any) => void;
@@ -62,7 +65,9 @@ export function PartnerDetailView({
   onOpenPaymentModal,
   onOpenDebtOffsetModal,
   onEditBatch,
+  onFullEditBatch,
   onEditSale,
+  onFullEditSale,
   onEditPartner,
   onDeletePartner,
   onDeleteBatch,
@@ -566,6 +571,15 @@ export function PartnerDetailView({
                   <div className="flex items-center gap-1.5">
                     <RowActionsMenu
                       actions={[
+                        ...(onFullEditSale
+                          ? [
+                              {
+                                label: "Tahrirlash",
+                                icon: <SquarePen className="w-3.5 h-3.5" />,
+                                onClick: () => onFullEditSale(s),
+                              },
+                            ]
+                          : []),
                         ...(onEditSale
                           ? [
                               {
@@ -634,12 +648,23 @@ export function PartnerDetailView({
                       </span>
                       <span
                         className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-lg border ${
-                          b.remainingQty > 0
+                          b.remainingQty > 0 || getBatchSegmentRemaining(b, "RETURN") > 0
                             ? "bg-blue-500/[0.07] border-blue-500/20 text-blue-600 dark:text-blue-400"
                             : "bg-white/80 dark:bg-white/[0.04] border-slate-200/70 dark:border-white/[0.06] text-slate-400"
                         }`}
                       >
-                        Omborda: <b className="font-bold">{b.remainingQty} ta</b>
+                        {b.isRoundTrip ? (
+                          <>
+                            Omborda:{" "}
+                            <b className="font-bold">
+                              Borish: {b.remainingQty} · Kelish: {getBatchSegmentRemaining(b, "RETURN")}
+                            </b>
+                          </>
+                        ) : (
+                          <>
+                            Omborda: <b className="font-bold">{b.remainingQty} ta</b>
+                          </>
+                        )}
                       </span>
                       {b.departureTime && (
                         <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white/80 dark:bg-white/[0.04] border border-slate-200/70 dark:border-white/[0.06] text-slate-500 dark:text-slate-400">
@@ -678,6 +703,15 @@ export function PartnerDetailView({
                     )}
                     <RowActionsMenu
                       actions={[
+                        ...(onFullEditBatch
+                          ? [
+                              {
+                                label: "Tahrirlash",
+                                icon: <SquarePen className="w-3.5 h-3.5" />,
+                                onClick: () => onFullEditBatch(b),
+                              },
+                            ]
+                          : []),
                         ...(onEditBatch
                           ? [
                               {

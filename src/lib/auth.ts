@@ -3,6 +3,8 @@ import { API_BASE_URL } from "./api";
 const TOKEN_KEY = "aviakassa_access_token";
 const REFRESH_KEY = "aviakassa_refresh_token";
 const USER_KEY = "aviakassa_user_info";
+// Eski versiyalar ma'lumotni brauzerda saqlagan — chiqishda o'chirib tashlaymiz.
+const LEGACY_DATA_KEY = "aviakassa_pro_data_v1";
 
 export interface AuthUser {
   id?: number;
@@ -61,7 +63,7 @@ export async function loginUser(username: string, password: string): Promise<Aut
   const user: AuthUser = {
     username,
     name: username === "admin" ? "Bosh Administrator" : username,
-    isStaff: true,
+    isStaff: false,
   };
 
   try {
@@ -108,4 +110,5 @@ export function logoutUser(): void {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(REFRESH_KEY);
   localStorage.removeItem(USER_KEY);
+  localStorage.removeItem(LEGACY_DATA_KEY);
 }

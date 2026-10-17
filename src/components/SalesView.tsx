@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
-import { Search, ShoppingBag, Users, Pencil, Trash2 } from "lucide-react";
-import { formatUSD, formatDate, matchesRouteSearch, isDateInRange } from "@/lib/format";
+import React, { useMemo, useState } from "react";
+import { Search, ShoppingBag, Users, Pencil, SquarePen, Trash2 } from "lucide-react";
+import { formatUSD, formatDate, matchesRouteSearch, isDateInRange, saleSegmentLabel } from "@/lib/format";
 import { FlightBar } from "@/components/FlightBar";
 import { RowActionsMenu } from "@/components/RowActionsMenu";
 import { DateRangeFilter } from "@/components/DateRangeFilter";
@@ -13,6 +13,7 @@ interface SalesViewProps {
   onOpenSaleModal: () => void;
   onOpenPartnerModal?: (type?: "CLIENT") => void;
   onEditSale?: (sale: any) => void;
+  onFullEditSale?: (sale: any) => void;
   onDeleteSale?: (sale: any) => void;
   onOpenHistoryModal?: (partnerId: number) => void;
 }
@@ -22,6 +23,7 @@ export function SalesView({
   onOpenSaleModal,
   onOpenPartnerModal,
   onEditSale,
+  onFullEditSale,
   onDeleteSale,
   onOpenHistoryModal,
 }: SalesViewProps) {
@@ -35,19 +37,23 @@ export function SalesView({
     setDateTo("");
   };
 
-  // Filtered sales
-  const filteredSales = sales.filter((s) => {
-    if (!isDateInRange(s.saleDate, dateFrom, dateTo)) return false;
-    if (!search.trim()) return true;
-    const q = search.toLowerCase();
-    return (
-      s.clientName?.toLowerCase().includes(q) ||
-      matchesRouteSearch(s.route, search) ||
-      s.passengerNames?.toLowerCase().includes(q) ||
-      s.flightNumber?.toLowerCase().includes(q) ||
-      s.saleDate?.toLowerCase().includes(q)
-    );
-  });
+  // Filtered sales — faqat filtr yoki ma'lumot o'zgarganda qayta hisoblanadi.
+  const filteredSales = useMemo(
+    () =>
+      sales.filter((s) => {
+        if (!isDateInRange(s.saleDate, dateFrom, dateTo)) return false;
+        if (!search.trim()) return true;
+        const q = search.toLowerCase();
+        return (
+          s.clientName?.toLowerCase().includes(q) ||
+          matchesRouteSearch(s.route, search) ||
+          s.passengerNames?.toLowerCase().includes(q) ||
+          s.flightNumber?.toLowerCase().includes(q) ||
+          s.saleDate?.toLowerCase().includes(q)
+        );
+      }),
+    [sales, search, dateFrom, dateTo]
+  );
 
   return (
     <div className="space-y-5">
@@ -156,7 +162,12 @@ export function SalesView({
             </div>
 
             <div className="flex items-center justify-between text-xs pt-3 border-t border-slate-100 dark:border-white/[0.06]">
-              <div className="flex items-center gap-1.5 tabular-nums">
+              <div className="flex items-center gap-1.5 tabular-nums flex-wrap">
+                {sale.isRoundTrip && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+                    ⇄ {saleSegmentLabel(sale.segment)}
+                  </span>
+                )}
                 <span className="font-semibold text-slate-600 dark:text-slate-300">
                   {sale.qty} ta
                 </span>
@@ -172,6 +183,15 @@ export function SalesView({
               <div className="flex items-center gap-1.5">
                 <RowActionsMenu
                   actions={[
+                    ...(onFullEditSale
+                      ? [
+                          {
+                            label: "Tahrirlash",
+                            icon: <SquarePen className="w-3.5 h-3.5" />,
+                            onClick: () => onFullEditSale(sale),
+                          },
+                        ]
+                      : []),
                     ...(onEditSale
                       ? [
                           {
@@ -245,6 +265,11 @@ export function SalesView({
                   {/* Route & Flight */}
                   <td className="py-4 px-5">
                     <FlightBar batch={sale} showSubtitle={false} />
+                    {sale.isRoundTrip && (
+                      <span className="inline-block mt-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+                        ⇄ {saleSegmentLabel(sale.segment)}
+                      </span>
+                    )}
                   </td>
 
                   {/* Client name */}
@@ -297,6 +322,15 @@ export function SalesView({
                     <div className="inline-flex items-center gap-1.5">
                       <RowActionsMenu
                         actions={[
+                          ...(onFullEditSale
+                            ? [
+                                {
+                                  label: "Tahrirlash",
+                                  icon: <SquarePen className="w-3.5 h-3.5" />,
+                                  onClick: () => onFullEditSale(sale),
+                                },
+                              ]
+                            : []),
                           ...(onEditSale
                             ? [
                                 {

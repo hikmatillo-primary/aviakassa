@@ -1,5 +1,4 @@
 import logging
-import time
 
 from django.core.management import call_command
 from django.core.management.color import no_style
@@ -35,10 +34,6 @@ CATEGORY_ORDER = [
     ("debtOffsets", DebtOffset),
 ]
 CATEGORY_KEYS = [key for key, _ in CATEGORY_ORDER]
-
-# Faol baza nomini qisqa muddat keshlash (bir so'rovda qayta so'ramaslik uchun).
-_ACTIVE_TTL = 3.0
-_active_cache = {"value": None, "ts": 0.0}
 
 
 class DatabaseError(Exception):
@@ -138,6 +133,22 @@ def _create_postgres_database(db_name: str) -> None:
         conn.close()
 
 
+def _drop_postgres_database(db_name: str) -> None:
+    """Yaratishda xato bo'lsa, yarim tayyor bazani o'chirib tashlaydi."""
+    try:
+        conn = _maintenance_connection()
+    except Exception as exc:  # pragma: no cover - himoyaviy
+        logger.warning("Yarim tayyor bazani o'chirib bo'lmadi: %s", exc)
+        return
+    try:
+        with conn.cursor() as cur:
+            cur.execute(f'DROP DATABASE IF EXISTS "{db_name}"')
+    except Exception as exc:  # pragma: no cover - himoyaviy
+        logger.warning("Yarim tayyor bazani o'chirib bo'lmadi (%s): %s", db_name, exc)
+    finally:
+        conn.close()
+
+
 def _reset_sequences(model, alias: str) -> None:
     """PK'larni saqlab ko'chirgandan so'ng ketma-ketlikni to'g'rilaydi."""
     try:
@@ -226,6 +237,13 @@ def create_database(name: str, copy: dict) -> dict:
         copied = copy_selected(source_db_name, db_name, categories)
     except Exception as exc:
         logger.exception("Yangi bazani tayyorlashda xato: %s", exc)
+        # Yarim tayyor bazani va ulanishni tozalaymiz — keyingi urinishga xalaqit bermasin.
+        try:
+            connections[alias].close()
+        except Exception:  # pragma: no cover - himoyaviy
+            pass
+        connections.databases.pop(alias, None)
+        _drop_postgres_database(db_name)
         raise DatabaseError(f"Yangi bazani tayyorlab bo'lmadi: {exc}") from exc
 
     registry = DatabaseRegistry.objects.using(DEFAULT_ALIAS).create(
@@ -238,13 +256,17 @@ def create_database(name: str, copy: dict) -> dict:
 def activate_database(registry_id: int) -> DatabaseRegistry:
     """Bazani faol qiladi (hamma foydalanuvchi uchun umumiy)."""
     with transaction.atomic(using=DEFAULT_ALIAS):
-        DatabaseRegistry.objects.using(DEFAULT_ALIAS).update(is_active=False)
-        registry = DatabaseRegistry.objects.using(DEFAULT_ALIAS).get(pk=registry_id)
+        registry = (
+            DatabaseRegistry.objects.using(DEFAULT_ALIAS)
+            .select_for_update()
+            .get(pk=registry_id)
+        )
+        DatabaseRegistry.objects.using(DEFAULT_ALIAS).filter(is_active=True).exclude(
+            pk=registry_id
+        ).update(is_active=False)
         registry.is_active = True
         registry.save(using=DEFAULT_ALIAS, update_fields=["is_active"])
 
-    # Alias keyingi so'rovda middleware orqali lazy tarzda tayyorlanadi.
-    invalidate_active_cache()
     logger.warning("BAZA FAOLLASHTIRILDI: db=%s", registry.db_name)
     return registry
 
@@ -260,11 +282,12 @@ def close_database(registry_id: int) -> DatabaseRegistry:
 
 
 def active_db_name() -> str:
-    """Faol baza nomini qaytaradi (qisqa muddat kesh bilan)."""
-    now = time.monotonic()
-    if _active_cache["value"] is not None and now - _active_cache["ts"] < _ACTIVE_TTL:
-        return _active_cache["value"]
+    """Faol baza nomini qaytaradi.
 
+    Kesh ishlatilmaydi: baza almashganda barcha gunicorn ishchilari darhol
+    yangi bazani ko'rishi kerak. Har bir so'rovda bitta indeksli so'rov —
+    bu xavfsizlik uchun arziydi.
+    """
     db_name = default_db_name()
     try:
         registry = (
@@ -292,8 +315,6 @@ def active_db_name() -> str:
         # Jadval hali yaratilmagan (migratsiyadan oldin) — asosiy bazaga qaytamiz.
         db_name = default_db_name()
 
-    _active_cache["value"] = db_name
-    _active_cache["ts"] = now
     return db_name
 
 
@@ -302,5 +323,5 @@ def resolve_active_alias() -> str:
 
 
 def invalidate_active_cache() -> None:
-    _active_cache["value"] = None
-    _active_cache["ts"] = 0.0
+    """Eski API bilan moslik uchun qoldirilgan (kesh endi yo'q)."""
+    return None

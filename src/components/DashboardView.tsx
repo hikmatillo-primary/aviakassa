@@ -23,7 +23,7 @@ const PERIOD_OPTIONS = [
   { label: "6 oy", months: 6 },
   { label: "12 oy", months: 12 },
 ];
-import { formatMoney, formatUSD, formatDate, matchesRouteSearch, isBatchExpired } from "@/lib/format";
+import { formatMoney, formatUSD, formatDate, matchesRouteSearch, isSegmentSellable, getBatchSegmentRemaining } from "@/lib/format";
 
 interface DashboardViewProps {
   stats: any;
@@ -70,7 +70,16 @@ export function DashboardView({
   const periodLabel =
     PERIOD_OPTIONS.find((o) => o.months === periodMonths)?.label || "6 oy";
 
-  const availableBatches = batches.filter((b) => b.remainingQty > 0);
+  // Borish-kelish partiyada qaysi pool(lar)da sotilishi mumkin chipta borligi
+  const isBatchSellable = (b: any) => {
+    const outOk = (b.remainingQty || 0) > 0 && isSegmentSellable(b, "OUTBOUND");
+    if (!b.isRoundTrip) return outOk;
+    const retOk =
+      getBatchSegmentRemaining(b, "RETURN") > 0 && isSegmentSellable(b, "RETURN");
+    return outOk || retOk;
+  };
+
+  const availableBatches = batches.filter(isBatchSellable);
 
   // Filtered sales for bottom table
   const filteredSales = sales.filter((s) => {
@@ -86,10 +95,12 @@ export function DashboardView({
 
   const totalSalesRevenue = sales.reduce((sum, s) => sum + (s.totalAmount || 0), 0);
   const totalTicketsAll = batches.reduce((sum, b) => sum + (b.totalQty || 0), 0);
-  const totalSoldTicketsAll = batches.reduce(
-    (sum, b) => sum + Math.max(0, (b.totalQty || 0) - (b.remainingQty || 0)),
-    0
-  );
+  const totalSoldTicketsAll = batches.reduce((sum, b) => {
+    const outSold = Math.max(0, (b.totalQty || 0) - (b.remainingQty || 0));
+    if (!b.isRoundTrip) return sum + outSold;
+    const retSold = Math.max(0, (b.totalQty || 0) - getBatchSegmentRemaining(b, "RETURN"));
+    return sum + Math.max(outSold, retSold);
+  }, 0);
   const soldRateNum = totalTicketsAll > 0 ? (totalSoldTicketsAll / totalTicketsAll) * 100 : 0;
   const soldRateDisplay = soldRateNum.toFixed(1);
   const filledArcSegments = Math.round((soldRateNum / 100) * 12);
@@ -530,9 +541,14 @@ export function DashboardView({
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 tabular-nums">
           {availableBatches.map((b: any) => {
-            const soldQty = b.totalQty - b.remainingQty;
+            const retPool = getBatchSegmentRemaining(b, "RETURN");
+            const soldOut = b.totalQty - (b.remainingQty || 0);
+            const soldRet = b.isRoundTrip ? b.totalQty - retPool : 0;
+            const soldQty = Math.max(soldOut, soldRet);
             const percentSold = Math.round((soldQty / b.totalQty) * 100);
-            const isLowStock = b.remainingQty > 0 && b.remainingQty <= 5;
+            const isLowStock = b.isRoundTrip
+              ? (b.remainingQty > 0 && b.remainingQty <= 5) || (retPool > 0 && retPool <= 5)
+              : b.remainingQty > 0 && b.remainingQty <= 5;
 
             return (
               <div
@@ -569,7 +585,21 @@ export function DashboardView({
                             : "text-blue-600 dark:text-blue-400"
                         }`}
                       >
-                        {b.remainingQty} <span className="text-xs font-normal text-slate-400">/ {b.totalQty} ta</span>
+                        {b.isRoundTrip ? (
+                          <>
+                            Borish: {b.remainingQty} · Kelish: {retPool}{" "}
+                            <span className="text-xs font-normal text-slate-400">
+                              / {b.totalQty} tadan
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            {b.remainingQty}{" "}
+                            <span className="text-xs font-normal text-slate-400">
+                              / {b.totalQty} ta
+                            </span>
+                          </>
+                        )}
                       </span>
                     </div>
                     <div className="w-full bg-slate-100 dark:bg-white/[0.08] h-1.5 rounded-full overflow-hidden">
@@ -591,7 +621,7 @@ export function DashboardView({
                   <span className="truncate max-w-[160px]" title={b.supplierName}>
                     <strong className="text-slate-700 dark:text-slate-300 font-semibold">{b.supplierName}</strong>
                   </span>
-                  {onOpenSaleModal && b.remainingQty > 0 && !isBatchExpired(b) && (
+                  {onOpenSaleModal && isBatchSellable(b) && (
                     <button
                       type="button"
                       onClick={(e) => {

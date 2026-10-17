@@ -1,4 +1,5 @@
 from django.db import transaction
+from django.utils import timezone
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -6,6 +7,7 @@ from rest_framework.response import Response
 from apps.cash.models import Payment
 from apps.cash.serializers import PaymentSerializer
 from core.db_state import get_active_alias
+from core.money import ZERO, to_money
 
 from .models import Batch
 from .serializers import BatchSerializer
@@ -52,13 +54,17 @@ class BatchViewSet(viewsets.ModelViewSet):
                 serializer.is_valid(raise_exception=True)
                 created.append(serializer.save())
 
-            paid_now = data.get("paidNow") or 0
-            if paid_now and float(paid_now) > 0:
+            paid_now = to_money(data.get("paidNow"), ZERO)
+            if paid_now > ZERO:
                 payment_serializer = PaymentSerializer(data={
                     "partnerId": data.get("supplierId"),
                     "type": Payment.PaymentType.EXPENSE,
                     "amount": paid_now,
-                    "paymentDate": data.get("purchaseDate") or data.get("saleDate"),
+                    "paymentDate": (
+                        data.get("purchaseDate")
+                        or data.get("saleDate")
+                        or timezone.localdate().isoformat()
+                    ),
                     "paymentMethod": data.get("paymentMethod") or Payment.PaymentMethod.CASH,
                     "accountId": data.get("accountId"),
                     "notes": data.get("paymentNotes") or data.get("notes") or "",

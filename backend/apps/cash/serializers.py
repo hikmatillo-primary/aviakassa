@@ -1,4 +1,9 @@
+from decimal import Decimal
+
 from rest_framework import serializers
+
+from core.fields import MoneyField
+
 from .models import Payment, DebtOffset, CashAccount, account_for_payment_method
 from apps.partners.models import Partner
 
@@ -45,7 +50,7 @@ class PaymentSerializer(serializers.ModelSerializer):
         allow_null=True,
     )
     accountName = serializers.SerializerMethodField()
-    amount = serializers.FloatField(min_value=0.01)
+    amount = MoneyField(max_digits=14, min_value=Decimal("0.01"))
     createdAt = serializers.DateTimeField(source='created_at', read_only=True)
 
     def get_accountName(self, obj):
@@ -81,7 +86,7 @@ class DebtOffsetSerializer(serializers.ModelSerializer):
     fromPartnerName = serializers.CharField(source='from_partner.name', read_only=True)
     toPartnerId = serializers.PrimaryKeyRelatedField(source='to_partner', queryset=Partner.objects.all())
     toPartnerName = serializers.CharField(source='to_partner.name', read_only=True)
-    amount = serializers.FloatField(min_value=0.01)
+    amount = MoneyField(max_digits=14, min_value=Decimal("0.01"))
     createdAt = serializers.DateTimeField(source='created_at', read_only=True)
 
     def validate(self, attrs):

@@ -187,10 +187,12 @@ async function request<T>(endpoint: string, options?: RequestInit, allowRetry = 
 
 /**
  * DRF pagination'ini to'liq aylanib chiqadi (faqat birinchi sahifani emas).
+ * `page_size` bilan odatda bitta so'rov kifoya qiladi.
  */
 async function requestAll<T>(endpoint: string): Promise<T[]> {
   const out: T[] = [];
-  let url: string | null = endpoint;
+  let url: string | null =
+    endpoint + (endpoint.includes("?") ? "&" : "?") + "page_size=5000";
   while (url) {
     const data: T[] | { results?: T[]; next?: string | null } = await request(url);
     if (Array.isArray(data)) {
@@ -208,23 +210,40 @@ async function requestAll<T>(endpoint: string): Promise<T[]> {
 }
 
 export async function checkBackendHealth(): Promise<boolean> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 3000);
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 3000);
-    const res = await fetch(`${API_BASE_URL}/health/`, {
-      signal: controller.signal,
-    });
-    clearTimeout(timeout);
+    const res = await fetch(`${API_BASE_URL}/health/`, { signal: controller.signal });
     return res.ok;
   } catch {
     return false;
+  } finally {
+    clearTimeout(timeout);
   }
 }
 
 /**
- * Butun ma'lumotlar bazasini backenddan yuklash (Partners, Batches, Sales, Payments, DebtOffsets)
+ * Butun ma'lumotlar bazasini backenddan yuklash.
+ * Asosiy yo'l — bitta `/data/snapshot/` so'rovi (sahifalash yo'q).
+ * Eski backend bo'lsa (404) — alohida endpointlarga qaytamiz.
  */
 export async function apiFetchAll(): Promise<AviakassaData> {
+  try {
+    const data = await request<AviakassaData>("/data/snapshot/");
+    return {
+      partners: data.partners || [],
+      batches: data.batches || [],
+      sales: data.sales || [],
+      payments: data.payments || [],
+      debtOffsets: data.debtOffsets || [],
+      accounts: data.accounts || [],
+    };
+  } catch (error) {
+    if (!(error instanceof ApiError) || error.status !== 404) {
+      throw error;
+    }
+  }
+
   const [partners, batches, sales, payments, debtOffsets, accounts] = await Promise.all([
     requestAll<Partner>("/partners/"),
     requestAll<Batch>("/batches/"),
@@ -265,7 +284,7 @@ export async function apiCreateBatch(batch: Partial<Batch>): Promise<Batch> {
   });
 }
 
-export async function apiUpdateBatch(id: number, data: Partial<Batch>): Promise<Batch> {
+export async function apiUpdateBatch(id: number, data: Partial<Batch> | object): Promise<Batch> {
   return request<Batch>(`/batches/${id}/`, {
     method: "PATCH",
     body: JSON.stringify(data),
@@ -304,7 +323,7 @@ export async function apiCreateSale(sale: Partial<Sale>): Promise<Sale> {
   });
 }
 
-export async function apiUpdateSale(id: number, data: Partial<Sale>): Promise<Sale> {
+export async function apiUpdateSale(id: number, data: Partial<Sale> | object): Promise<Sale> {
   return request<Sale>(`/sales/${id}/`, {
     method: "PATCH",
     body: JSON.stringify(data),

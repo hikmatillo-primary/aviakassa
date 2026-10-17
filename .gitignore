@@ -54,5 +54,8 @@ __pycache__/
 *$py.class
 *.sqlite3
 backend/db.sqlite3
+backend/staticfiles/
+.venv/
+venv/
 .env
 

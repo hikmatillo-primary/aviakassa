@@ -318,7 +318,7 @@ class SaleAPITests(APITestCase):
         self.assertEqual(Sale.objects.filter(batch=expired_batch).count(), 0)
 
     def test_api_round_trip_sale_allowed_until_return_date(self):
-        """Borish-kelish partiyasida qaytish sanasi kelmagan bo'lsa sotish mumkin."""
+        """Borish muddati o'tgan bo'lsa ham, kelish sanasi kelmagan bo'lsa kelishni sotish mumkin."""
         past_date = timezone.localdate() - timedelta(days=1)
         future_date = timezone.localdate() + timedelta(days=10)
         round_trip = Batch.objects.create(
@@ -336,10 +336,157 @@ class SaleAPITests(APITestCase):
             "clientId": self.client_partner.id,
             "qty": 2,
             "sellPrice": 400.00,
-            "saleDate": timezone.localdate().isoformat()
+            "saleDate": timezone.localdate().isoformat(),
+            "segment": "RETURN",
         }
         response = self.client.post("/api/sales/", payload, format="json")
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        # Kelish qoldig'i kamaydi, borish qoldig'i tegilmadi
+        round_trip.refresh_from_db()
+        self.assertEqual(round_trip.return_remaining_qty, 8)
+        self.assertEqual(round_trip.remaining_qty, 10)
+        self.assertEqual(response.data["segment"], "RETURN")
+
+    def test_api_round_trip_default_both_rejected_when_out_expired(self):
+        """Borish muddati o'tgan bo'lsa standart (borish-kelish) sotuv rad etiladi."""
+        past_date = timezone.localdate() - timedelta(days=1)
+        future_date = timezone.localdate() + timedelta(days=10)
+        round_trip = Batch.objects.create(
+            batch_number="TEST-ROUND-02",
+            route="TAS - DXB",
+            flight_date=past_date,
+            is_round_trip=True,
+            return_date=future_date,
+            supplier=self.supplier,
+            total_qty=10,
+            buy_price=Decimal("300.00")
+        )
+        payload = {
+            "batchId": round_trip.id,
+            "clientId": self.client_partner.id,
+            "qty": 2,
+            "sellPrice": 400.00,
+            "saleDate": timezone.localdate().isoformat(),
+        }
+        response = self.client.post("/api/sales/", payload, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("segment", response.data)
+
+        # Outbound aniq so'ralganda ham rad etilishi kerak
+        payload["segment"] = "OUTBOUND"
+        response = self.client.post("/api/sales/", payload, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("segment", response.data)
+
+        round_trip.refresh_from_db()
+        self.assertEqual(round_trip.remaining_qty, 10)
+        self.assertEqual(round_trip.return_remaining_qty, 10)
+        self.assertEqual(Sale.objects.filter(batch=round_trip).count(), 0)
+
+    def test_api_round_trip_return_expired_rejected(self):
+        """Kelish muddati o'tgan bo'lsa faqat shu qism sotilmaydi."""
+        past_date = timezone.localdate() - timedelta(days=5)
+        past_return = timezone.localdate() - timedelta(days=1)
+        round_trip = Batch.objects.create(
+            batch_number="TEST-ROUND-03",
+            route="TAS - DXB",
+            flight_date=past_date,
+            is_round_trip=True,
+            return_date=past_return,
+            supplier=self.supplier,
+            total_qty=10,
+            buy_price=Decimal("300.00")
+        )
+        payload = {
+            "batchId": round_trip.id,
+            "clientId": self.client_partner.id,
+            "qty": 2,
+            "sellPrice": 400.00,
+            "saleDate": timezone.localdate().isoformat(),
+            "segment": "RETURN",
+        }
+        response = self.client.post("/api/sales/", payload, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("segment", response.data)
+
+        # Ikkalasi ham rad etilishi kerak
+        payload["segment"] = "BOTH"
+        response = self.client.post("/api/sales/", payload, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_api_round_trip_separate_pools_and_segment_change(self):
+        """Borish va kelish qoldiqlari alohida yuritiladi; segment almashtirilsa qoldiqlar ko'chadi."""
+        future_date = timezone.localdate() + timedelta(days=10)
+        future_return = timezone.localdate() + timedelta(days=20)
+        round_trip = Batch.objects.create(
+            batch_number="TEST-ROUND-04",
+            route="TAS - DXB",
+            flight_date=future_date,
+            is_round_trip=True,
+            return_date=future_return,
+            supplier=self.supplier,
+            total_qty=10,
+            buy_price=Decimal("300.00")
+        )
+
+        # 3 ta faqat borishdan sotamiz
+        res = self.client.post("/api/sales/", {
+            "batchId": round_trip.id,
+            "clientId": self.client_partner.id,
+            "qty": 3,
+            "sellPrice": 400.00,
+            "saleDate": timezone.localdate().isoformat(),
+            "segment": "OUTBOUND",
+        }, format="json")
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        sale_id = res.data["id"]
+        round_trip.refresh_from_db()
+        self.assertEqual(round_trip.remaining_qty, 7)
+        self.assertEqual(round_trip.return_remaining_qty, 10)
+
+        # 2 ta faqat kelishdan sotamiz
+        res = self.client.post("/api/sales/", {
+            "batchId": round_trip.id,
+            "clientId": self.client_partner.id,
+            "qty": 2,
+            "sellPrice": 400.00,
+            "saleDate": timezone.localdate().isoformat(),
+            "segment": "RETURN",
+        }, format="json")
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        round_trip.refresh_from_db()
+        self.assertEqual(round_trip.remaining_qty, 7)
+        self.assertEqual(round_trip.return_remaining_qty, 8)
+
+        # 1 ta borish-kelish sotamiz — ikkala qoldiqdan ayiriladi
+        res = self.client.post("/api/sales/", {
+            "batchId": round_trip.id,
+            "clientId": self.client_partner.id,
+            "qty": 1,
+            "sellPrice": 400.00,
+            "saleDate": timezone.localdate().isoformat(),
+            "segment": "BOTH",
+        }, format="json")
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        round_trip.refresh_from_db()
+        self.assertEqual(round_trip.remaining_qty, 6)
+        self.assertEqual(round_trip.return_remaining_qty, 7)
+
+        # Birinchi sotuvni OUTBOUND -> RETURN ga o'zgartiramiz:
+        # borish qoldig'i +3 (10), kelish qoldig'i -3 (4)
+        res = self.client.patch(f"/api/sales/{sale_id}/", {"segment": "RETURN"}, format="json")
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        round_trip.refresh_from_db()
+        self.assertEqual(round_trip.remaining_qty, 9)
+        self.assertEqual(round_trip.return_remaining_qty, 4)
+
+        # Sotuvni o'chirsak — o'rinlar kelish pooliga qaytadi
+        res = self.client.delete(f"/api/sales/{sale_id}/")
+        self.assertEqual(res.status_code, status.HTTP_204_NO_CONTENT)
+        round_trip.refresh_from_db()
+        self.assertEqual(round_trip.remaining_qty, 9)
+        self.assertEqual(round_trip.return_remaining_qty, 7)
 
     def test_api_delete_sale_restores_inventory(self):
         """Sotuv o'chirilganda partiyadagi chiptalar to'liq qaytishi."""
