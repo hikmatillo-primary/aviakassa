@@ -355,6 +355,13 @@ export async function apiCreateAccount(account: { name: string }): Promise<CashA
   });
 }
 
+export async function apiUpdateAccount(id: number, account: { name: string }): Promise<CashAccount> {
+  return request<CashAccount>(`/cash/accounts/${id}/`, {
+    method: "PATCH",
+    body: JSON.stringify(account),
+  });
+}
+
 export async function apiDeleteAccount(id: number): Promise<void> {
   await request<void>(`/cash/accounts/${id}/`, { method: "DELETE" });
 }

@@ -46,6 +46,7 @@ import {
   apiDeletePayment,
   apiDeleteDebtOffset,
   apiCreateAccount,
+  apiUpdateAccount,
   apiDeleteAccount,
   apiImportData,
   apiListDatabases,
@@ -655,6 +656,17 @@ export function AppContainer() {
     }
   };
 
+  const handleRenameAccount = async (account: CashAccount, newName: string) => {
+    try {
+      await apiUpdateAccount(account.id, { name: newName });
+      await syncFromServer();
+      showToast("Hisob nomi o‘zgartirildi!");
+    } catch (e) {
+      console.error("Hisob nomini o‘zgartirishda xato:", e);
+      throw e;
+    }
+  };
+
   const handleDeleteAccount = (account: CashAccount) => {
     const relatedPayments = payments.filter((p) => p.accountId === account.id);
     if (relatedPayments.length > 0) {
@@ -1052,6 +1064,7 @@ export function AppContainer() {
             onDeletePayment={handleDeletePayment}
             onDeleteDebtOffset={handleDeleteDebtOffset}
             onAddAccount={handleAddAccount}
+            onRenameAccount={handleRenameAccount}
             onDeleteAccount={handleDeleteAccount}
           />
         )}
