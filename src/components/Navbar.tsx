@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import {
-  Zap,
   Sun,
   Moon,
   Settings,
@@ -18,6 +17,7 @@ import {
   Smartphone,
   Database,
 } from "lucide-react";
+import Image from "next/image";
 import { PwaInstallModal } from "./PwaInstallModal";
 
 interface NavbarProps {
@@ -141,17 +141,25 @@ export function Navbar({
           <div className="flex items-center justify-between">
             {/* Left: Brand Logo & Title */}
             <div
-              className="flex items-center gap-2.5 cursor-pointer select-none"
+              className="flex items-center cursor-pointer select-none"
               onClick={() => setActiveTab("dashboard")}
             >
-              <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-sm shadow-blue-500/20">
-                <Zap className="w-4 h-4 fill-white text-white" />
-              </div>
-              <div>
-                <span className="font-extrabold text-base sm:text-lg text-slate-900 dark:text-white tracking-tight flex items-center gap-0.5">
-                  Aviakassa<span className="text-blue-600">.</span>
-                </span>
-              </div>
+              <Image
+                src="/brand/5tour-wordmark.png"
+                alt="5TOUR"
+                width={1464}
+                height={316}
+                priority
+                className="h-7 sm:h-8 w-auto dark:hidden"
+              />
+              <Image
+                src="/brand/5tour-wordmark-dark.png"
+                alt="5TOUR"
+                width={1464}
+                height={316}
+                priority
+                className="h-7 sm:h-8 w-auto hidden dark:block"
+              />
             </div>
 
             {/* Center: Floating Segmented Pill Nav (Desktop only) */}
@@ -201,7 +209,7 @@ export function Navbar({
                   </div>
                   <div className="text-left hidden sm:block">
                     <span className="block text-xs font-semibold text-slate-900 dark:text-white leading-none">
-                      {currentUser?.name || currentUser?.username || "Aviakassa Admin"}
+                      {currentUser?.name || currentUser?.username || "5TOUR Admin"}
                     </span>
                     <span className="text-[10px] text-slate-400 leading-none mt-0.5 block">
                       {currentUser?.username ? `@${currentUser.username}` : "admin@aviakassa.uz"}
@@ -217,7 +225,7 @@ export function Navbar({
                     {/* Profile header inside dropdown */}
                     <div className="px-3.5 py-2 border-b border-slate-100 dark:border-white/[0.06]">
                       <div className="font-bold text-slate-900 dark:text-white text-xs">
-                        {currentUser?.name || currentUser?.username || "Aviakassa Admin"}
+                        {currentUser?.name || currentUser?.username || "5TOUR Admin"}
                       </div>
                       <div className="text-[11px] text-slate-400">
                         {currentUser?.username ? `@${currentUser.username}` : "admin@aviakassa.uz"}

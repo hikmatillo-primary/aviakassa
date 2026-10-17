@@ -815,7 +815,7 @@ export function AppContainer() {
     const a = document.createElement("a");
     const dateStr = new Date().toISOString().split("T")[0];
     a.href = url;
-    a.download = `aviakassa_zaxira_${dateStr}.json`;
+    a.download = `5tour_zaxira_${dateStr}.json`;
     a.click();
     URL.revokeObjectURL(url);
     showToast("Zaxira nusxa fayli yuklab olindi! 📥");
@@ -846,7 +846,7 @@ export function AppContainer() {
             showToast("Zaxira nusxa muvaffaqiyatli tiklandi! 📦");
           }
         } else {
-          showToast("Fayl formati mos kelmadi! Aviakassa JSON faylini tanlang.", "warning");
+          showToast("Fayl formati mos kelmadi! 5TOUR JSON faylini tanlang.", "warning");
         }
       } catch (err) {
         console.error("Zaxira nusxani tiklashda xato:", err);

@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import { Modal } from "./Modal";
-import { Download, Share2, PlusSquare, Smartphone, CheckCircle2, Zap } from "lucide-react";
+import { Download, Share2, PlusSquare, Smartphone, CheckCircle2 } from "lucide-react";
+import Image from "next/image";
 
 interface PwaInstallModalProps {
   isOpen: boolean;
@@ -42,17 +43,21 @@ export function PwaInstallModal({
       isOpen={isOpen}
       onClose={onClose}
       title="Ilovani o‘rnatish"
-      description="Aviakassa Pro ilovasini smartfoningiz yoki kompyuteringizga o‘rnating"
+      description="5TOUR ilovasini smartfoningiz yoki kompyuteringizga o‘rnating"
       maxWidth="max-w-md"
     >
       <div className="p-4 sm:p-5 space-y-4">
         {/* App Logo & Details */}
         <div className="flex items-center gap-3.5 p-3.5 bg-slate-50 dark:bg-white/[0.03] border border-slate-200/70 dark:border-white/[0.07] rounded-2xl">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-blue-500/30 shrink-0">
-            <Zap className="w-6 h-6 fill-white text-white" />
-          </div>
+          <Image
+            src="/icon-192.png"
+            alt="5TOUR"
+            width={48}
+            height={48}
+            className="w-12 h-12 rounded-2xl shadow-md shadow-blue-500/20 shrink-0"
+          />
           <div>
-            <h4 className="font-bold text-sm text-slate-900 dark:text-white">Aviakassa Pro</h4>
+            <h4 className="font-bold text-sm text-slate-900 dark:text-white">5TOUR</h4>
             <p className="text-xs text-slate-500 dark:text-slate-400">
               Tezkor, xavfsiz va xuddi native ilovadek ishlaydi
             </p>

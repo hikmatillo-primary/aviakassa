@@ -2,12 +2,11 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Aviakassa Pro — Chiptalar va Moliyaviy Balans",
+  title: "5TOUR — Chiptalar va Moliyaviy Balans",
   description: "Partiyalar bo'yicha chipta savdosi va qarz/haq hisob-kitob dasturi",
   manifest: "/manifest.json",
   icons: {
     icon: [
-      { url: "/favicon.svg", type: "image/svg+xml" },
       { url: "/favicon.ico", sizes: "any" },
       { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
     ],
@@ -18,16 +17,16 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Aviakassa",
+    title: "5TOUR",
   },
-  applicationName: "Aviakassa Pro",
+  applicationName: "5TOUR",
   formatDetection: {
     telephone: false,
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#2563EB",
+  themeColor: "#0067FD",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",

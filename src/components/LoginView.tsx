@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { Zap, Lock, User, Eye, EyeOff, ArrowRight, Loader2, ShieldCheck, Sun, Moon } from "lucide-react";
+import { Lock, User, Eye, EyeOff, ArrowRight, Loader2, ShieldCheck, Sun, Moon } from "lucide-react";
+import Image from "next/image";
 import { loginUser, AuthUser } from "@/lib/auth";
 
 interface LoginViewProps {
@@ -54,13 +55,23 @@ export function LoginView({ onLoginSuccess, isDark, onToggleTheme }: LoginViewPr
       <div className="w-full max-w-md">
         {/* Brand Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-blue-600 shadow-lg shadow-blue-500/25 mb-4 text-white">
-            <Zap className="w-7 h-7 fill-white text-white" />
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-            Aviakassa<span className="text-blue-600">.</span>
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1.5 font-medium">
+          <Image
+            src="/brand/5tour-logo.png"
+            alt="5TOUR"
+            width={1464}
+            height={399}
+            priority
+            className="h-14 sm:h-16 w-auto mx-auto dark:hidden"
+          />
+          <Image
+            src="/brand/5tour-logo-dark.png"
+            alt="5TOUR"
+            width={1464}
+            height={399}
+            priority
+            className="h-14 sm:h-16 w-auto mx-auto hidden dark:block"
+          />
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-2 font-medium">
             Avia chiptalar ombori va moliyaviy hisob-kitob tizimi
           </p>
         </div>

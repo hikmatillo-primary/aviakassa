@@ -1,11 +1,10 @@
-// Aviakassa Pro Service Worker
+// 5TOUR Service Worker
 // CACHE_VERSION ni har bir relizda oshiring — activate bosqichida eski kesh o'chiriladi.
-const CACHE_VERSION = "v3";
-const CACHE_NAME = `aviakassa-${CACHE_VERSION}`;
+const CACHE_VERSION = "v4";
+const CACHE_NAME = `5tour-${CACHE_VERSION}`;
 const STATIC_ASSETS = [
   "/",
   "/manifest.json",
-  "/favicon.svg",
   "/favicon.ico",
   "/icon-192.png",
   "/icon-512.png",
@@ -36,7 +35,11 @@ self.addEventListener("activate", (event) => {
       .then((keys) =>
         Promise.all(
           keys
-            .filter((key) => key.startsWith("aviakassa-") && key !== CACHE_NAME)
+            .filter(
+        (key) =>
+          (key.startsWith("aviakassa-") || key.startsWith("5tour-")) &&
+          key !== CACHE_NAME
+      )
             .map((key) => caches.delete(key))
         )
       )
