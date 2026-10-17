@@ -72,12 +72,13 @@ export function BatchDetailView({
 
   const totalPurchaseCost = batch.totalCost || totalQty * (batch.buyPrice || 0);
   const totalSalesAmount = batchSales.reduce((sum, s) => sum + (s.totalAmount || 0), 0);
-  const totalProfit = batchSales.reduce((sum, s) => sum + (s.profit || 0), 0);
+  // Sof foyda = Savdo - Xarid. Natija minus bo'lsa — Zarar.
+  const netProfit = totalSalesAmount - totalPurchaseCost;
 
   return (
     <div className="space-y-4 sm:space-y-5">
-      {/* Orqaga qaytish tugmasi */}
-      <div className="flex items-center justify-between gap-3">
+      {/* Orqaga qaytish tugmasi va ta'minotchi (Kompaniya) nomi */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <button
           type="button"
           onClick={onBack}
@@ -86,6 +87,20 @@ export function BatchDetailView({
           <ArrowLeft className="w-4 h-4 text-slate-500" />
           Omborga qaytish
         </button>
+
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 shrink-0">
+            Kompaniya:
+          </span>
+          <button
+            type="button"
+            onClick={() => onOpenHistoryModal?.(batch.supplierId)}
+            title="Hamkor bilan hisob-kitob (otchyot) oynasini ochish"
+            className="text-lg sm:text-2xl font-black text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors truncate cursor-pointer"
+          >
+            {batch.supplierName}
+          </button>
+        </div>
       </div>
 
       {/* 1. YUQORI BLOK: PARTIYA REYSI VA MOLIYAVIY HISOB-KITOBI */}
@@ -124,7 +139,7 @@ export function BatchDetailView({
               <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                 Shu partiya bo‘yicha hisob-kitob
               </span>
-              <TrendingUp className="w-4 h-4 text-emerald-500" />
+              <TrendingUp className={`w-4 h-4 ${netProfit >= 0 ? "text-emerald-500" : "text-rose-500"}`} />
             </div>
 
             <div className="grid grid-cols-3 gap-2 sm:gap-3 my-auto tabular-nums">
@@ -154,31 +169,49 @@ export function BatchDetailView({
                 </span>
               </div>
 
-              {/* Sof Foyda */}
-              <div className="bg-emerald-500/10 p-2.5 sm:p-3 rounded-xl border border-emerald-500/20 min-w-0">
-                <span className="text-[10px] sm:text-[11px] text-emerald-700 dark:text-emerald-400 font-medium block truncate">
-                  Sof foyda
+              {/* Sof Foyda / Zarar: Savdo - Xarid */}
+              <div
+                className={`p-2.5 sm:p-3 rounded-xl border min-w-0 ${
+                  netProfit >= 0
+                    ? "bg-emerald-500/10 border-emerald-500/20"
+                    : "bg-rose-500/10 border-rose-500/20"
+                }`}
+              >
+                <span
+                  className={`text-[10px] sm:text-[11px] font-medium block truncate ${
+                    netProfit >= 0
+                      ? "text-emerald-700 dark:text-emerald-400"
+                      : "text-rose-700 dark:text-rose-400"
+                  }`}
+                >
+                  {netProfit >= 0 ? "Sof foyda" : "Zarar"}
                 </span>
                 <span
                   className={`text-xs sm:text-base font-bold block mt-1 truncate ${
-                    totalProfit >= 0
+                    netProfit >= 0
                       ? "text-emerald-600 dark:text-emerald-400"
                       : "text-rose-600 dark:text-rose-400"
                   }`}
                 >
-                  {totalProfit >= 0
-                    ? `+${formatUSD(totalProfit)}`
-                    : `-${formatUSD(Math.abs(totalProfit))}`}
+                  {netProfit >= 0
+                    ? `+${formatUSD(netProfit)}`
+                    : `-${formatUSD(Math.abs(netProfit))}`}
                 </span>
-                <span className="text-[10px] text-emerald-600/80 dark:text-emerald-400/80 block mt-0.5 truncate">
-                  Sotilganlardan
+                <span
+                  className={`text-[10px] block mt-0.5 truncate ${
+                    netProfit >= 0
+                      ? "text-emerald-600/80 dark:text-emerald-400/80"
+                      : "text-rose-600/80 dark:text-rose-400/80"
+                  }`}
+                >
+                  Savdo − Xarid
                 </span>
               </div>
             </div>
 
             <div className="text-[11px] text-slate-400 dark:text-slate-500 flex items-center justify-between pt-1 border-t border-slate-200/60 dark:border-white/[0.06] gap-2 flex-wrap">
               <span className="truncate">
-                Kompaniya: <b className="text-slate-700 dark:text-slate-300">{batch.supplierName}</b> • Xarid: <b className="text-slate-700 dark:text-slate-300">{formatDate(batch.purchaseDate)}</b>
+                Xarid sanasi: <b className="text-slate-700 dark:text-slate-300">{formatDate(batch.purchaseDate)}</b>
               </span>
               <div className="flex items-center gap-1.5 flex-wrap">
                 {onOpenPaymentModal && batch.supplierId && (

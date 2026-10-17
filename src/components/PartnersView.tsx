@@ -2,9 +2,10 @@
 
 import React, { useState } from "react";
 import { Search, PackagePlus, Users, Calendar, Pencil, Trash2 } from "lucide-react";
-import { formatUSD, formatDate, matchesBatchSearch } from "@/lib/format";
+import { formatUSD, formatDate, matchesBatchSearch, isDateInRange } from "@/lib/format";
 import { FlightBar } from "@/components/FlightBar";
 import { RowActionsMenu } from "@/components/RowActionsMenu";
+import { DateRangeFilter } from "@/components/DateRangeFilter";
 
 interface PartnersViewProps {
   batches?: any[];
@@ -28,8 +29,18 @@ export function PartnersView({
   onSelectBatch,
 }: PartnersViewProps) {
   const [search, setSearch] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
 
-  const filteredBatches = batches.filter((b) => matchesBatchSearch(b, search));
+  const clearAllFilters = () => {
+    setSearch("");
+    setDateFrom("");
+    setDateTo("");
+  };
+
+  const filteredBatches = batches.filter(
+    (b) => matchesBatchSearch(b, search) && isDateInRange(b.purchaseDate, dateFrom, dateTo)
+  );
 
   return (
     <div className="space-y-5">
@@ -64,19 +75,31 @@ export function PartnersView({
         </div>
       </div>
 
-      {/* Search Bar */}
-      <div className="bg-white dark:bg-[#111726] p-3 rounded-2xl border border-slate-200/70 dark:border-white/[0.07] shadow-2xs flex items-center justify-between">
-        <div className="relative w-full sm:w-96">
-          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3.5 top-2.5" />
-          <input
-            type="text"
-            placeholder="Partiya kodi, yo‘nalish, reys yoki hamkor..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50/80 dark:bg-white/[0.04] border border-slate-200/70 dark:border-white/[0.08] rounded-xl focus:bg-white dark:focus:bg-white/[0.06] focus:outline-none focus:ring-2 focus:ring-blue-500/40 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all"
+      {/* Search & Date Range Filters */}
+      <div className="bg-white dark:bg-[#111726] p-3 rounded-2xl border border-slate-200/70 dark:border-white/[0.07] shadow-2xs flex flex-col lg:flex-row lg:items-center justify-between gap-2.5">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 w-full lg:w-auto">
+          <div className="relative w-full sm:w-80">
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3.5 top-2.5" />
+            <input
+              type="text"
+              placeholder="Partiya kodi, yo‘nalish, reys yoki hamkor..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50/80 dark:bg-white/[0.04] border border-slate-200/70 dark:border-white/[0.08] rounded-xl focus:bg-white dark:focus:bg-white/[0.06] focus:outline-none focus:ring-2 focus:ring-blue-500/40 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all"
+            />
+          </div>
+          <DateRangeFilter
+            from={dateFrom}
+            to={dateTo}
+            onFromChange={setDateFrom}
+            onToChange={setDateTo}
+            onClear={() => {
+              setDateFrom("");
+              setDateTo("");
+            }}
           />
         </div>
-        <div className="text-xs font-medium text-slate-400 dark:text-slate-500 pr-2 hidden sm:block">
+        <div className="text-xs font-medium text-slate-400 dark:text-slate-500 pr-2 hidden sm:block shrink-0">
           Jami:{" "}
           <strong className="text-slate-700 dark:text-slate-300 tabular-nums font-semibold">
             {filteredBatches.length}
@@ -187,10 +210,10 @@ export function PartnersView({
         {filteredBatches.length === 0 && (
           <div className="bg-white dark:bg-[#111726] rounded-2xl border border-slate-200/70 dark:border-white/[0.07] p-8 text-center text-xs text-slate-400 dark:text-slate-500 space-y-2">
             <div>Mos keladigan xaridlar topilmadi</div>
-            {search && (
+            {(search || dateFrom || dateTo) && (
               <button
                 type="button"
-                onClick={() => setSearch("")}
+                onClick={clearAllFilters}
                 className="px-3 py-1.5 bg-slate-100 dark:bg-white/[0.06] text-slate-700 dark:text-slate-200 rounded-lg font-medium cursor-pointer"
               >
                 Filterni tozalash
@@ -294,10 +317,10 @@ export function PartnersView({
                     className="py-12 text-center text-xs text-slate-400 dark:text-slate-500 space-y-2"
                   >
                     <div>Mos keladigan xaridlar topilmadi</div>
-                    {search && (
+                    {(search || dateFrom || dateTo) && (
                       <button
                         type="button"
-                        onClick={() => setSearch("")}
+                        onClick={clearAllFilters}
                         className="mt-2 px-3 py-1.5 bg-slate-100 dark:bg-white/[0.06] text-slate-700 dark:text-slate-200 rounded-lg font-medium cursor-pointer"
                       >
                         Filterni tozalash

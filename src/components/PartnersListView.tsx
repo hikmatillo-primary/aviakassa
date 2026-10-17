@@ -5,12 +5,7 @@ import {
   Users,
   Search,
   UserPlus,
-  ArrowDownLeft,
-  ArrowUpRight,
   Phone,
-  ChevronRight,
-  UserCheck,
-  Building2,
   TrendingDown,
   TrendingUp,
   Pencil,
@@ -60,6 +55,11 @@ export function PartnersListView({
     return matchName || matchPhone || matchNotes || matchTags;
   });
 
+  const clearAllFilters = () => {
+    setSearch("");
+    setFilterType("ALL");
+  };
+
   // Calculate totals
   const totalDebtorsCount = partners.filter((p) => (p.balance || 0) < 0).length;
   const totalCreditorsCount = partners.filter((p) => (p.balance || 0) > 0).length;
@@ -69,6 +69,99 @@ export function PartnersListView({
   const totalSuppliersCredit = partners
     .filter((p) => (p.balance || 0) > 0)
     .reduce((sum, p) => sum + (p.balance || 0), 0);
+
+  const filteredTotalBought = filteredPartners.reduce(
+    (sum, p) => sum + (p.totalBoughtFromUs || 0),
+    0
+  );
+  const filteredTotalSold = filteredPartners.reduce(
+    (sum, p) => sum + (p.totalSoldToUs || 0),
+    0
+  );
+  const filteredNetBalance = filteredPartners.reduce(
+    (sum, p) => sum + (p.balance || 0),
+    0
+  );
+
+  const partnerTypeBadge = (type?: string) => {
+    if (type === "CLIENT") {
+      return (
+        <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[11px] font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400">
+          Mijoz
+        </span>
+      );
+    }
+    if (type === "SUPPLIER") {
+      return (
+        <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[11px] font-semibold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+          Ta’minotchi
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[11px] font-semibold bg-slate-500/10 text-slate-600 dark:text-slate-400">
+        Hamkor
+      </span>
+    );
+  };
+
+  const balanceText = (balance: number) =>
+    balance < 0
+      ? formatUSD(Math.abs(balance))
+      : balance > 0
+      ? formatUSD(balance)
+      : "$0";
+
+  const balanceColor = (balance: number) =>
+    balance < 0
+      ? "text-emerald-600 dark:text-emerald-400"
+      : balance > 0
+      ? "text-rose-600 dark:text-rose-400"
+      : "text-slate-600 dark:text-slate-400";
+
+  const renderActions = (pt: any) => (
+    <div className="inline-flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+      <button
+        type="button"
+        onClick={() => onOpenPaymentModal("INCOME", pt.id)}
+        className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-500/10 dark:hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 transition-all cursor-pointer"
+      >
+        Kirim
+      </button>
+      <button
+        type="button"
+        onClick={() => onOpenPaymentModal("EXPENSE", pt.id)}
+        className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-700 dark:text-rose-400 border border-rose-500/20 transition-all cursor-pointer"
+      >
+        Chiqim
+      </button>
+      {onEditPartner || onDeletePartner ? (
+        <RowActionsMenu
+          actions={[
+            ...(onEditPartner
+              ? [
+                  {
+                    label: "Tahrirlash",
+                    icon: <Pencil className="w-3.5 h-3.5" />,
+                    onClick: () => onEditPartner(pt),
+                  },
+                ]
+              : []),
+            ...(onDeletePartner
+              ? [
+                  {
+                    label: "O‘chirish",
+                    icon: <Trash2 className="w-3.5 h-3.5" />,
+                    onClick: () => onDeletePartner(pt),
+                    variant: "danger" as const,
+                  },
+                ]
+              : []),
+          ]}
+        />
+      ) : null}
+    </div>
+  );
 
   return (
     <div className="space-y-5">
@@ -206,141 +299,175 @@ export function PartnersListView({
         </div>
       </div>
 
-      {/* 4. PARTNERS CARDS GRID */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+      {/* 4. MOBILE LIST VIEW */}
+      <div className="space-y-3 block md:hidden">
         {filteredPartners.map((pt) => {
           const balance = pt.balance || 0;
           return (
             <div
               key={pt.id}
               onClick={() => onSelectPartner(pt.id)}
-              className="bg-white dark:bg-[#111726] p-4 sm:p-5 rounded-2xl border border-slate-200/70 dark:border-white/[0.07] hover:border-blue-400/80 dark:hover:border-blue-500/50 shadow-xs flex flex-col justify-between gap-3.5 cursor-pointer transition-all group"
+              className="bg-white dark:bg-[#111726] p-4 rounded-2xl border border-slate-200/70 dark:border-white/[0.07] hover:border-blue-400/80 dark:hover:border-blue-500/50 shadow-xs space-y-2.5 cursor-pointer transition-all"
             >
-              {/* Partner Card Top */}
               <div className="flex items-start justify-between gap-3">
-                <div className="space-y-1 min-w-0">
-                  <h3 className="font-extrabold text-base sm:text-lg text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors truncate">
+                <div className="min-w-0">
+                  <h3 className="font-bold text-slate-900 dark:text-white text-base truncate">
                     {pt.name}
                   </h3>
-                  {pt.phone && (
-                    <div className="flex items-center gap-1 text-xs text-slate-400 tabular-nums">
-                      <Phone className="w-3 h-3 text-slate-400" />
-                      {pt.phone}
-                    </div>
-                  )}
+                  <div className="flex items-center flex-wrap gap-2 mt-1">
+                    {partnerTypeBadge(pt.type)}
+                    {pt.phone && (
+                      <span className="flex items-center gap-1 text-[11px] text-slate-400 tabular-nums">
+                        <Phone className="w-3 h-3 text-slate-400" />
+                        {pt.phone}
+                      </span>
+                    )}
+                  </div>
                 </div>
-
-                {/* Balans Badge */}
                 <div className="text-right shrink-0 tabular-nums">
                   <span className="text-[10px] text-slate-400 font-semibold block uppercase tracking-wider">
                     Balans
                   </span>
-                  <span
-                    className={`text-base sm:text-lg font-black block mt-0.5 ${
-                      balance < 0
-                        ? "text-emerald-600 dark:text-emerald-400"
-                        : balance > 0
-                        ? "text-rose-600 dark:text-rose-400"
-                        : "text-slate-600 dark:text-slate-400"
-                    }`}
-                  >
-                    {balance < 0
-                      ? formatUSD(Math.abs(balance))
-                      : balance > 0
-                      ? formatUSD(balance)
-                      : "$0"}
+                  <span className={`text-base font-black block mt-0.5 ${balanceColor(balance)}`}>
+                    {balanceText(balance)}
                   </span>
                 </div>
               </div>
 
-              {/* Financial summary row */}
-              <div className="space-y-1 p-2.5 rounded-xl bg-slate-50/70 dark:bg-white/[0.03] border border-slate-100 dark:border-white/[0.05] text-[11px] tabular-nums">
-                <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
-                  <span>Bizdan xarid:</span>
-                  <b className="text-slate-800 dark:text-slate-200">
-                    {formatUSD(pt.totalBoughtFromUs || 0)}
-                  </b>
+              <div className="flex items-center justify-between gap-2 pt-2.5 border-t border-slate-100 dark:border-white/[0.06]">
+                <div className="flex items-center gap-3 text-[11px] text-slate-500 dark:text-slate-400 tabular-nums">
+                  <span>
+                    Xarid:{" "}
+                    <b className="text-slate-800 dark:text-slate-200">
+                      {formatUSD(pt.totalBoughtFromUs || 0)}
+                    </b>
+                  </span>
+                  <span>
+                    Sotgan:{" "}
+                    <b className="text-slate-800 dark:text-slate-200">
+                      {formatUSD(pt.totalSoldToUs || 0)}
+                    </b>
+                  </span>
                 </div>
-                <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
-                  <span>Bizga sotgan:</span>
-                  <b className="text-slate-800 dark:text-slate-200">
-                    {formatUSD(pt.totalSoldToUs || 0)}
-                  </b>
-                </div>
-              </div>
-
-              {/* Card Footer Actions */}
-              <div className="flex items-center justify-between pt-1 border-t border-slate-100 dark:border-white/[0.06] gap-2">
-                <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
-                  Batafsil <ChevronRight className="w-3.5 h-3.5" />
-                </span>
-
-                <div
-                  className="flex items-center gap-1.5"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <button
-                    type="button"
-                    onClick={() => onOpenPaymentModal("INCOME", pt.id)}
-                    className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-500/10 dark:hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 transition-all cursor-pointer"
-                  >
-                    Kirim
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onOpenPaymentModal("EXPENSE", pt.id)}
-                    className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 text-rose-700 dark:text-rose-400 border border-rose-500/20 transition-all cursor-pointer"
-                  >
-                    Chiqim
-                  </button>
-                  {onEditPartner || onDeletePartner ? (
-                    <RowActionsMenu
-                      actions={[
-                        ...(onEditPartner
-                          ? [
-                              {
-                                label: "Tahrirlash",
-                                icon: <Pencil className="w-3.5 h-3.5" />,
-                                onClick: () => onEditPartner(pt),
-                              },
-                            ]
-                          : []),
-                        ...(onDeletePartner
-                          ? [
-                              {
-                                label: "O‘chirish",
-                                icon: <Trash2 className="w-3.5 h-3.5" />,
-                                onClick: () => onDeletePartner(pt),
-                                variant: "danger" as const,
-                              },
-                            ]
-                          : []),
-                      ]}
-                    />
-                  ) : null}
-                </div>
+                {renderActions(pt)}
               </div>
             </div>
           );
         })}
 
         {filteredPartners.length === 0 && (
-          <div className="col-span-full bg-white dark:bg-[#111726] rounded-2xl border border-slate-200/70 dark:border-white/[0.07] p-12 text-center space-y-3">
+          <div className="bg-white dark:bg-[#111726] rounded-2xl border border-slate-200/70 dark:border-white/[0.07] p-8 text-center space-y-3">
             <Users className="w-8 h-8 text-slate-400 mx-auto" />
-            <p className="text-xs sm:text-sm text-slate-400">
+            <p className="text-xs text-slate-400">
               Qidiruv bo‘yicha hamkorlar topilmadi
             </p>
-            {search && (
+            {(search || filterType !== "ALL") && (
               <button
                 type="button"
-                onClick={() => setSearch("")}
+                onClick={clearAllFilters}
                 className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
               >
-                Qidiruvni tozalash
+                Filterni tozalash
               </button>
             )}
           </div>
         )}
+      </div>
+
+      {/* 5. DESKTOP TABLE VIEW */}
+      <div className="hidden md:block bg-white dark:bg-[#111726] rounded-2xl border border-slate-200/70 dark:border-white/[0.07] overflow-hidden shadow-xs p-2">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="border-b border-slate-100 dark:border-white/[0.06] text-xs font-semibold text-slate-400 dark:text-slate-500">
+                <th className="py-3 px-4">Hamkor</th>
+                <th className="py-3 px-4">Turi</th>
+                <th className="py-3 px-4 text-right">Bizdan xarid</th>
+                <th className="py-3 px-4 text-right">Bizga sotgan</th>
+                <th className="py-3 px-4 text-right">Balans</th>
+                <th className="py-3 px-4 text-right">Amal</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-white/[0.05] text-xs text-slate-700 dark:text-slate-300">
+              {filteredPartners.map((pt) => {
+                const balance = pt.balance || 0;
+                return (
+                  <tr
+                    key={pt.id}
+                    onClick={() => onSelectPartner(pt.id)}
+                    className="hover:bg-slate-50/70 dark:hover:bg-white/[0.02] transition-colors cursor-pointer"
+                  >
+                    <td className="py-3.5 px-4">
+                      <div className="font-semibold text-slate-900 dark:text-white">
+                        {pt.name}
+                      </div>
+                      {pt.phone && (
+                        <div className="flex items-center gap-1 text-[11px] text-slate-400 mt-0.5 tabular-nums">
+                          <Phone className="w-3 h-3" />
+                          {pt.phone}
+                        </div>
+                      )}
+                    </td>
+                    <td className="py-3.5 px-4">{partnerTypeBadge(pt.type)}</td>
+                    <td className="py-3.5 px-4 text-right tabular-nums font-medium text-slate-600 dark:text-slate-300">
+                      {formatUSD(pt.totalBoughtFromUs || 0)}
+                    </td>
+                    <td className="py-3.5 px-4 text-right tabular-nums font-medium text-slate-600 dark:text-slate-300">
+                      {formatUSD(pt.totalSoldToUs || 0)}
+                    </td>
+                    <td
+                      className={`py-3.5 px-4 text-right tabular-nums font-bold text-sm ${balanceColor(
+                        balance
+                      )}`}
+                    >
+                      {balanceText(balance)}
+                    </td>
+                    <td className="py-3.5 px-4 text-right">{renderActions(pt)}</td>
+                  </tr>
+                );
+              })}
+
+              {filteredPartners.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="py-12 text-center space-y-3">
+                    <Users className="w-8 h-8 text-slate-400 mx-auto" />
+                    <p className="text-xs text-slate-400">
+                      Qidiruv bo‘yicha hamkorlar topilmadi
+                    </p>
+                    {(search || filterType !== "ALL") && (
+                      <button
+                        type="button"
+                        onClick={clearAllFilters}
+                        className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                      >
+                        Filterni tozalash
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+            {filteredPartners.length > 0 && (
+              <tfoot>
+                <tr className="border-t-2 border-slate-100 dark:border-white/[0.08] bg-slate-50/60 dark:bg-white/[0.02] text-xs font-bold text-slate-800 dark:text-slate-200 tabular-nums">
+                  <td colSpan={2} className="py-3 px-4 text-slate-500 dark:text-slate-400">
+                    Jami ({filteredPartners.length} ta hamkor):
+                  </td>
+                  <td className="py-3 px-4 text-right">{formatUSD(filteredTotalBought)}</td>
+                  <td className="py-3 px-4 text-right">{formatUSD(filteredTotalSold)}</td>
+                  <td
+                    className={`py-3 px-4 text-right text-sm ${balanceColor(
+                      filteredNetBalance
+                    )}`}
+                  >
+                    {balanceText(filteredNetBalance)}
+                  </td>
+                  <td className="py-3 px-4" />
+                </tr>
+              </tfoot>
+            )}
+          </table>
+        </div>
       </div>
     </div>
   );

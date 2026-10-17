@@ -16,7 +16,8 @@ import {
   Plus,
   Loader2,
 } from "lucide-react";
-import { formatUSD, formatDate, paymentMethodLabel } from "@/lib/format";
+import { formatUSD, formatDate, paymentMethodLabel, isDateInRange } from "@/lib/format";
+import { DateRangeFilter } from "@/components/DateRangeFilter";
 import { CashAccount } from "@/lib/storage";
 import { getValidationMessage } from "@/lib/api";
 
@@ -51,6 +52,8 @@ export function PaymentsView({
   const [filter, setFilter] = useState<"ALL" | "INCOME" | "EXPENSE">("ALL");
   const [partnerBalanceFilter, setPartnerBalanceFilter] = useState<"ALL" | "DEBT_US" | "DEBT_THEM">("ALL");
   const [search, setSearch] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [newAccountName, setNewAccountName] = useState("");
   const [isCreatingAccount, setIsCreatingAccount] = useState(false);
   const [accountError, setAccountError] = useState<string | null>(null);
@@ -88,6 +91,7 @@ export function PaymentsView({
   );
 
   const filteredPayments = payments.filter((p) => {
+    if (!isDateInRange(p.paymentDate, dateFrom, dateTo)) return false;
     if (filter === "INCOME" && p.type !== "INCOME") return false;
     if (filter === "EXPENSE" && p.type !== "EXPENSE") return false;
     if (!search.trim()) return true;
@@ -98,6 +102,13 @@ export function PaymentsView({
       p.paymentDate?.toLowerCase().includes(q)
     );
   });
+
+  const clearCashFilters = () => {
+    setSearch("");
+    setFilter("ALL");
+    setDateFrom("");
+    setDateTo("");
+  };
 
   const filteredPartners = partners.filter((pt) => {
     if (partnerBalanceFilter === "DEBT_US" && (pt.balance || 0) >= 0) return false;
@@ -389,6 +400,20 @@ export function PaymentsView({
           />
         </div>
 
+        {/* Date Range for Cash */}
+        {activeSubTab === "CASH" && (
+          <DateRangeFilter
+            from={dateFrom}
+            to={dateTo}
+            onFromChange={setDateFrom}
+            onToChange={setDateTo}
+            onClear={() => {
+              setDateFrom("");
+              setDateTo("");
+            }}
+          />
+        )}
+
         {/* Filter Tabs for Cash */}
         {activeSubTab === "CASH" && (
           <div className="flex items-center gap-1 bg-slate-100/80 dark:bg-white/[0.05] p-1 rounded-xl w-full sm:w-auto">
@@ -536,13 +561,10 @@ export function PaymentsView({
                 <p className="text-xs text-slate-400 dark:text-slate-500">
                   To‘lovlar topilmadi
                 </p>
-                {(search || filter !== "ALL") && (
+                {(search || filter !== "ALL" || dateFrom || dateTo) && (
                   <button
                     type="button"
-                    onClick={() => {
-                      setSearch("");
-                      setFilter("ALL");
-                    }}
+                    onClick={clearCashFilters}
                     className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
                   >
                     Filterni tozalash
@@ -639,13 +661,10 @@ export function PaymentsView({
                         <p className="text-xs text-slate-400 dark:text-slate-500">
                           To‘lovlar topilmadi
                         </p>
-                        {(search || filter !== "ALL") && (
+                        {(search || filter !== "ALL" || dateFrom || dateTo) && (
                           <button
                             type="button"
-                            onClick={() => {
-                              setSearch("");
-                              setFilter("ALL");
-                            }}
+                            onClick={clearCashFilters}
                             className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
                           >
                             Filterni tozalash

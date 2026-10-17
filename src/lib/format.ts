@@ -423,6 +423,20 @@ export function matchesBatchSearch(batch: any, query: string): boolean {
   return buildBatchSearchText(batch).includes(q);
 }
 
+/**
+ * Sana "dan-gacha" oralig'ida ekanligini tekshirish.
+ * Oraliq tanlanmagan bo'lsa — hamma sana mos keladi.
+ * Sana yo'q bo'lsa, lekin oraliq tanlangan bo'lsa — mos kelmaydi.
+ */
+export function isDateInRange(dateStr: string | undefined | null, from: string, to: string): boolean {
+  if (!from && !to) return true;
+  if (!dateStr) return false;
+  const d = dateStr.slice(0, 10);
+  if (from && d < from) return false;
+  if (to && d > to) return false;
+  return true;
+}
+
 export interface FlightDisplayData {
   origin: string;
   destination: string;
