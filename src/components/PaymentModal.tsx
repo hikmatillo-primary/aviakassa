@@ -192,16 +192,16 @@ export function PaymentModal({
                   <span
                     className={`text-xs sm:text-sm font-bold ${
                       (selectedPartner.balance || 0) < 0
-                        ? "text-rose-600 dark:text-rose-400"
-                        : (selectedPartner.balance || 0) > 0
                         ? "text-emerald-600 dark:text-emerald-400"
+                        : (selectedPartner.balance || 0) > 0
+                        ? "text-rose-600 dark:text-rose-400"
                         : "text-slate-600 dark:text-slate-400"
                     }`}
                   >
                     {(selectedPartner.balance || 0) < 0
-                      ? `-${formatUSD(Math.abs(selectedPartner.balance))}`
+                      ? formatUSD(Math.abs(selectedPartner.balance))
                       : (selectedPartner.balance || 0) > 0
-                      ? `+${formatUSD(selectedPartner.balance)}`
+                      ? formatUSD(selectedPartner.balance)
                       : "$0"}
                   </span>
                 </div>
@@ -223,16 +223,16 @@ export function PaymentModal({
                   <strong
                     className={
                       (selectedPartner.balance || 0) < 0
-                        ? "text-rose-600 dark:text-rose-400 font-bold"
-                        : (selectedPartner.balance || 0) > 0
                         ? "text-emerald-600 dark:text-emerald-400 font-bold"
+                        : (selectedPartner.balance || 0) > 0
+                        ? "text-rose-600 dark:text-rose-400 font-bold"
                         : "text-slate-600 dark:text-slate-400 font-bold"
                     }
                   >
                     {(selectedPartner.balance || 0) < 0
-                      ? `-${formatUSD(Math.abs(selectedPartner.balance))}`
+                      ? formatUSD(Math.abs(selectedPartner.balance))
                       : (selectedPartner.balance || 0) > 0
-                      ? `+${formatUSD(selectedPartner.balance)}`
+                      ? formatUSD(selectedPartner.balance)
                       : "$0"}
                   </strong>
                 </div>

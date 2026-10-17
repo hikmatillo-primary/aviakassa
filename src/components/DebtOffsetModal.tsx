@@ -180,7 +180,7 @@ export function DebtOffsetModal({
               <div className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
                 Joriy qarz/haq:{" "}
                 <span className="font-bold font-mono text-slate-800 dark:text-slate-200">
-                  {formatUSD(fromPartner.balance)}
+                  {formatUSD(Math.abs(fromPartner.balance || 0))}
                 </span>
               </div>
             )}
@@ -200,7 +200,7 @@ export function DebtOffsetModal({
               <div className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
                 Joriy qarz/haq:{" "}
                 <span className="font-bold font-mono text-slate-800 dark:text-slate-200">
-                  {formatUSD(toPartner.balance)}
+                  {formatUSD(Math.abs(toPartner.balance || 0))}
                 </span>
               </div>
             )}
@@ -295,7 +295,7 @@ export function DebtOffsetModal({
               <div className="flex justify-between items-center text-slate-700 dark:text-slate-300">
                 <span>{fromPartner.name}:</span>
                 <span className="font-mono">
-                  {formatUSD(fromPartner.balance)} ➔{" "}
+                  {formatUSD(Math.abs(fromPartner.balance || 0))} ➔{" "}
                   <strong className="text-emerald-600 dark:text-emerald-400">
                     {formatUSD(Math.max(0, (fromPartner.balance || 0) - (Number(amount) || 0)))}
                   </strong>
@@ -304,7 +304,7 @@ export function DebtOffsetModal({
               <div className="flex justify-between items-center text-slate-700 dark:text-slate-300">
                 <span>{toPartner.name}:</span>
                 <span className="font-mono">
-                  {formatUSD(toPartner.balance)} ➔{" "}
+                  {formatUSD(Math.abs(toPartner.balance || 0))} ➔{" "}
                   <strong className="text-emerald-600 dark:text-emerald-400">
                     {formatUSD(Math.max(0, (toPartner.balance || 0) - (Number(amount) || 0)))}
                   </strong>

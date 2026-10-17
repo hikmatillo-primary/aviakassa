@@ -103,15 +103,15 @@ export function PartnersListView({
             <span className="text-xs text-slate-400 font-medium block">
               Mijozlar qarzi (Debitorlik)
             </span>
-            <strong className="text-xl sm:text-2xl font-black text-rose-600 dark:text-rose-400 mt-1 block">
-              -{formatUSD(totalClientsDebt)}
+            <strong className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1 block">
+              {formatUSD(totalClientsDebt)}
             </strong>
             <span className="text-[11px] text-slate-400 block mt-0.5">
               {totalDebtorsCount} ta hamkor qarzdor
             </span>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
-            <TrendingDown className="w-5 h-5" />
+          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+            <TrendingUp className="w-5 h-5" />
           </div>
         </div>
 
@@ -121,15 +121,15 @@ export function PartnersListView({
             <span className="text-xs text-slate-400 font-medium block">
               Bizning qarzimiz (Kreditorlik)
             </span>
-            <strong className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1 block">
-              +{formatUSD(totalSuppliersCredit)}
+            <strong className="text-xl sm:text-2xl font-black text-rose-600 dark:text-rose-400 mt-1 block">
+              {formatUSD(totalSuppliersCredit)}
             </strong>
             <span className="text-[11px] text-slate-400 block mt-0.5">
               {totalCreditorsCount} ta ta’minotchi haqi
             </span>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-            <TrendingUp className="w-5 h-5" />
+          <div className="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+            <TrendingDown className="w-5 h-5" />
           </div>
         </div>
 
@@ -185,8 +185,8 @@ export function PartnersListView({
             onClick={() => setFilterType("DEBT_US")}
             className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
               filterType === "DEBT_US"
-                ? "bg-rose-600 text-white shadow-2xs"
-                : "bg-slate-100 dark:bg-white/[0.05] text-rose-600 dark:text-rose-400 hover:bg-rose-50"
+                ? "bg-emerald-600 text-white shadow-2xs"
+                : "bg-slate-100 dark:bg-white/[0.05] text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50"
             }`}
           >
             Qarzdorlar ({totalDebtorsCount})
@@ -197,8 +197,8 @@ export function PartnersListView({
             onClick={() => setFilterType("DEBT_THEM")}
             className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
               filterType === "DEBT_THEM"
-                ? "bg-emerald-600 text-white shadow-2xs"
-                : "bg-slate-100 dark:bg-white/[0.05] text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50"
+                ? "bg-rose-600 text-white shadow-2xs"
+                : "bg-slate-100 dark:bg-white/[0.05] text-rose-600 dark:text-rose-400 hover:bg-rose-50"
             }`}
           >
             Haqdorlar ({totalCreditorsCount})
@@ -238,16 +238,16 @@ export function PartnersListView({
                   <span
                     className={`text-base sm:text-lg font-black block mt-0.5 ${
                       balance < 0
-                        ? "text-rose-600 dark:text-rose-400"
-                        : balance > 0
                         ? "text-emerald-600 dark:text-emerald-400"
+                        : balance > 0
+                        ? "text-rose-600 dark:text-rose-400"
                         : "text-slate-600 dark:text-slate-400"
                     }`}
                   >
                     {balance < 0
-                      ? `-${formatUSD(Math.abs(balance))}`
+                      ? formatUSD(Math.abs(balance))
                       : balance > 0
-                      ? `+${formatUSD(balance)}`
+                      ? formatUSD(balance)
                       : "$0"}
                   </span>
                 </div>

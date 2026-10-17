@@ -332,11 +332,7 @@ export function PartnerSelect({
                               : "text-slate-400"
                           }`}
                         >
-                          {p.balance > 0
-                            ? formatUSD(p.balance)
-                            : p.balance < 0
-                            ? formatUSD(p.balance)
-                            : "$0"}
+                          {formatUSD(Math.abs(p.balance))}
                         </span>
                       )}
                       {isSelected && (

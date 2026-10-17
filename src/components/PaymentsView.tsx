@@ -719,16 +719,16 @@ export function PaymentsView({
                     <span
                       className={`text-lg sm:text-xl font-bold block mt-0.5 ${
                         debt < 0
-                          ? "text-rose-600 dark:text-rose-400"
-                          : debt > 0
                           ? "text-emerald-600 dark:text-emerald-400"
+                          : debt > 0
+                          ? "text-rose-600 dark:text-rose-400"
                           : "text-slate-600 dark:text-slate-400"
                       }`}
                     >
                       {debt < 0
-                        ? `-${formatUSD(Math.abs(debt))}`
+                        ? formatUSD(Math.abs(debt))
                         : debt > 0
-                        ? `+${formatUSD(debt)}`
+                        ? formatUSD(debt)
                         : "$0"}
                     </span>
                   </div>

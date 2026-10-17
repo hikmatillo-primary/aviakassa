@@ -244,7 +244,7 @@ export function DashboardView({
             <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
               Hamkorlar qarzi (Olinishi kerak)
             </span>
-            <div className="w-9 h-9 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+            <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
               <Users className="w-4 h-4" />
             </div>
           </div>
@@ -252,9 +252,9 @@ export function DashboardView({
           <div className="my-2">
             <div className="flex items-baseline gap-2">
               <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-                {stats?.clientDebtToUs ? `-${formatUSD(stats.clientDebtToUs)}` : "$0"}
+                {stats?.clientDebtToUs ? formatUSD(stats.clientDebtToUs) : "$0"}
               </span>
-              <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-lg bg-rose-500/10 text-rose-700 dark:text-rose-400 text-[11px] font-semibold">
+              <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-lg bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-[11px] font-semibold">
                 Qarzdorlik
               </span>
             </div>
@@ -275,7 +275,7 @@ export function DashboardView({
             <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
               Hamkorlar haqi (To‘lanishi kerak)
             </span>
-            <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+            <div className="w-9 h-9 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
               <Layers className="w-4 h-4" />
             </div>
           </div>
@@ -283,9 +283,9 @@ export function DashboardView({
           <div className="my-2">
             <div className="flex items-baseline gap-2">
               <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-                {stats?.ourDebtToSuppliers ? `+${formatUSD(stats.ourDebtToSuppliers)}` : "$0"}
+                {stats?.ourDebtToSuppliers ? formatUSD(stats.ourDebtToSuppliers) : "$0"}
               </span>
-              <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-lg bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-[11px] font-semibold">
+              <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-lg bg-rose-500/10 text-rose-700 dark:text-rose-400 text-[11px] font-semibold">
                 Haqdorlik
               </span>
             </div>

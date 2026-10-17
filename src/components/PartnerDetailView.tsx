@@ -303,9 +303,9 @@ export function PartnerDetailView({
           <div
             className={`p-4 rounded-xl border flex flex-col justify-between ${
               netBalance < 0
-                ? "bg-rose-500/10 border-rose-500/20 text-rose-900 dark:text-rose-200"
-                : netBalance > 0
                 ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-900 dark:text-emerald-200"
+                : netBalance > 0
+                ? "bg-rose-500/10 border-rose-500/20 text-rose-900 dark:text-rose-200"
                 : "bg-slate-100/70 dark:bg-white/[0.04] border-slate-200/70 dark:border-white/[0.06] text-slate-800 dark:text-slate-200"
             }`}
           >
@@ -316,27 +316,27 @@ export function PartnerDetailView({
               <strong
                 className={`text-xl sm:text-2xl font-black mt-1 block ${
                   netBalance < 0
-                    ? "text-rose-600 dark:text-rose-400"
-                    : netBalance > 0
                     ? "text-emerald-600 dark:text-emerald-400"
+                    : netBalance > 0
+                    ? "text-rose-600 dark:text-rose-400"
                     : "text-slate-700 dark:text-slate-300"
                 }`}
               >
                 {netBalance < 0
-                  ? `-${formatUSD(Math.abs(netBalance))}`
+                  ? formatUSD(Math.abs(netBalance))
                   : netBalance > 0
-                  ? `+${formatUSD(netBalance)}`
+                  ? formatUSD(netBalance)
                   : "$0"}
               </strong>
             </div>
             <div className="text-[11px] font-medium pt-2 mt-2 border-t border-black/5 dark:border-white/5">
               {netBalance < 0 ? (
-                <span className="text-rose-700 dark:text-rose-300">
-                  ⚠️ Hamkor bizdan qarzdor
+                <span className="text-emerald-700 dark:text-emerald-300">
+                  ✨ Hamkor bizdan qarzdor
                 </span>
               ) : netBalance > 0 ? (
-                <span className="text-emerald-700 dark:text-emerald-300">
-                  ✨ Hamkorning bizda haqi bor
+                <span className="text-rose-700 dark:text-rose-300">
+                  ⚠️ Hamkorning bizda haqi bor
                 </span>
               ) : (
                 <span className="text-slate-500 dark:text-slate-400">
