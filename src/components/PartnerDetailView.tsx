@@ -122,6 +122,10 @@ export function PartnerDetailView({
   const supplierDebt = totalSoldToUs - totalPaidByUs;
   const netBalance = supplierDebt - clientDebt + offsetFrom - offsetTo;
 
+  // Ishorali summa ko'rinishi: +$1,200 / -$1,200
+  const signedUSD = (n: number) =>
+    n < 0 ? `-${formatUSD(Math.abs(n))}` : `+${formatUSD(n)}`;
+
   // Search filters inside tabs
   const q = searchQuery.toLowerCase().trim();
 
@@ -291,13 +295,35 @@ export function PartnerDetailView({
             <strong className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white mt-1 block">
               {formatUSD(totalBoughtFromUs)}
             </strong>
-            <div className="flex items-center justify-between text-xs mt-2 pt-2 border-t border-slate-200/50 dark:border-white/[0.06]">
-              <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
-                To‘lagan: +{formatUSD(totalPaidToUs)}
-              </span>
-              <span className="text-slate-400">
-                {partnerSales.length} ta sotuv
-              </span>
+            <div className="mt-2.5 pt-2.5 border-t border-slate-200/50 dark:border-white/[0.06] space-y-1 text-[11px] tabular-nums">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-slate-400">{partnerSales.length} ta sotuv yig‘indisi</span>
+                <span className="font-semibold text-slate-600 dark:text-slate-300">
+                  {formatUSD(totalBoughtFromUs)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-slate-400">To‘lagan (kirim)</span>
+                <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                  - {formatUSD(totalPaidToUs)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-2 pt-1 border-t border-dashed border-slate-200/70 dark:border-white/[0.08]">
+                <span className="font-medium text-slate-500 dark:text-slate-400">
+                  = {clientDebt > 0 ? "Hamkor qarzi" : clientDebt < 0 ? "Biz qaytaramiz" : "Sof"}
+                </span>
+                <span
+                  className={`font-bold ${
+                    clientDebt > 0
+                      ? "text-emerald-600 dark:text-emerald-400"
+                      : clientDebt < 0
+                      ? "text-rose-600 dark:text-rose-400"
+                      : "text-slate-600 dark:text-slate-300"
+                  }`}
+                >
+                  {formatUSD(Math.abs(clientDebt))}
+                </span>
+              </div>
             </div>
           </div>
 
@@ -309,13 +335,35 @@ export function PartnerDetailView({
             <strong className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white mt-1 block">
               {formatUSD(totalSoldToUs)}
             </strong>
-            <div className="flex items-center justify-between text-xs mt-2 pt-2 border-t border-slate-200/50 dark:border-white/[0.06]">
-              <span className="text-rose-600 dark:text-rose-400 font-semibold">
-                To‘laganmiz: -{formatUSD(totalPaidByUs)}
-              </span>
-              <span className="text-slate-400">
-                {partnerBatches.length} ta partiya
-              </span>
+            <div className="mt-2.5 pt-2.5 border-t border-slate-200/50 dark:border-white/[0.06] space-y-1 text-[11px] tabular-nums">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-slate-400">{partnerBatches.length} ta partiya yig‘indisi</span>
+                <span className="font-semibold text-slate-600 dark:text-slate-300">
+                  {formatUSD(totalSoldToUs)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-slate-400">To‘laganmiz (chiqim)</span>
+                <span className="font-semibold text-rose-600 dark:text-rose-400">
+                  - {formatUSD(totalPaidByUs)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-2 pt-1 border-t border-dashed border-slate-200/70 dark:border-white/[0.08]">
+                <span className="font-medium text-slate-500 dark:text-slate-400">
+                  = {supplierDebt > 0 ? "Bizning qarzimiz" : supplierDebt < 0 ? "Hamkor qaytaradi" : "Sof"}
+                </span>
+                <span
+                  className={`font-bold ${
+                    supplierDebt > 0
+                      ? "text-rose-600 dark:text-rose-400"
+                      : supplierDebt < 0
+                      ? "text-emerald-600 dark:text-emerald-400"
+                      : "text-slate-600 dark:text-slate-300"
+                  }`}
+                >
+                  {formatUSD(Math.abs(supplierDebt))}
+                </span>
+              </div>
             </div>
           </div>
 
@@ -348,6 +396,32 @@ export function PartnerDetailView({
                   ? formatUSD(netBalance)
                   : "$0"}
               </strong>
+            </div>
+            <div className="text-[11px] space-y-1 py-2 my-2 border-t border-black/5 dark:border-white/10 tabular-nums">
+              <div className="flex items-center justify-between gap-2">
+                <span className="opacity-70">
+                  Bizga sotgan ({formatUSD(totalSoldToUs)} - {formatUSD(totalPaidByUs)} to‘lov)
+                </span>
+                <span className="font-bold">{signedUSD(supplierDebt)}</span>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="opacity-70">
+                  Bizdan xarid ({formatUSD(totalBoughtFromUs)} - {formatUSD(totalPaidToUs)} to‘lov)
+                </span>
+                <span className="font-bold">{signedUSD(-clientDebt)}</span>
+              </div>
+              {(offsetFrom > 0 || offsetTo > 0) && (
+                <div className="flex items-center justify-between gap-2">
+                  <span className="opacity-70">
+                    Qarz surishlar ({formatUSD(offsetFrom)} - {formatUSD(offsetTo)})
+                  </span>
+                  <span className="font-bold">{signedUSD(offsetFrom - offsetTo)}</span>
+                </div>
+              )}
+              <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-dashed border-black/10 dark:border-white/10 font-bold">
+                <span>= Umumiy sal’do</span>
+                <span>{netBalance === 0 ? "$0" : signedUSD(netBalance)}</span>
+              </div>
             </div>
             <div className="text-[11px] font-medium pt-2 mt-2 border-t border-black/5 dark:border-white/5">
               {netBalance < 0 ? (
