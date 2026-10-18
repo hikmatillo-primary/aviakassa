@@ -286,6 +286,41 @@ def close_database(registry_id: int) -> DatabaseRegistry:
     return registry
 
 
+def delete_database(registry_id: int) -> str:
+    """Bazani o'chiradi (PostgreSQL bazasini va registry yozuvini).
+
+    Asosiy baza (DEFAULT_ALIAS) yoki ayni vaqtda faol (is_active=True)
+    bo'lgan bazani o'chirib bo'lmaydi.
+    """
+    with transaction.atomic(using=DEFAULT_ALIAS):
+        registry = (
+            DatabaseRegistry.objects.using(DEFAULT_ALIAS)
+            .select_for_update()
+            .get(pk=registry_id)
+        )
+        if registry.is_active:
+            raise DatabaseError("Faol bazani o'chirib bo'lmaydi. Avval boshqa bazaga o'ting.")
+        if registry.db_name == default_db_name():
+            raise DatabaseError("Asosiy bazani o'chirib bo'lmaydi.")
+
+        db_name = registry.db_name
+        name = registry.name
+        registry.delete(using=DEFAULT_ALIAS)
+
+    # Ulanishni yopish va PostgreSQL bazasini o'chirish
+    alias = alias_for(db_name)
+    if alias in connections:
+        try:
+            connections[alias].close()
+        except Exception:
+            pass
+        connections.databases.pop(alias, None)
+
+    _drop_postgres_database(db_name)
+    logger.warning("BAZA O'CHIRILDI: name=%s db=%s", name, db_name)
+    return name
+
+
 def active_db_name() -> str:
     """Faol baza nomini qaytaradi.
 

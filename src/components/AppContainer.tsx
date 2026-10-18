@@ -224,28 +224,6 @@ export function AppContainer() {
         </div>
       )}
 
-      {activeDatabase && !activeDatabase.isBase && (
-        <div
-          role="alert"
-          className="bg-amber-50 dark:bg-amber-950/40 border-b border-amber-200 dark:border-amber-900/40 px-4 py-2.5 text-amber-800 dark:text-amber-300 text-xs sm:text-sm font-medium flex flex-wrap items-center justify-center gap-x-3 gap-y-1"
-        >
-          <span className="inline-flex items-center gap-1.5">
-            <AlertCircle className="w-4 h-4 shrink-0" />
-            Diqqat: hozir «{activeDatabase.name}» bazasi faol — bu asosiy baza emas.
-            Ma&apos;lumotlar shu bazadan ko&apos;rsatilmoqda.
-          </span>
-          {currentUser?.isStaff && (
-            <button
-              type="button"
-              onClick={() => modals.setIsDatabaseModalOpen(true)}
-              className="underline font-bold cursor-pointer"
-            >
-              Bazalarni boshqarish
-            </button>
-          )}
-        </div>
-      )}
-
       {/* Navbar with exact requested tabs, dark mode toggle and user profile */}
       <Navbar
         activeTab={activeTab}
@@ -265,6 +243,7 @@ export function AppContainer() {
         onExportData={actions.handleExportBackup}
         onImportData={() => fileInputRef.current?.click()}
         onOpenDatabases={() => modals.setIsDatabaseModalOpen(true)}
+        databases={databases}
         activeDatabaseName={databases.find((d) => d.isActive)?.name}
       />
 

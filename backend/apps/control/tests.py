@@ -117,6 +117,33 @@ class RegistryAPITests(APITestCase):
         res = self.client.post("/api/databases/999999/activate/", {}, format="json")
         self.assertEqual(res.status_code, status.HTTP_404_NOT_FOUND)
 
+    def test_delete_requires_password(self):
+        self.client.force_authenticate(user=self.admin)
+        second = DatabaseRegistry.objects.create(name="Ikkinchi", db_name="aviakassa_test_del")
+        res = self.client.delete(f"/api/databases/{second.id}/", {}, format="json")
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("password", res.data)
+
+    def test_delete_wrong_password_fails(self):
+        self.client.force_authenticate(user=self.admin)
+        second = DatabaseRegistry.objects.create(name="Ikkinchi", db_name="aviakassa_test_del")
+        res = self.client.delete(
+            f"/api/databases/{second.id}/", {"password": "wrong-password"}, format="json"
+        )
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(res.data["password"], ["Parol noto'g'ri kiritildi."])
+
+    def test_delete_active_database_fails(self):
+        self.client.force_authenticate(user=self.admin)
+        services.invalidate_active_cache()
+        services.active_db_name()
+        active = DatabaseRegistry.objects.get(is_active=True)
+        res = self.client.delete(
+            f"/api/databases/{active.id}/", {"password": "test-pass-12345"}, format="json"
+        )
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("Faol bazani o'chirib bo'lmaydi", res.data["detail"])
+
 
 class ActiveDatabaseResolutionTests(APITestCase):
     def setUp(self):

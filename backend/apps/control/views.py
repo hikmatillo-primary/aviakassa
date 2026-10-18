@@ -85,3 +85,34 @@ def close_database(request, pk: int):
             {"detail": "Baza topilmadi."}, status=status.HTTP_404_NOT_FOUND
         )
     return Response({"database": _serialize(registry), "detail": "Baza yopildi."})
+
+
+@api_view(["POST", "DELETE"])
+@permission_classes([IsAdminUser])
+def delete_database(request, pk: int):
+    """Bazani o'chirish (joriy parolni tekshirish bilan)."""
+    password = request.data.get("password") or request.query_params.get("password")
+    if not password:
+        return Response(
+            {"password": ["Bazani o'chirish uchun joriy parolingizni kiriting."]},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    if not request.user.check_password(str(password)):
+        return Response(
+            {"password": ["Parol noto'g'ri kiritildi."]},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    try:
+        name = services.delete_database(pk)
+    except ObjectDoesNotExist:
+        return Response(
+            {"detail": "Baza topilmadi."}, status=status.HTTP_404_NOT_FOUND
+        )
+    except services.DatabaseError as exc:
+        return Response(
+            {"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST
+        )
+
+    return Response({"detail": f'"{name}" bazasi muvaffaqiyatli o\'chirildi.'})
+

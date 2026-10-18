@@ -579,3 +579,13 @@ export async function apiCloseDatabase(id: number): Promise<{ database: Database
     method: "POST",
   });
 }
+
+export async function apiDeleteDatabase(
+  id: number,
+  password: string
+): Promise<{ detail: string }> {
+  return request<{ detail: string }>(`/databases/${id}/`, {
+    method: "DELETE",
+    body: JSON.stringify({ password }),
+  });
+}

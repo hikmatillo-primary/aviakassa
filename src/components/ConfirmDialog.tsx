@@ -11,7 +11,7 @@ interface ConfirmDialogProps {
   message: React.ReactNode;
   confirmLabel?: string;
   cancelLabel?: string;
-  variant?: "danger" | "info";
+  variant?: "danger" | "info" | "primary";
   onCancel: () => void;
   onConfirm: () => void | Promise<void>;
 }
@@ -30,6 +30,7 @@ export function ConfirmDialog({
   const [error, setError] = useState<string | null>(null);
 
   const isInfo = variant === "info";
+  const isPrimary = variant === "primary";
 
   useEffect(() => {
     if (isOpen) {
@@ -74,10 +75,14 @@ export function ConfirmDialog({
         type="button"
         onClick={handleConfirm}
         disabled={isSubmitting}
-        className="inline-flex items-center gap-2 px-6 py-2.5 text-xs sm:text-sm font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-sm shadow-rose-500/20 transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+        className={`inline-flex items-center gap-2 px-6 py-2.5 text-xs sm:text-sm font-bold text-white rounded-xl shadow-sm transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed ${
+          isPrimary
+            ? "bg-blue-600 hover:bg-blue-700 shadow-blue-500/20"
+            : "bg-rose-600 hover:bg-rose-700 shadow-rose-500/20"
+        }`}
       >
         {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
-        {isSubmitting ? "Bajarilmoqda..." : confirmLabel || "O‘chirish"}
+        {isSubmitting ? "Bajarilmoqda..." : confirmLabel || (isPrimary ? "Tasdiqlash" : "O‘chirish")}
       </button>
     </div>
   );
@@ -94,12 +99,12 @@ export function ConfirmDialog({
       <div className="flex items-start gap-3">
         <div
           className={
-            isInfo
+            isInfo || isPrimary
               ? "w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0"
               : "w-10 h-10 rounded-full bg-rose-100 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0"
           }
         >
-          {isInfo ? <Info className="w-5 h-5" /> : <AlertTriangle className="w-5 h-5" />}
+          {isInfo || isPrimary ? <Info className="w-5 h-5" /> : <AlertTriangle className="w-5 h-5" />}
         </div>
         <div className="space-y-2 min-w-0">
           <div className="text-sm text-slate-700 dark:text-slate-200">{message}</div>

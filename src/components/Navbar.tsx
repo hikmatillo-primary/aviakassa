@@ -16,9 +16,14 @@ import {
   LogOut,
   Smartphone,
   Database,
+  ChevronDown,
+  CheckCircle2,
+  ServerCog,
 } from "lucide-react";
 import Image from "next/image";
 import { PwaInstallModal } from "./PwaInstallModal";
+import { ConfirmDialog } from "./ConfirmDialog";
+import { DatabaseInfo, apiActivateDatabase } from "@/lib/api";
 
 interface NavbarProps {
   activeTab: string;
@@ -33,6 +38,7 @@ interface NavbarProps {
   onExportData?: () => void;
   onImportData?: () => void;
   onOpenDatabases?: () => void;
+  databases?: DatabaseInfo[];
   activeDatabaseName?: string;
 }
 
@@ -49,13 +55,18 @@ export function Navbar({
   onExportData,
   onImportData,
   onOpenDatabases,
+  databases,
   activeDatabaseName,
 }: NavbarProps) {
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
+  const [showDbMenu, setShowDbMenu] = useState(false);
+  const [confirmSwitchDb, setConfirmSwitchDb] = useState<DatabaseInfo | null>(null);
+  const [isSwitching, setIsSwitching] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isStandalone, setIsStandalone] = useState(false);
   const [showInstallModal, setShowInstallModal] = useState(false);
   const settingsRef = useRef<HTMLDivElement>(null);
+  const dbMenuRef = useRef<HTMLDivElement>(null);
 
   // Check standalone mode and listen for PWA install prompt
   useEffect(() => {
@@ -111,10 +122,14 @@ export function Navbar({
       if (settingsRef.current && !settingsRef.current.contains(e.target as Node)) {
         setShowSettingsMenu(false);
       }
+      if (dbMenuRef.current && !dbMenuRef.current.contains(e.target as Node)) {
+        setShowDbMenu(false);
+      }
     };
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         setShowSettingsMenu(false);
+        setShowDbMenu(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -124,6 +139,27 @@ export function Navbar({
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, []);
+
+  const currentActiveDb = databases?.find((d) => d.isActive);
+  const displayName = currentActiveDb?.name || activeDatabaseName || "Asosiy";
+  const isCustomDbActive = Boolean(
+    currentActiveDb &&
+      currentActiveDb.dbName !== "aviakassa_db" &&
+      currentActiveDb.dbName !== "default"
+  );
+
+  const handleSwitchDatabase = async () => {
+    if (!confirmSwitchDb) return;
+    setIsSwitching(true);
+    try {
+      await apiActivateDatabase(confirmSwitchDb.id);
+      window.location.reload();
+    } catch (e) {
+      console.error(e);
+      setIsSwitching(false);
+      setConfirmSwitchDb(null);
+    }
+  };
 
   const navItems = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -184,6 +220,116 @@ export function Navbar({
 
             {/* Right: Quick Action, Theme Toggle & User Profile with Settings Dropdown */}
             <div className="flex items-center gap-2">
+              {/* Database Switcher (Theme toggle yonida, faqat staff uchun) */}
+              {currentUser?.isStaff && (
+                <div className="relative" ref={dbMenuRef}>
+                  <button
+                    type="button"
+                    onClick={() => setShowDbMenu((prev) => !prev)}
+                    title={`Faol baza: ${displayName}`}
+                    aria-label="Ma'lumotlar bazasini almashtirish"
+                    aria-haspopup="menu"
+                    aria-expanded={showDbMenu}
+                    className={`h-9 px-2.5 sm:px-3 rounded-xl border flex items-center gap-1.5 text-xs font-semibold shadow-xs transition-all cursor-pointer ${
+                      isCustomDbActive
+                        ? "bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-700/50 text-amber-700 dark:text-amber-300 hover:bg-amber-100/70 dark:hover:bg-amber-900/40"
+                        : "bg-white dark:bg-[#111726] border-slate-200/80 dark:border-white/[0.08] text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/[0.05]"
+                    }`}
+                  >
+                    <Database className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+                    <span className="truncate max-w-[5.5rem] sm:max-w-[7.5rem] font-bold">
+                      {displayName}
+                    </span>
+                    {isCustomDbActive && (
+                      <span
+                        className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse shrink-0"
+                        title="Maxsus baza faol"
+                      />
+                    )}
+                    <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  </button>
+
+                  {showDbMenu && (
+                    <div className="absolute right-0 mt-2 w-64 sm:w-72 bg-white dark:bg-[#111726] rounded-2xl shadow-xl border border-slate-200/80 dark:border-white/[0.08] py-2 z-50 text-xs font-medium animate-in fade-in zoom-in-95 duration-100">
+                      <div className="px-3.5 py-2 border-b border-slate-100 dark:border-white/[0.06]">
+                        <div className="flex items-center gap-1.5 font-bold text-slate-900 dark:text-white text-xs">
+                          <Database className="w-3.5 h-3.5 text-blue-600" />
+                          Ma&apos;lumotlar bazasi
+                        </div>
+                        <div className="text-[11px] text-slate-400 mt-0.5">
+                          Faol: <span className="font-semibold text-slate-700 dark:text-slate-200">{displayName}</span>
+                        </div>
+                      </div>
+
+                      <div className="max-h-60 overflow-y-auto py-1">
+                        {(!databases || databases.length === 0) && (
+                          <div className="px-3.5 py-2 text-slate-400 text-center text-xs">
+                            Bazalar ro&apos;yxati yo&apos;q
+                          </div>
+                        )}
+                        {databases?.map((db) => {
+                          const isBase =
+                            db.dbName === "aviakassa_db" || db.dbName === "default";
+                          return (
+                            <button
+                              key={db.id}
+                              type="button"
+                              onClick={() => {
+                                setShowDbMenu(false);
+                                if (!db.isActive) {
+                                  setConfirmSwitchDb(db);
+                                }
+                              }}
+                              className={`w-full px-3.5 py-2 text-left flex items-center justify-between gap-2 transition-colors cursor-pointer ${
+                                db.isActive
+                                  ? "bg-blue-50/70 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 font-bold"
+                                  : "hover:bg-slate-50 dark:hover:bg-white/[0.05] text-slate-700 dark:text-slate-300"
+                              }`}
+                            >
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-1.5 truncate">
+                                  <span className="truncate">{db.name}</span>
+                                  {isBase && (
+                                    <span className="text-[9px] px-1 py-0.2 rounded font-semibold bg-slate-100 dark:bg-white/[0.08] text-slate-500">
+                                      Asosiy
+                                    </span>
+                                  )}
+                                </div>
+                                <span className="text-[10px] text-slate-400 block truncate">
+                                  {db.dbName}
+                                </span>
+                              </div>
+
+                              {db.isActive && (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-1.5 py-0.5 rounded-md shrink-0">
+                                  <CheckCircle2 className="w-3 h-3" /> Faol
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {onOpenDatabases && (
+                        <div className="pt-1 mt-1 border-t border-slate-100 dark:border-white/[0.06] px-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowDbMenu(false);
+                              onOpenDatabases();
+                            }}
+                            className="w-full px-2.5 py-2 rounded-xl text-left hover:bg-slate-50 dark:hover:bg-white/[0.05] flex items-center gap-2 text-blue-600 dark:text-blue-400 font-semibold cursor-pointer"
+                          >
+                            <ServerCog className="w-3.5 h-3.5" />
+                            Bazalarni boshqarish...
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Dark Mode Toggle */}
               <button
                 onClick={onToggleTheme}
@@ -345,6 +491,22 @@ export function Navbar({
         onClose={() => setShowInstallModal(false)}
         deferredPrompt={deferredPrompt}
         onInstalled={() => setIsStandalone(true)}
+      />
+
+      {/* Bazaga o'tish tasdiq modali (in-app, brauzer pop-up'isiz) */}
+      <ConfirmDialog
+        isOpen={confirmSwitchDb !== null}
+        title="Bazaga o'tish"
+        message={
+          <span>
+            «<strong>{confirmSwitchDb?.name}</strong>» bazasiga o&apos;tilsinmi?
+            Barcha foydalanuvchilar shu bazaga o&apos;tadi va yangi ma&apos;lumotlar ushbu bazada yuritiladi.
+          </span>
+        }
+        variant="primary"
+        confirmLabel={isSwitching ? "O'tilmoqda..." : "O'tish"}
+        onCancel={() => setConfirmSwitchDb(null)}
+        onConfirm={handleSwitchDatabase}
       />
     </>
   );
