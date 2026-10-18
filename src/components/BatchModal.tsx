@@ -168,7 +168,7 @@ export function BatchModal({
       }
     }
     prevIsOpenRef.current = isOpen;
-  }, [isOpen]);
+  }, [isOpen, repeatFrom]);
 
   // Yangi hamkor qo'shilganda avtomatik tanlash
   useEffect(() => {

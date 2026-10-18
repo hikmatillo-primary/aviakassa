@@ -110,17 +110,6 @@ export function BatchDetailView({
           Omborga qaytish
         </button>
 
-        {onRepeatBatch && (
-          <button
-            type="button"
-            onClick={() => onRepeatBatch(batch)}
-            className="inline-flex items-center gap-2 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-sm shadow-blue-500/20 transition-all cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            Yana qo&apos;shish
-          </button>
-        )}
-
         <div className="flex items-center gap-2 min-w-0">
           <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 shrink-0">
             Kompaniya:
@@ -249,6 +238,17 @@ export function BatchDetailView({
                 Xarid sanasi: <b className="text-slate-700 dark:text-slate-300">{formatDate(batch.purchaseDate)}</b>
               </span>
               <div className="flex items-center gap-1.5 flex-wrap">
+                {onRepeatBatch && (
+                  <button
+                    type="button"
+                    onClick={() => onRepeatBatch(batch)}
+                    title="Yana qo'shish"
+                    aria-label="Yana qo'shish"
+                    className="inline-flex items-center justify-center w-7 h-7 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm shadow-blue-500/20 transition-all cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                )}
                 {onOpenPaymentModal && batch.supplierId && (
                   <button
                     type="button"
