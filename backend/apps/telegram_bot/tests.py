@@ -85,6 +85,20 @@ class ExpiringBatchesQueryTests(TestCase):
         upcoming, _ = services.get_expiring_batches(5, self.today)
         self.assertEqual([b.pk for b in upcoming], [sooner.pk, later.pk])
 
+    def test_round_trip_uses_flight_date_when_outbound_is_soon(self):
+        # Borish 2 kundan keyin, qaytish 25 kundan keyin: borish zudlik bilan aniqlanishi shart!
+        rt_batch = self._batch(
+            "P00035",
+            self.today + timedelta(days=2),
+            remaining=5,
+            total=10,
+            is_round_trip=True,
+            return_date=self.today + timedelta(days=25),
+            return_remaining_qty=5,
+        )
+        upcoming, _ = services.get_expiring_batches(3, self.today)
+        self.assertIn(rt_batch.pk, [b.pk for b in upcoming])
+
 
 class MessageFormattingTests(TestCase):
     def setUp(self):
@@ -181,8 +195,19 @@ class HandleCommandTests(TestCase):
         self.assertIn("send_group", callback_data)
         self.assertIn("expiring:5", callback_data)
 
-    def test_plain_text_ignored(self):
-        self.assertIsNone(services.handle_command("salom", 5))
+    def test_plain_text_acts_as_search(self):
+        reply = services.handle_command("DXB", 5)
+        self.assertIn("P00005", reply["text"])
+        self.assertIn("qidiruv natijalari", reply["text"])
+
+    def test_bugun_command(self):
+        reply = services.handle_command("/bugun", 5)
+        self.assertIn("SHOSHILINCH", reply["text"])
+
+    def test_search_command(self):
+        reply = services.handle_command("/qidir DXB", 5)
+        self.assertIn("P00005", reply["text"])
+        self.assertIn("DXB", reply["text"])
 
     def test_muddati_default_days(self):
         reply = services.handle_command("/muddati", 5)

@@ -31,8 +31,11 @@ def active_database():
             reset_active_alias(token)
 
 COMMANDS_MENU = [
+    {"command": "bugun", "description": "Bugun va ertaga uchadigan chiptalar (Shoshilinch)"},
     {"command": "muddati", "description": "Muddati yaqin chiptalar ro'yxati"},
-    {"command": "help", "description": "Yordam"},
+    {"command": "otgan", "description": "Muddati o'tgan, lekin qoldig'i bor partiyalar"},
+    {"command": "qidir", "description": "Yo'nalish yoki partiya bo'yicha qidirish"},
+    {"command": "help", "description": "Yordam va qo'llanma"},
 ]
 
 
@@ -118,7 +121,7 @@ class Command(BaseCommand):
         self.stdout.write(f"Xabar keldi: chat_id={chat_id} type={chat_type} text={text[:120]!r}")
 
         try:
-            reply = services.handle_command(text, services.get_default_days())
+            reply = services.handle_message_text(text, services.get_default_days())
         except Exception as exc:  # noqa: BLE001
             self.stderr.write(f"Buyruqni bajarishda xato: {exc}")
             reply = {"text": "⚠️ Xatolik yuz berdi, keyinroq urinib ko'ring."}
@@ -127,7 +130,8 @@ class Command(BaseCommand):
             return
 
         try:
-            services.send_message(chat_id, reply["text"], reply_markup=reply.get("reply_markup"))
+            markup = reply.get("chat_reply_markup") or reply.get("reply_markup")
+            services.send_message(chat_id, reply["text"], reply_markup=markup)
         except Exception as exc:  # noqa: BLE001
             self.stderr.write(f"sendMessage xatosi (chat_id={chat_id}): {exc}")
 
