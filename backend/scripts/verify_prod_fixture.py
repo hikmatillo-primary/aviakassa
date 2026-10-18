@@ -136,3 +136,64 @@ client_partner.delete()
 call_command("check_integrity")
 print("E2E: OK")
 
+# ------------------------------------------------------------------
+# Avto-xarid: haftalik generatsiya + hisobga olish
+# ------------------------------------------------------------------
+supplier.refresh_from_db()
+balance_before = supplier.compute_financials()["total_sold_to_us"]
+
+auto_res = api.post(
+    "/api/batches/auto/",
+    {
+        "supplierId": supplier.id,
+        "route": "TAS-AUTO",
+        "flightNumber": "7Q-AUTO",
+        "departureTime": "15:30",
+        "arrivalTime": "12:15",
+        "isRoundTrip": True,
+        "returnFlightNumber": "7Q-AUTO2",
+        "returnDepartureTime": "23:10",
+        "returnArrivalTime": "06:20",
+        "totalQty": 10,
+        "buyPrice": 100,
+        "flightDate": "2026-11-02",
+        "returnDate": "2026-11-15",
+        "until": "2026-12-14",
+        "intervalDays": 7,
+    },
+    format="json",
+)
+assert auto_res.status_code == 201, auto_res.content
+created_auto = auto_res.data["created"]
+series_id = auto_res.data["seriesId"]
+assert len(created_auto) == 7, len(created_auto)
+assert all(b["accountedAt"] is None for b in created_auto)
+for b in created_auto:
+    assert b["isAuto"] is True
+    assert b["totalQty"] == 10
+    assert float(b["buyPrice"]) == 100.0
+print("avto-xarid: 7 ta partiya (02.11 … 14.12), hisobga olinmagan — OK")
+
+supplier.refresh_from_db()
+assert supplier.compute_financials()["total_sold_to_us"] == balance_before, "balans o'zgarmasligi kerak"
+print("hisobga olinmaguncha balans o'zgarmadi — OK")
+
+account_res = api.post(f"/api/batches/{created_auto[0]['id']}/account/")
+assert account_res.status_code == 200, account_res.content
+supplier.refresh_from_db()
+assert supplier.compute_financials()["total_sold_to_us"] == balance_before + Decimal("1000.00")
+print("bitta partiya hisobga olindi: +$1000 — OK")
+
+all_res = api.post("/api/batches/account-all/", {"seriesId": series_id}, format="json")
+assert all_res.status_code == 200, all_res.content
+assert all_res.data["updated"] == 6, all_res.data
+supplier.refresh_from_db()
+assert supplier.compute_financials()["total_sold_to_us"] == balance_before + Decimal("7000.00")
+print("seriya to'liq hisobga olindi: +$7000 — OK")
+
+# Tozalash (avto-partiyalar)
+Batch.objects.filter(series_id=series_id).delete()
+call_command("check_integrity")
+print("Avto-xarid E2E: OK")
+
+

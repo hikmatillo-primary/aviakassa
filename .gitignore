@@ -62,3 +62,4 @@ venv/
 .tmp/
 .env
 
+_prod_fixture.json

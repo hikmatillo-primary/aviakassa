@@ -36,19 +36,27 @@ export function BatchesView({
   const [search, setSearch] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [soldFilter, setSoldFilter] = useState<"ALL" | "SOLD" | "UNSOLD">("ALL");
 
   const clearAllFilters = () => {
     setSearch("");
     setDateFrom("");
     setDateTo("");
+    setSoldFilter("ALL");
   };
 
   // Filtrlash va yig'indilar faqat filtr/ma'lumot o'zgarganda qayta hisoblanadi.
   const { filteredBatches, filteredTotalQty, filteredRemainingQty, filteredTotalCost } =
     useMemo(() => {
-      const rows = batches.filter(
-        (b) => matchesBatchSearch(b, search) && isDateInRange(b.purchaseDate, dateFrom, dateTo)
-      );
+      const rows = batches.filter((b) => {
+        if (!matchesBatchSearch(b, search)) return false;
+        if (!isDateInRange(b.purchaseDate, dateFrom, dateTo)) return false;
+        if (soldFilter === "ALL") return true;
+        const outLeft = b.remainingQty || 0;
+        const retLeft = b.isRoundTrip ? getBatchSegmentRemaining(b, "RETURN") : 0;
+        const isSoldOut = outLeft === 0 && (!b.isRoundTrip || retLeft === 0);
+        return soldFilter === "SOLD" ? isSoldOut : !isSoldOut;
+      });
       const totalQty = rows.reduce((sum, b) => sum + (b.totalQty || 0), 0);
       // Borish-kelish partiyalarda ikkala qoldiq (borish + kelish) qo'shiladi.
       const remainingQty = rows.reduce((sum, b) => {
@@ -63,7 +71,7 @@ export function BatchesView({
         filteredRemainingQty: remainingQty,
         filteredTotalCost: totalCost,
       };
-    }, [batches, search, dateFrom, dateTo]);
+    }, [batches, search, dateFrom, dateTo, soldFilter]);
 
   return (
     <div className="space-y-5">
@@ -99,6 +107,17 @@ export function BatchesView({
               setDateTo("");
             }}
           />
+          <select
+            value={soldFilter}
+            onChange={(e) =>
+              setSoldFilter(e.target.value as "ALL" | "SOLD" | "UNSOLD")
+            }
+            className="px-3 py-1.5 text-xs font-medium bg-slate-50/80 dark:bg-white/[0.04] border border-slate-200/70 dark:border-white/[0.08] rounded-xl text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/40 cursor-pointer"
+          >
+            <option value="ALL">Barchasi</option>
+            <option value="SOLD">Sotilganlar</option>
+            <option value="UNSOLD">Sotilmaganlar</option>
+          </select>
         </div>
         <div className="text-xs font-medium text-slate-400 dark:text-slate-500 pr-2 hidden sm:block shrink-0">
           Partiyalar soni:{" "}

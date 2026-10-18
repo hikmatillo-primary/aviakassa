@@ -343,6 +343,24 @@ export function PartnersView({
                     <div className="inline-flex items-center gap-1.5">
                       <RowActionsMenu
                         actions={[
+                          ...(batch.accountedAt === null && onAccountBatch
+                            ? [
+                                {
+                                  label: "Hisobga qo'shish",
+                                  icon: <PackagePlus className="w-3.5 h-3.5" />,
+                                  onClick: () => onAccountBatch(batch),
+                                },
+                              ]
+                            : []),
+                          ...(batch.accountedAt === null && batch.seriesId && onAccountSeries
+                            ? [
+                                {
+                                  label: "Seriyani hisobga qo'shish",
+                                  icon: <PackagePlus className="w-3.5 h-3.5" />,
+                                  onClick: () => onAccountSeries(batch.seriesId),
+                                },
+                              ]
+                            : []),
                           ...(onFullEditBatch
                             ? [
                                 {
