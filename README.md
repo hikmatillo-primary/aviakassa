@@ -1,5 +1,9 @@
 # Aviakassa Pro — Chiptalar va Moliyaviy Balans Tizimi
 
+> ⚠️ **Bu hujjat eskirgan.** Quyida "localStorage / statik / Cloudflare" haqida yozilgan —
+> amalda loyiha Django + PostgreSQL + JWT + Docker bilan ishlaydi.
+> Haqiqiy arxitektura, qoidalar va deploy tartibi uchun [`PROJECT.md`](./PROJECT.md) ni o'qing.
+
 Aviakassa va chipta dilerlari uchun mo‘ljallangan zamonaviy, tezkor, xavfsiz va server talab qilmaydigan (statik) hisob-kitob dasturi. Tizim blok/partiyalar bo‘yicha chiptalarni birinchi qo‘ldan sotib olish, sub-agentlarga yoki donalab chakana mijozlarga sotish, ombordagi qoldiq joylarni bilib turish hamda qarzdorlik/haqdorlikni doimiy nazorat qilish imkonini beradi.
 
 Ma'lumotlar to‘liq brauzer xotirasida (`localStorage`) xavfsiz saqlanadi hamda **JSON orqali zaxira nusxa olish (Export)** va **qayta tiklash (Import)** imkoniyati mavjud.

@@ -1,3 +1,21 @@
+# AGENTS.md — aviakassa
+
+> **Avval `PROJECT.md` ni o'qing.** Unda arxitektura, biznes qoidalari, API, testlar,
+> deploy tartibi va ma'lum cheklovlar batafsil yozilgan. Bu fayl faqat qisqa
+> eslatma va Next.js qoidalarini saqlaydi.
+
+## Qisqa eslatma
+
+- **Stack:** Next.js 15 (static export) + React 19 + Django 6.1/DRF + PostgreSQL 16 + nginx + Telegram bot.
+- **Pul faqat `Decimal`** (`backend/core/money.py`); frontend pulni qayta hisoblamaydi.
+- **Yagona manba — server:** `GET /api/data/snapshot/`; brauzerda biznes-ma'lumot nusxasi yo'q.
+- **Testlar:** `npm test`, `npm run typecheck`, `npm run lint`; backendda `python manage.py test`,
+  `python manage.py check_integrity`.
+- **Migratsiya** yaratsangiz: `makemigrations --check`, prodda avval `pg_dump`.
+- **Deploy:** `PROJECT.md` 10-bo'lim (git bundle → merge → migrate → backend/bot → frontend build → check_integrity).
+- **Destruktiv buyruqlar:** `seed_demo_data`, `reset_production`, `clear_db.py`, `/api/data/reset/` — prodda ishlatmang.
+- **README.md eskirgan** (localStorage/Cloudflare haqida) — haqiqiy holat `PROJECT.md`da.
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 ## This is NOT the Next.js you know
