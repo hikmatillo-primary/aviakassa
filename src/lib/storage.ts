@@ -99,7 +99,7 @@ export interface Payment {
   id: number;
   partnerId: number;
   partnerName?: string;
-  partnerType?: "SUPPLIER" | "CLIENT";
+  partnerType?: "SUPPLIER" | "CLIENT" | "BOTH";
   type: "INCOME" | "EXPENSE";
   amount: number;
   paymentDate: string;

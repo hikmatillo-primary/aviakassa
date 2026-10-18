@@ -80,97 +80,20 @@ class Sale(models.Model):
     @staticmethod
     def pool_usage(qty, segment):
         """Sotuv partiyadan qancha borish va qancha kelish o'rnini olayotganini qaytaradi (out, ret)."""
-        qty = int(qty or 0)
-        seg = (segment or "").upper()
-        if seg == Sale.Segment.RETURN:
-            return 0, qty
-        if seg == Sale.Segment.BOTH:
-            return qty, qty
-        # OUTBOUND yoki bo'sh (oddiy bir tomonlama partiya) — faqat borish o'rni.
-        return qty, 0
-
-    def _current_batch_left(self, batch):
-        ret_left = batch.return_remaining_qty
-        if ret_left is None:
-            ret_left = batch.total_qty
-        return batch.remaining_qty, ret_left
+        from . import services
+        return services.pool_usage(qty, segment)
 
     def clean(self):
-        if not self.batch_id:
-            return
-        db = get_active_alias()
-        batch = Batch.objects.using(db).get(pk=self.batch_id)
-        new_out, new_ret = Sale.pool_usage(self.qty, self.segment)
-        old_out = old_ret = 0
-        if self.pk is not None:
-            old = Sale.objects.using(db).filter(pk=self.pk).first()
-            if old is not None:
-                old_out, old_ret = Sale.pool_usage(old.qty, old.segment)
-        add_out = new_out - old_out
-        add_ret = new_ret - old_ret
-        out_left, ret_left = self._current_batch_left(batch)
-        if add_out > 0 and out_left < add_out:
-            raise ValidationError(
-                f"Partiyada yetarli chipta yo'q! Qoldiq: {out_left} ta, so'ralgan: {add_out} ta."
-            )
-        if add_ret > 0 and ret_left < add_ret:
-            raise ValidationError(
-                f"Partiyada yetarli kelish chiptasi yo'q! Qoldiq: {ret_left} ta, so'ralgan: {add_ret} ta."
-            )
+        from . import services
+        services.validate_sale_availability(self)
 
     def _normalize_for_save(self):
         """Pul maydonlarini Decimal'ga keltiradi va umumiy summalarni qayta hisoblaydi."""
-        self.qty = int(self.qty or 0)
-        if self.qty < 1:
-            raise ValidationError({"qty": "Chiptalar soni kamida 1 ta bo'lishi kerak."})
-
-        self.sell_price = to_money(self.sell_price, ZERO)
-        if self.sell_price < ZERO:
-            raise ValidationError({"sell_price": "Sotuv narxi manfiy bo'lishi mumkin emas."})
-
-        if self.buy_price is None or self.buy_price == "":
-            self.buy_price = to_money(self.batch.buy_price, ZERO) if self.batch_id else ZERO
-        else:
-            self.buy_price = to_money(self.buy_price, ZERO)
-        if self.buy_price < ZERO:
-            raise ValidationError({"buy_price": "Tan narxi manfiy bo'lishi mumkin emas."})
-
-        self.total_amount = to_money(self.sell_price * self.qty)
-        self.profit = to_money(self.total_amount - self.buy_price * self.qty)
-
-        # Segment normalizatsiyasi: borish-kelish partiyada standart BOTH,
-        # oddiy partiyada segment bo'lmaydi.
-        if self.batch_id:
-            batch = self.batch
-            if batch.is_round_trip:
-                if not self.segment:
-                    self.segment = Sale.Segment.BOTH
-            else:
-                self.segment = ""
-
-            # Partiyadan reys ma'lumotlarini to'ldirish
-            if not self.route:
-                self.route = batch.route
-            if not self.flight_date:
-                self.flight_date = batch.flight_date
-            if not self.flight_number:
-                self.flight_number = batch.flight_number
-            if not self.departure_time:
-                self.departure_time = batch.departure_time
-            if not self.arrival_time:
-                self.arrival_time = batch.arrival_time
-            if self.is_round_trip is None:
-                self.is_round_trip = batch.is_round_trip
-            if not self.return_date and batch.return_date:
-                self.return_date = batch.return_date
-            if not self.return_flight_number and batch.return_flight_number:
-                self.return_flight_number = batch.return_flight_number
-            if not self.return_departure_time and batch.return_departure_time:
-                self.return_departure_time = batch.return_departure_time
-            if not self.return_arrival_time and batch.return_arrival_time:
-                self.return_arrival_time = batch.return_arrival_time
+        from . import services
+        services.normalize_sale_for_save(self)
 
     def save(self, *args, **kwargs):
+        from . import services
         db = kwargs.get("using") or get_active_alias()
         kwargs["using"] = db
 
@@ -192,117 +115,17 @@ class Sale(models.Model):
                 old_batch_id = old_sale.batch_id
                 old_segment = old_sale.segment or ""
 
-        self._normalize_for_save()
+        services.normalize_sale_for_save(self)
 
         with transaction.atomic(using=db):
-            if self.batch_id:
-                new_batch_id = self.batch_id
-                moved = (
-                    not is_new
-                    and old_batch_id is not None
-                    and old_batch_id != new_batch_id
-                )
-
-                if moved:
-                    # Partiya almashtirilgan: eski partiyaga o'rinlarni qaytaramiz,
-                    # yangi partiyadan ayiramiz. Deadlock oldini olish uchun
-                    # ikkala partiya pk tartibida qulflanadi.
-                    locked = {
-                        b.pk: b
-                        for b in Batch.objects.using(db)
-                        .select_for_update()
-                        .filter(pk__in={old_batch_id, new_batch_id})
-                        .order_by("pk")
-                    }
-                    old_batch = locked[old_batch_id]
-                    new_batch = locked[new_batch_id]
-
-                    old_out, old_ret = Sale.pool_usage(old_qty, old_segment)
-                    old_batch.remaining_qty += old_out
-                    if old_ret:
-                        old_batch.return_remaining_qty = (
-                            old_batch.return_remaining_qty or 0
-                        ) + old_ret
-                    old_batch.recalc_status()
-                    old_batch.save(
-                        using=db,
-                        update_fields=["remaining_qty", "return_remaining_qty", "status"],
-                    )
-
-                    new_out, new_ret = Sale.pool_usage(self.qty, self.segment)
-                    if new_out and new_batch.remaining_qty < new_out:
-                        raise ValidationError({"qty": "Partiyada yetarli chipta qolmagan!"})
-                    if new_ret and (new_batch.return_remaining_qty or 0) < new_ret:
-                        raise ValidationError(
-                            {"qty": "Partiyada yetarli kelish chiptasi qolmagan!"}
-                        )
-                    new_batch.remaining_qty -= new_out
-                    if new_ret:
-                        new_batch.return_remaining_qty = (
-                            new_batch.return_remaining_qty or 0
-                        ) - new_ret
-                    new_batch.recalc_status()
-                    new_batch.save(
-                        using=db,
-                        update_fields=["remaining_qty", "return_remaining_qty", "status"],
-                    )
-                else:
-                    # Bir xil partiyada qoldiqlarni delta bo'yicha moslash
-                    # (race condition bo'lmasligi uchun qulflab olamiz).
-                    batch = Batch.objects.using(db).select_for_update().get(pk=new_batch_id)
-
-                    new_out, new_ret = Sale.pool_usage(self.qty, self.segment)
-                    if is_new:
-                        old_out = old_ret = 0
-                    else:
-                        old_out, old_ret = Sale.pool_usage(old_qty, old_segment)
-
-                    d_out = new_out - old_out
-                    d_ret = new_ret - old_ret
-
-                    if d_out > 0:
-                        if batch.remaining_qty < d_out:
-                            raise ValidationError(
-                                {"qty": "Partiyada yetarli chipta qolmagan!"}
-                            )
-                        batch.remaining_qty -= d_out
-                    elif d_out < 0:
-                        batch.remaining_qty += abs(d_out)
-
-                    if d_ret != 0:
-                        ret_left = batch.return_remaining_qty
-                        if ret_left is None:
-                            ret_left = batch.total_qty
-                        if d_ret > 0:
-                            if ret_left < d_ret:
-                                raise ValidationError(
-                                    {"qty": "Partiyada yetarli kelish chiptasi qolmagan!"}
-                                )
-                            ret_left -= d_ret
-                        else:
-                            ret_left += abs(d_ret)
-                        batch.return_remaining_qty = ret_left
-
-                    batch.recalc_status()
-                    batch.save(
-                        using=db,
-                        update_fields=["remaining_qty", "return_remaining_qty", "status"],
-                    )
-
+            services.apply_sale_inventory_change(
+                self, is_new, old_qty, old_batch_id, old_segment, db
+            )
             super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
+        from . import services
         db = kwargs.get("using") or get_active_alias()
         with transaction.atomic(using=db):
-            if self.batch_id:
-                batch = Batch.objects.using(db).select_for_update().get(pk=self.batch_id)
-                out, ret = Sale.pool_usage(self.qty, self.segment)
-                batch.remaining_qty += out
-                if ret:
-                    batch.return_remaining_qty = (batch.return_remaining_qty or 0) + ret
-                batch.recalc_status()
-                batch.save(
-                    using=db,
-                    update_fields=["remaining_qty", "return_remaining_qty", "status"],
-                )
+            services.restore_sale_inventory_on_delete(self, db)
             return super().delete(using=db, **{k: v for k, v in kwargs.items() if k != "using"})

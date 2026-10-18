@@ -175,50 +175,28 @@ class BatchViewSet(viewsets.ModelViewSet):
         base.pop("flight_date", None)
         base.pop("return_date", None)
 
-        dates = []
-        cursor = first_date
-        while cursor <= until and len(dates) < MAX_AUTO_BATCHES:
-            dates.append(cursor)
-            cursor += timedelta(days=interval)
-        if len(dates) >= MAX_AUTO_BATCHES and cursor <= until:
+        try:
+            from . import services
+            created, skipped, series_id = services.generate_auto_batches(
+                base_data=base,
+                first_date=first_date,
+                until_date=until,
+                interval_days=interval,
+                gap_days=gap,
+                flight_number=template["flightNumber"],
+                db=get_active_alias(),
+            )
+        except ValueError as exc:
             return Response(
-                {"until": [f"Bir marta ko'pi bilan {MAX_AUTO_BATCHES} ta partiya yaratiladi. Sanani qisqartiring."]},
+                {"until": [str(exc)]},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-
-        db = get_active_alias()
-        flight_number = template["flightNumber"].strip()
-        skipped = []
-        if flight_number:
-            existing = set(
-                Batch.objects.using(db)
-                .filter(flight_number=flight_number, flight_date__in=dates)
-                .values_list("flight_date", flat=True)
-            )
-            skipped = [d for d in dates if d in existing]
-            dates = [d for d in dates if d not in existing]
-
-        series_id = uuid.uuid4()
-        created = []
-        with transaction.atomic(using=db):
-            for flight_date in dates:
-                batch = Batch(
-                    **base,
-                    flight_date=flight_date,
-                    return_date=(flight_date + timedelta(days=gap)) if gap is not None else None,
-                    is_auto=True,
-                    accounted_at=None,
-                    series_id=series_id,
-                    status=Batch.Status.ACTIVE,
-                )
-                batch.save(using=db)
-                created.append(batch)
 
         return Response(
             {
                 "created": self.get_serializer(created, many=True).data,
-                "skipped": [d.isoformat() for d in skipped],
-                "seriesId": str(series_id),
+                "skipped": skipped,
+                "seriesId": series_id,
                 "count": len(created),
             },
             status=status.HTTP_201_CREATED,
@@ -227,30 +205,27 @@ class BatchViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'], url_path='account')
     def account(self, request, pk=None):
         """Partiya summasini hamkor qarziga qo'shadi (hisobga oladi)."""
+        from . import services
         batch = self.get_object()
-        if batch.accounted_at is None:
-            batch.accounted_at = timezone.now()
-            batch.save(using=get_active_alias(), update_fields=["accounted_at"])
+        services.account_batch(batch, db=get_active_alias())
         return Response(self.get_serializer(batch).data)
 
     @action(detail=False, methods=['post'], url_path='account-all')
     def account_all(self, request):
         """Bir nechta partiyani (yoki butun seriyani) birdan hisobga oladi."""
+        from . import services
         data = request.data or {}
-        db = get_active_alias()
-        qs = Batch.objects.using(db).filter(accounted_at__isnull=True)
-        series_id = data.get("seriesId")
-        ids = data.get("ids")
-        if series_id:
-            qs = qs.filter(series_id=series_id)
-        elif isinstance(ids, list) and ids:
-            qs = qs.filter(pk__in=ids)
-        else:
+        try:
+            updated = services.account_batches_bulk(
+                series_id=data.get("seriesId"),
+                ids=data.get("ids"),
+                db=get_active_alias(),
+            )
+        except ValueError as exc:
             return Response(
-                {"detail": "seriesId yoki ids ko'rsatilishi kerak."},
+                {"detail": str(exc)},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        updated = qs.update(accounted_at=timezone.now())
         return Response({"updated": updated})
 
 

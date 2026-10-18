@@ -282,6 +282,35 @@ export async function apiFetchAll(): Promise<FetchedData> {
   };
 }
 
+export interface PaginatedResponse<T> {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: T[];
+}
+
+/**
+ * Alohida resurslar uchun server-side pagination va filtrlash orqali so'rov yuborish.
+ */
+export async function apiFetchPaginated<T>(
+  endpoint: string,
+  params?: { page?: number; pageSize?: number; search?: string; [key: string]: unknown }
+): Promise<PaginatedResponse<T>> {
+  const query = new URLSearchParams();
+  if (params?.page) query.set("page", String(params.page));
+  if (params?.pageSize) query.set("page_size", String(params.pageSize));
+  if (params?.search) query.set("search", params.search);
+  if (params) {
+    for (const [key, value] of Object.entries(params)) {
+      if (!["page", "pageSize", "search"].includes(key) && value !== undefined && value !== null && value !== "") {
+        query.set(key, String(value));
+      }
+    }
+  }
+  const queryString = query.toString();
+  const sep = endpoint.includes("?") ? "&" : "?";
+  return request<PaginatedResponse<T>>(queryString ? `${endpoint}${sep}${queryString}` : endpoint);
+}
 
 // ================= Partners =================
 export async function apiCreatePartner(partner: Partial<Partner>): Promise<Partner> {
