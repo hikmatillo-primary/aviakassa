@@ -13,7 +13,7 @@ from django.utils import timezone
 from django.utils.text import slugify
 
 from apps.partners.models import Partner
-from apps.flights.models import Batch
+from apps.flights.models import Batch, BatchCategory
 from apps.sales.models import Sale
 from apps.cash.models import Payment, DebtOffset, CashAccount
 
@@ -28,6 +28,7 @@ MAINTENANCE_DB = "postgres"
 CATEGORY_ORDER = [
     ("accounts", CashAccount),
     ("partners", Partner),
+    ("categories", BatchCategory),
     ("batches", Batch),
     ("sales", Sale),
     ("payments", Payment),
@@ -64,15 +65,19 @@ def ensure_alias(db_name: str) -> str:
 def normalize_categories(copy: dict) -> set:
     """
     Tanlangan kategoriyalarni tozalaydi va majburiy bog'liqliklarni qo'shadi:
-    sotuvlar -> partiyalar; partiyalar/sotuvlar/to'lovlar/qarz surishlar -> hamkorlar;
+    sotuvlar -> partiyalar; partiyalar -> xarid turlari, hamkorlar;
+    partiyalar/sotuvlar/to'lovlar/qarz surishlar -> hamkorlar;
     to'lovlar -> kassa hisoblari.
     """
     selected = {key for key in CATEGORY_KEYS if bool((copy or {}).get(key))}
 
     if selected & {"batches", "sales", "payments", "debtOffsets"}:
         selected.add("partners")
+    if "batches" in selected:
+        selected.add("categories")
     if "sales" in selected:
         selected.add("batches")
+        selected.add("categories")
     if "payments" in selected:
         selected.add("accounts")
 

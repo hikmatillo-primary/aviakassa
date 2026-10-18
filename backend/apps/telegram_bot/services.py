@@ -5,7 +5,7 @@ import os
 import urllib.request
 from datetime import timedelta
 
-from django.db.models import Case, DateField, F, When
+from django.db.models import Case, DateField, F, Q, When
 from django.utils import timezone
 
 from apps.flights.models import Batch
@@ -141,9 +141,12 @@ def batch_expiry_expression():
 def get_expiring_batches(days: int, today=None):
     """(muddati yaqin, muddati o'tgan) partiyalar — ikkalasida ham qoldiq bor."""
     today = today or timezone.localdate()
+    has_remaining = Q(remaining_qty__gt=0) | (
+        Q(is_round_trip=True) & Q(return_remaining_qty__gt=0)
+    )
     queryset = (
         Batch.objects.annotate(expiry=batch_expiry_expression())
-        .filter(remaining_qty__gt=0)
+        .filter(has_remaining)
         .select_related("supplier")
     )
     upcoming = list(
@@ -199,7 +202,18 @@ def format_expiring_message(upcoming, overdue, days: int, today=None) -> str:
             lines.append(
                 f"   ⏰ Muddati: {format_date(batch.expiry)} ({days_left_label(left)})"
             )
-            lines.append(f"   🎫 Qoldiq: <b>{batch.remaining_qty}</b> / {batch.total_qty} ta")
+            if batch.is_round_trip:
+                ret_left = (
+                    batch.return_remaining_qty
+                    if batch.return_remaining_qty is not None
+                    else batch.remaining_qty
+                )
+                lines.append(
+                    f"   🎫 Qoldiq: borish <b>{batch.remaining_qty}</b>, "
+                    f"kelish <b>{ret_left}</b> (jami {batch.total_qty} ta)"
+                )
+            else:
+                lines.append(f"   🎫 Qoldiq: <b>{batch.remaining_qty}</b> / {batch.total_qty} ta")
             lines.append(f"   🤝 {html.escape(batch.supplier.name)}")
             lines.append("")
 
@@ -207,10 +221,19 @@ def format_expiring_message(upcoming, overdue, days: int, today=None) -> str:
         lines.append(f"⚠️ <b>Muddati o'tgan, qoldig'i bor ({len(overdue)} ta):</b>")
         for index, batch in enumerate(overdue, start=1):
             passed = (today - batch.expiry).days
+            if batch.is_round_trip:
+                ret_left = (
+                    batch.return_remaining_qty
+                    if batch.return_remaining_qty is not None
+                    else batch.remaining_qty
+                )
+                qoldiq_str = f"borish: {batch.remaining_qty}, kelish: {ret_left} / {batch.total_qty}"
+            else:
+                qoldiq_str = f"{batch.remaining_qty}/{batch.total_qty}"
             lines.append(
                 f"{index}. {html.escape(batch.batch_number)} — {html.escape(batch.route)} • "
                 f"{format_date(batch.expiry)} ({days_passed_label(passed)}) • "
-                f"qoldiq: {batch.remaining_qty}/{batch.total_qty}"
+                f"qoldiq: {qoldiq_str}"
             )
 
     return "\n".join(lines).strip()

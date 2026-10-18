@@ -1,3 +1,4 @@
+import re
 import uuid
 from datetime import date
 from decimal import Decimal
@@ -116,8 +117,6 @@ class Batch(models.Model):
 
     @classmethod
     def generate_next_batch_number(cls, db=None):
-        import re
-
         db = db or get_active_alias()
         all_numbers = cls.objects.using(db).values_list('batch_number', flat=True)
         max_existing = 0
@@ -167,7 +166,13 @@ class Batch(models.Model):
             old_values = self._old_values(db)
 
         if not self.batch_number or not str(self.batch_number).strip():
-            self.batch_number = self.generate_next_batch_number(db)
+            candidate = self.generate_next_batch_number(db)
+            # Poyga holatida takroriy raqam generatsiya bo'lib qolmasligini kafolatlash:
+            while Batch.objects.using(db).filter(batch_number=candidate).exists():
+                match = re.match(r'^P(\d+)$', candidate)
+                next_num = int(match.group(1)) + 1 if match else 1
+                candidate = f"P{next_num:05d}"
+            self.batch_number = candidate
         else:
             self.batch_number = str(self.batch_number).strip()
             number_changed = is_new or (

@@ -2,6 +2,7 @@ import logging
 from decimal import Decimal, InvalidOperation
 
 from django.db import transaction
+from django.utils import timezone
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
@@ -84,14 +85,58 @@ def snapshot(request):
             "categories": BatchCategorySerializer(
                 BatchCategory.objects.all().order_by("name"), many=True
             ).data,
+            "activeDatabase": _active_database_info(),
         }
     )
+
+
+def _active_database_info():
+    """Faol baza haqida qisqa ma'lumot (frontend ogohlantirishi uchun).
+
+    `isBase=False` bo'lsa — foydalanuvchi asosiy bazada emas; UI buni
+    ko'rinadigan qilib ogohlantiradi (tasodifan TEST bazasida ishlash xavfi).
+    """
+    try:
+        from apps.control.models import DatabaseRegistry
+        from apps.control.services import default_db_name
+
+        default_name = str(default_db_name())
+        registry = (
+            DatabaseRegistry.objects.using("default").filter(is_active=True).first()
+        )
+        if registry is None:
+            return {"name": "Asosiy baza", "dbName": default_name, "isBase": True}
+        return {
+            "name": registry.name,
+            "dbName": registry.db_name,
+            "isBase": registry.db_name == default_name,
+        }
+    except Exception:  # pragma: no cover - jadval hali yo'q bo'lishi mumkin
+        return None
+
+
+# Destruktiv amallar uchun tasdiq so'zi: tasodifiy POST hammasini o'chirib
+# yubormasligi uchun so'rov tanasida aynan shu qiymat bo'lishi shart.
+RESET_CONFIRM_WORD = "TOZALASH"
 
 
 @api_view(["POST"])
 @permission_classes([IsAdminUser])
 def reset_data(request):
     """Barcha ma'lumotlarni (hamkorlar, partiyalar, sotuvlar, to'lovlar) o'chiradi."""
+    confirm = str((request.data or {}).get("confirm") or "").strip().upper()
+    if confirm != RESET_CONFIRM_WORD:
+        return Response(
+            {
+                "status": "error",
+                "detail": (
+                    f"Tasdiqlash uchun so'rovda confirm='{RESET_CONFIRM_WORD}' "
+                    "yuborilishi shart. Hech narsa o'chirilmadi."
+                ),
+            },
+            status=400,
+        )
+
     with transaction.atomic(using=get_active_alias()):
         counts = {
             "debtOffsets": DebtOffset.objects.count(),
@@ -115,19 +160,28 @@ def _validate_payload(payload):
     Xato bo'lsa hech narsa o'chirilmaydi — foydalanuvchi 400 va aniq sabab oladi.
     """
     errors = []
+    categories = payload.get("categories") or []
     partners = payload.get("partners") or []
     batches = payload.get("batches") or []
     sales = payload.get("sales") or []
     payments = payload.get("payments") or []
     offsets = payload.get("debtOffsets") or []
     for name, value in (
-        ("partners", partners), ("batches", batches), ("sales", sales),
+        ("categories", categories), ("partners", partners),
+        ("batches", batches), ("sales", sales),
         ("payments", payments), ("debtOffsets", offsets),
     ):
         if not isinstance(value, list):
             errors.append(f"{name}: ro'yxat bo'lishi kerak.")
     if errors:
         return errors
+
+    for index, c in enumerate(categories, start=1):
+        if not isinstance(c, dict):
+            errors.append(f"categories[{index}]: obyekt bo'lishi kerak.")
+            continue
+        if not (c.get("name") or "").strip():
+            errors.append(f"categories[{index}]: nom majburiy.")
 
     partner_ids = set()
     for index, p in enumerate(partners, start=1):
@@ -209,7 +263,7 @@ def import_data(request):
             status=400,
         )
 
-    created = {"partners": 0, "batches": 0, "sales": 0, "payments": 0, "debtOffsets": 0}
+    created = {"partners": 0, "batches": 0, "sales": 0, "payments": 0, "debtOffsets": 0, "categories": 0}
     db = get_active_alias()
 
     with transaction.atomic(using=db):
@@ -219,6 +273,16 @@ def import_data(request):
         Sale.objects.using(db).all().delete()
         Batch.objects.using(db).all().delete()
         Partner.objects.using(db).all().delete()
+
+        # 1.5. Xarid turlari (kategoriyalar)
+        category_map = {}
+        for c in payload.get("categories", []) or []:
+            name = (c.get("name") or "").strip()
+            if not name:
+                continue
+            cat_obj, _ = BatchCategory.objects.using(db).get_or_create(name=name)
+            category_map[c.get("id")] = cat_obj
+            created["categories"] += 1
 
         # 2. Hamkorlar
         partner_map = {}
@@ -245,6 +309,8 @@ def import_data(request):
             if not supplier or not flight_date:
                 continue
             total_qty = int(b.get("totalQty") or 0)
+            category = category_map.get(b.get("categoryId"))
+            accounted_at = _clean_date(b.get("accountedAt"))
             obj = Batch(
                 batch_number=(b.get("batchNumber") or "").strip(),
                 route=b.get("route") or "",
@@ -260,6 +326,11 @@ def import_data(request):
                 purchase_date=_clean_date(b.get("purchaseDate")),
                 baggage=b.get("baggage") or "20kg",
                 supplier=supplier,
+                category=category,
+                is_auto=bool(b.get("isAuto")),
+                accounted_at=accounted_at,
+                series_id=b.get("seriesId") or None,
+                return_gap_days=b.get("returnGapDays") or None,
                 total_qty=total_qty,
                 remaining_qty=total_qty,
                 return_remaining_qty=total_qty,

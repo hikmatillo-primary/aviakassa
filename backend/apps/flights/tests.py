@@ -127,3 +127,77 @@ class FlightBatchTests(TestCase):
         self.assertEqual(batch.remaining_qty, 7)
         sale.refresh_from_db()
         self.assertEqual(sale.flight_number, "U6-303")
+
+    def test_propagate_to_future_updates_sales_on_future_batches(self):
+        import uuid
+        from apps.flights.serializers import BatchSerializer
+
+        series_id = uuid.uuid4()
+        client = Partner.objects.create(name="Mijoz Propagate", type=Partner.PartnerType.CLIENT)
+
+        b1 = Batch.objects.create(
+            batch_number="P00081",
+            route="TAS - IST",
+            flight_date="2026-11-01",
+            flight_number="TK-101",
+            departure_time="08:00",
+            supplier=self.supplier,
+            total_qty=10,
+            buy_price=Decimal("300.00"),
+            series_id=series_id,
+        )
+        b2 = Batch.objects.create(
+            batch_number="P00082",
+            route="TAS - IST",
+            flight_date="2026-11-08",
+            flight_number="TK-101",
+            departure_time="08:00",
+            supplier=self.supplier,
+            total_qty=10,
+            buy_price=Decimal("300.00"),
+            series_id=series_id,
+        )
+        sale_b2 = Sale.objects.create(
+            batch=b2,
+            client=client,
+            qty=1,
+            buy_price=Decimal("300.00"),
+            sell_price=Decimal("400.00"),
+            sale_date="2026-10-25",
+        )
+        self.assertEqual(sale_b2.flight_number, "TK-101")
+
+        serializer = BatchSerializer(
+            instance=b1,
+            data={"flightNumber": "TK-999", "propagateToFuture": True},
+            partial=True,
+        )
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        serializer.save()
+
+        b2.refresh_from_db()
+        self.assertEqual(b2.flight_number, "TK-999")
+        sale_b2.refresh_from_db()
+        self.assertEqual(sale_b2.flight_number, "TK-999")
+
+    def test_batch_number_auto_generation_avoids_collision(self):
+        b1 = Batch.objects.create(
+            batch_number="",
+            route="TAS - DXB",
+            flight_date="2026-12-10",
+            supplier=self.supplier,
+            total_qty=10,
+            buy_price=Decimal("200.00"),
+        )
+        self.assertTrue(b1.batch_number.startswith("P"))
+
+        # Yangi partiya bo'sh raqam bilan yaratilganda avtomatik unikal raqam oladi
+        b2 = Batch.objects.create(
+            batch_number="",
+            route="TAS - DXB",
+            flight_date="2026-12-17",
+            supplier=self.supplier,
+            total_qty=10,
+            buy_price=Decimal("200.00"),
+        )
+        self.assertNotEqual(b1.batch_number, b2.batch_number)

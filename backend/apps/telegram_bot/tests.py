@@ -53,6 +53,21 @@ class ExpiringBatchesQueryTests(TestCase):
         self.assertEqual([b.pk for b in upcoming], [round_trip.pk])
         self.assertEqual(overdue, [])
 
+    def test_round_trip_included_when_outbound_empty_but_return_remains(self):
+        rt_batch = self._batch(
+            "P00015",
+            self.today - timedelta(days=2),
+            remaining=0,
+            total=10,
+            is_round_trip=True,
+            return_date=self.today + timedelta(days=3),
+            return_remaining_qty=4,
+        )
+        upcoming, overdue = services.get_expiring_batches(5, self.today)
+        self.assertIn(rt_batch.pk, [b.pk for b in upcoming])
+        text = services.format_expiring_message(upcoming, overdue, 5, self.today)
+        self.assertIn("borish <b>0</b>, kelish <b>4</b>", text)
+
     def test_boundary_today_and_exact_days(self):
         today_batch = self._batch("P00020", self.today)
         edge = self._batch("P00021", self.today + timedelta(days=5))

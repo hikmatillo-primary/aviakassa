@@ -177,7 +177,20 @@ class BatchSerializer(serializers.ModelSerializer):
                 if field in validated_data
             }
             if updates:
-                Batch.objects.using(get_active_alias()).filter(
+                db = get_active_alias()
+                future_qs = Batch.objects.using(db).filter(
                     series_id=obj.series_id, flight_date__gte=obj.flight_date
-                ).exclude(pk=obj.pk).update(**updates)
+                ).exclude(pk=obj.pk)
+                future_ids = list(future_qs.values_list('pk', flat=True))
+                future_qs.update(**updates)
+
+                flight_updates = {
+                    k: v for k, v in updates.items()
+                    if k in {
+                        'flight_number', 'departure_time', 'arrival_time',
+                        'return_flight_number', 'return_departure_time', 'return_arrival_time',
+                    }
+                }
+                if flight_updates and future_ids:
+                    Sale.objects.using(db).filter(batch_id__in=future_ids).update(**flight_updates)
         return obj

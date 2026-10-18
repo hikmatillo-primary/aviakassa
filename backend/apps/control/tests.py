@@ -1,8 +1,13 @@
+import gzip
+import json
 import os
 import tempfile
 from decimal import Decimal
+from io import StringIO
 
 from django.contrib.auth import get_user_model
+from django.core.management import call_command
+from django.core.management.base import CommandError
 from django.db import connections
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -26,7 +31,13 @@ class CategoryNormalizationTests(APITestCase):
     def test_sales_pull_batches_and_partners(self):
         self.assertEqual(
             services.normalize_categories({"sales": True}),
-            {"sales", "batches", "partners"},
+            {"sales", "batches", "partners", "categories"},
+        )
+
+    def test_batches_pull_categories_and_partners(self):
+        self.assertEqual(
+            services.normalize_categories({"batches": True}),
+            {"batches", "categories", "partners"},
         )
 
     def test_payments_pull_partners_and_accounts(self):
@@ -236,3 +247,189 @@ class CopyDataTests(APITestCase):
         self.assertEqual(copied, {"partners": 2})
         self.assertEqual(Sale.objects.using(self.ALIAS).count(), 0)
         self.assertEqual(Partner.objects.using(self.ALIAS).count(), 2)
+
+
+class SecondSqliteAliasMixin:
+    """Ikkinchi sqlite bazasini (faqat biznes modellar jadvallari bilan) tayyorlaydi."""
+
+    ALIAS = "second_db"
+
+    @classmethod
+    def setUpClass(cls):
+        cls.tmp = tempfile.NamedTemporaryFile(suffix=".sqlite3", delete=False)
+        cls.tmp.close()
+        config = dict(connections.databases["default"])
+        config["NAME"] = cls.tmp.name
+        connections.databases[cls.ALIAS] = config
+        cls.databases = {"default", cls.ALIAS}
+
+        conn = connections[cls.ALIAS]
+        with conn.schema_editor() as editor:
+            for model in BUSINESS_MODELS:
+                editor.create_model(model)
+
+        super().setUpClass()
+        cls.addClassCleanup(cls._cleanup_alias)
+
+    @classmethod
+    def _cleanup_alias(cls):
+        try:
+            connections[cls.ALIAS].close()
+        except Exception:
+            pass
+        connections.databases.pop(cls.ALIAS, None)
+        try:
+            os.unlink(cls.tmp.name)
+        except OSError:
+            pass
+
+    def _clear_second_db(self):
+        for model in reversed(BUSINESS_MODELS):
+            model.objects.using(self.ALIAS).all().delete()
+
+
+class CheckIntegrityMultiDatabaseTests(SecondSqliteAliasMixin, APITestCase):
+    """check_integrity endi faol bazani (va --all bilan hammasini) tekshiradi."""
+
+    def setUp(self):
+        services.invalidate_active_cache()
+        self._clear_second_db()
+        DatabaseRegistry.objects.all().delete()
+        DatabaseRegistry.objects.create(
+            name="Asosiy", db_name=str(services.default_db_name()), is_active=True
+        )
+        second = DatabaseRegistry.objects.create(
+            name="Sinov bazasi", db_name=self.ALIAS
+        )
+        services.activate_database(second.id)
+
+    def _make_drift(self, alias):
+        supplier = Partner.objects.db_manager(alias).create(
+            name="Vendor", type="SUPPLIER"
+        )
+        batch = Batch.objects.db_manager(alias).create(
+            batch_number="P-DRIFT",
+            route="TAS - DXB",
+            flight_date="2026-12-01",
+            supplier=supplier,
+            total_qty=5,
+            remaining_qty=5,
+            buy_price=Decimal("100.00"),
+        )
+        # Qoldiqni ataylab buzamiz: 5 ta partiyadan hech nima sotilmagan.
+        Batch.objects.using(alias).filter(pk=batch.pk).update(remaining_qty=4)
+
+    def test_standard_mode_checks_active_database(self):
+        # Asosiy bazada xato bor, lekin faol baza — ikkinchisi (toza).
+        # Standart rejim faqat faol bazani ko'rishi kerak.
+        self._make_drift("default")
+        call_command("check_integrity", stdout=StringIO())
+
+    def test_drift_in_active_database_is_detected(self):
+        self._make_drift(self.ALIAS)
+        with self.assertRaises(CommandError):
+            call_command("check_integrity", stdout=StringIO(), stderr=StringIO())
+
+    def test_database_option_checks_default(self):
+        self._make_drift("default")
+        with self.assertRaises(CommandError):
+            call_command(
+                "check_integrity",
+                database="default",
+                stdout=StringIO(),
+                stderr=StringIO(),
+            )
+
+    def test_all_checks_default_and_registered_databases(self):
+        self._make_drift(self.ALIAS)
+        out, err = StringIO(), StringIO()
+        with self.assertRaises(CommandError):
+            call_command("check_integrity", all=True, stdout=out, stderr=err)
+        # Ikkala baza ham tekshirilgani ko'rinadi.
+        self.assertIn("===", out.getvalue())
+        self.assertIn(self.ALIAS, err.getvalue())
+
+
+class BackupDatabasesCommandTests(APITestCase):
+    """backup_databases asosiy va ro'yxatdagi barcha bazalarni saqlaydi."""
+
+    ALIAS = "backup_second"
+
+    @classmethod
+    def setUpClass(cls):
+        cls.tmp = tempfile.NamedTemporaryFile(suffix=".sqlite3", delete=False)
+        cls.tmp.close()
+        config = dict(connections.databases["default"])
+        config["NAME"] = cls.tmp.name
+        connections.databases[cls.ALIAS] = config
+        cls.databases = {"default", cls.ALIAS}
+
+        # Ikkinchi bazaga to'liq migratsiyalarni o'tkazamiz (dumpdata hamma
+        # ilovalarni ko'radi; control jadvali router tufayli faqat defaultda).
+        call_command("migrate", database=cls.ALIAS, verbosity=0, interactive=False)
+
+        super().setUpClass()
+        cls.addClassCleanup(cls._cleanup_alias)
+
+    @classmethod
+    def _cleanup_alias(cls):
+        try:
+            connections[cls.ALIAS].close()
+        except Exception:
+            pass
+        connections.databases.pop(cls.ALIAS, None)
+        try:
+            os.unlink(cls.tmp.name)
+        except OSError:
+            pass
+
+    def setUp(self):
+        services.invalidate_active_cache()
+        DatabaseRegistry.objects.all().delete()
+        DatabaseRegistry.objects.create(
+            name="Asosiy", db_name=str(services.default_db_name()), is_active=True
+        )
+        DatabaseRegistry.objects.create(name="Ikkinchi", db_name=self.ALIAS)
+
+    def test_backup_creates_gzip_per_database(self):
+        Partner.objects.create(name="BackupVendorDefault", type="SUPPLIER")
+        Partner.objects.using(self.ALIAS).create(
+            name="BackupVendorSecond", type="SUPPLIER"
+        )
+
+        with tempfile.TemporaryDirectory() as outdir:
+            call_command("backup_databases", outdir=outdir, stdout=StringIO())
+
+            files = [
+                os.path.join(outdir, name) for name in os.listdir(outdir)
+            ]
+            self.assertEqual(len(files), 2)
+
+            contents = {}
+            for path in files:
+                with gzip.open(path, "rt", encoding="utf-8") as fh:
+                    raw = fh.read()
+                # Har bir fayl yaroqli JSON bo'lishi shart.
+                json.loads(raw)
+                contents[path] = raw
+
+            default_path = next(
+                p for p, c in contents.items() if "BackupVendorDefault" in c
+            )
+            second_path = next(
+                p for p, c in contents.items() if "BackupVendorSecond" in c
+            )
+            self.assertNotEqual(default_path, second_path)
+            self.assertIn("partners.partner", contents[default_path])
+
+    def test_databases_filter_selects_subset(self):
+        with tempfile.TemporaryDirectory() as outdir:
+            call_command(
+                "backup_databases",
+                outdir=outdir,
+                databases=[self.ALIAS],
+                stdout=StringIO(),
+            )
+            files = os.listdir(outdir)
+            self.assertEqual(len(files), 1)
+            self.assertIn(self.ALIAS, files[0])

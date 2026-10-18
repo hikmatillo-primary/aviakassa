@@ -9,11 +9,19 @@ tekshiriladi:
   * sotuvning reys ma'lumotlari partiyasi bilan mos,
   * faol baza yagona.
 
+Standart rejimda HTTP so'rovlarga xizmat qilayotgan **faol baza** tekshiriladi
+(middleware bo'lmagan buyruqda avval `default` olinardi — ko'p-bazali rejimda
+bu xato xulosaga olib kelardi). Qo'shimcha:
+
+  * `--database ALIAS` — aniq baza (alias yoki db_name),
+  * `--all` — asosiy baza + ro'yxatdagi barcha bazalar ketma-ket.
+
 Xato topsa — 1 kod bilan chiqadi (CI/deploy tekshiruvi uchun).
 """
 from decimal import Decimal
 
 from django.core.management.base import BaseCommand, CommandError
+from django.db import connections
 from django.db.models import Q, Sum
 
 from apps.cash.models import DebtOffset, Payment
@@ -32,10 +40,79 @@ class Command(BaseCommand):
             "--limit", type=int, default=50,
             help="Har bir turdagi xatolikdan ko'pi bilan nechtasini ko'rsatish.",
         )
+        parser.add_argument(
+            "--database", dest="database", default=None,
+            help="Tekshiriladigan baza (alias yoki db_name). Standart: faol baza.",
+        )
+        parser.add_argument(
+            "--all", dest="all", action="store_true",
+            help="Asosiy baza va ro'yxatdagi barcha bazalarni ketma-ket tekshiradi.",
+        )
 
-    def handle(self, *args, **options):
-        db = get_active_alias()
-        limit = options["limit"]
+    # ---------- Maqsad bazalarni aniqlash ----------
+
+    @staticmethod
+    def _db_name(alias: str) -> str:
+        try:
+            return str(connections[alias].settings_dict.get("NAME") or alias)
+        except Exception:  # pragma: no cover - himoyaviy
+            return alias
+
+    def _resolve_alias(self, value: str) -> str:
+        """Berilgan qiymatni Django ulanish aliasiga aylantiradi.
+
+        `default` yoki allaqachon ulangan alias bo'lsa — o'zini qaytaradi;
+        aks holda uni db_name deb qabul qiladi (ko'p-bazali rejim).
+        """
+        if value in connections.databases:
+            return value
+        from apps.control.services import ensure_alias
+
+        return ensure_alias(value)
+
+    def _targets(self, options):
+        """Tekshiriladigan (label, alias) juftliklar ro'yxatini qaytaradi."""
+        if options["database"]:
+            alias = self._resolve_alias(options["database"])
+            return [(self._db_name(alias), alias)]
+
+        if options["all"]:
+            targets = [(self._db_name("default"), "default")]
+            try:
+                from apps.control.models import DatabaseRegistry
+                from apps.control.services import ensure_alias
+
+                for registry in DatabaseRegistry.objects.using("default").all():
+                    alias = ensure_alias(registry.db_name)
+                    targets.append((registry.db_name, alias))
+            except Exception as exc:  # pragma: no cover - jadval yo'q bo'lishi mumkin
+                self.stderr.write(
+                    f"Bazalar ro'yxatini o'qib bo'lmadi ({exc}) — faqat asosiy baza tekshiriladi."
+                )
+
+            # db_name bo'yicha takrorlarni olib tashlaymiz.
+            seen = set()
+            unique = []
+            for label, alias in targets:
+                if label in seen:
+                    continue
+                seen.add(label)
+                unique.append((label, alias))
+            return unique
+
+        # Standart: HTTP so'rovlarga xizmat qiladigan faol baza.
+        try:
+            from apps.control.services import resolve_active_alias
+
+            alias = resolve_active_alias()
+        except Exception:  # pragma: no cover - himoyaviy
+            alias = get_active_alias()
+        return [(self._db_name(alias), alias)]
+
+    # ---------- Tekshiruvlar ----------
+
+    def _check_alias(self, db: str, limit: int):
+        """Bitta bazani tekshiradi va (xatolar, partiyalar soni, sotuvlar soni) qaytaradi."""
         problems = []
 
         def report(kind, detail):
@@ -160,7 +237,10 @@ class Command(BaseCommand):
             if to_money(data["balance"]) != expected:
                 report("BALANS", f"{partner.name}: balance={data['balance']}, kutilgan={expected}")
 
-        # --- Faol baza yagonaligi ---
+        return problems, len(batches), len(sales)
+
+    def _check_single_active(self, limit: int):
+        """Ro'yxatda bir vaqtda faqat bitta faol baza bo'lishi shart."""
         try:
             from apps.control.models import DatabaseRegistry
 
@@ -169,31 +249,63 @@ class Command(BaseCommand):
             active_count = registry.filter(is_active=True).count()
             # Ro'yxat hali bo'sh bo'lsa (birinchi ishga tushirish) — bu xato emas.
             if active_count > 1 or (total_databases > 0 and active_count == 0):
-                report(
+                return [(
                     "BAZA",
                     f"Faol bazalar soni {active_count} (1 bo'lishi kerak, "
                     f"jami {total_databases} ta baza)",
-                )
+                )]
         except Exception:  # pragma: no cover - jadval hali yo'q bo'lishi mumkin
             pass
+        return []
 
-        # --- Natija ---
-        if not problems:
-            self.stdout.write(self.style.SUCCESS(
-                f"OK: {len(batches)} partiya, {len(sales)} sotuv tekshirildi — xato yo'q."
-            ))
-            return
+    # ---------- Kirish nuqtasi ----------
 
-        by_kind = {}
-        for kind, detail in problems:
-            by_kind.setdefault(kind, []).append(detail)
+    def handle(self, *args, **options):
+        limit = options["limit"]
+        targets = self._targets(options)
+        multi = len(targets) > 1
+        total_problems = 0
+        checked = 0
 
-        self.stderr.write(self.style.ERROR(f"{len(problems)} ta muammo topildi:"))
-        for kind, details in by_kind.items():
-            self.stderr.write(f"\n[{kind}] {len(details)} ta")
-            for detail in details[:limit]:
-                self.stderr.write(f"  - {detail}")
-            if len(details) > limit:
-                self.stderr.write(f"  ... yana {len(details) - limit} ta")
+        for label, alias in targets:
+            if multi:
+                self.stdout.write(f"\n=== {label} ===")
+            try:
+                problems, n_batches, n_sales = self._check_alias(alias, limit)
+            except Exception as exc:
+                total_problems += 1
+                self.stderr.write(
+                    self.style.ERROR(f"[{label}] tekshirib bo'lmadi: {exc}")
+                )
+                continue
 
-        raise CommandError("Ma'lumotlarda nomuvofiqlik bor — yuqoridagi ro'yxatni ko'ring.")
+            checked += 1
+            if not problems:
+                self.stdout.write(self.style.SUCCESS(
+                    f"OK: {n_batches} partiya, {n_sales} sotuv tekshirildi — xato yo'q."
+                ))
+                continue
+
+            total_problems += len(problems)
+            self.stderr.write(self.style.ERROR(f"[{label}] {len(problems)} ta muammo topildi:"))
+            by_kind = {}
+            for kind, detail in problems:
+                by_kind.setdefault(kind, []).append(detail)
+            for kind, details in by_kind.items():
+                self.stderr.write(f"\n[{kind}] {len(details)} ta")
+                for detail in details[:limit]:
+                    self.stderr.write(f"  - {detail}")
+                if len(details) > limit:
+                    self.stderr.write(f"  ... yana {len(details) - limit} ta")
+
+        # Faol baza yagonaligi — bazadan qat'i nazar bir marta tekshiriladi.
+        registry_problems = self._check_single_active(limit)
+        for kind, detail in registry_problems:
+            total_problems += 1
+            self.stderr.write(self.style.ERROR(f"\n[{kind}] {detail}"))
+
+        if total_problems:
+            raise CommandError("Ma'lumotlarda nomuvofiqlik bor — yuqoridagi ro'yxatni ko'ring.")
+
+        if checked == 0:  # pragma: no cover - himoyaviy
+            raise CommandError("Tekshirish uchun baza topilmadi.")

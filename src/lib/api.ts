@@ -223,20 +223,41 @@ export async function checkBackendHealth(): Promise<boolean> {
 }
 
 /**
+ * Faol baza haqida qisqa ma'lumot. `isBase=false` bo'lsa — foydalanuvchi
+ * asosiy bazada emas; UI ko'rinadigan ogohlantirish ko'rsatishi kerak.
+ */
+export interface ActiveDatabaseInfo {
+  name: string;
+  dbName?: string;
+  isBase: boolean;
+}
+
+export interface FetchedData {
+  data: AviakassaData;
+  activeDatabase: ActiveDatabaseInfo | null;
+}
+
+/**
  * Butun ma'lumotlar bazasini backenddan yuklash.
  * Asosiy yo'l — bitta `/data/snapshot/` so'rovi (sahifalash yo'q).
  * Eski backend bo'lsa (404) — alohida endpointlarga qaytamiz.
  */
-export async function apiFetchAll(): Promise<AviakassaData> {
+export async function apiFetchAll(): Promise<FetchedData> {
   try {
-    const data = await request<AviakassaData>("/data/snapshot/");
+    const data = await request<
+      AviakassaData & { activeDatabase?: ActiveDatabaseInfo | null }
+    >("/data/snapshot/");
     return {
-      partners: data.partners || [],
-      batches: data.batches || [],
-      sales: data.sales || [],
-      payments: data.payments || [],
-      debtOffsets: data.debtOffsets || [],
-      accounts: data.accounts || [],
+      data: {
+        partners: data.partners || [],
+        batches: data.batches || [],
+        sales: data.sales || [],
+        payments: data.payments || [],
+        debtOffsets: data.debtOffsets || [],
+        accounts: data.accounts || [],
+        categories: data.categories || [],
+      },
+      activeDatabase: data.activeDatabase || null,
     };
   } catch (error) {
     if (!(error instanceof ApiError) || error.status !== 404) {
@@ -244,16 +265,21 @@ export async function apiFetchAll(): Promise<AviakassaData> {
     }
   }
 
-  const [partners, batches, sales, payments, debtOffsets, accounts] = await Promise.all([
+  const [partners, batches, sales, payments, debtOffsets, accounts, categories] = await Promise.all([
     requestAll<Partner>("/partners/"),
     requestAll<Batch>("/batches/"),
     requestAll<Sale>("/sales/"),
     requestAll<Payment>("/cash/payments/"),
     requestAll<DebtOffset>("/cash/offsets/"),
     requestAll<CashAccount>("/cash/accounts/"),
+    requestAll<BatchCategory>("/categories/").catch(() => []),
   ]);
 
-  return { partners, batches, sales, payments, debtOffsets, accounts };
+  return {
+    data: { partners, batches, sales, payments, debtOffsets, accounts, categories },
+    // Eski backendda faol baza ma'lumoti yo'q — ogohlantirish ko'rsatilmaydi.
+    activeDatabase: null,
+  };
 }
 
 
@@ -469,7 +495,11 @@ export async function apiImportData(
 }
 
 export async function apiResetData(): Promise<void> {
-  await request<void>("/data/reset/", { method: "POST" });
+  // Backend tasdiq so'zini talab qiladi — tasodifiy POST hammasini o'chirmasin.
+  await request<void>("/data/reset/", {
+    method: "POST",
+    body: JSON.stringify({ confirm: "TOZALASH" }),
+  });
 }
 
 // ================= Databases (multi-DB boshqaruvi, faqat admin) =================
@@ -484,6 +514,7 @@ export interface DatabaseInfo {
 }
 
 export interface DatabaseCopySelection {
+  categories?: boolean;
   partners?: boolean;
   batches?: boolean;
   sales?: boolean;

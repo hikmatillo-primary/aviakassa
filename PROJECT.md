@@ -192,6 +192,8 @@ kiritadi; qaytish `sana + return_gap_days`. Hamkor bo'sh qolsa — avvalgi ta'mi
 - Bot `active_database()` kontekstida ishlaydi (HTTP middleware yo'q).
 - Yangi baza yaratish: `CREATE DATABASE` + `migrate` + tanlangan kategoriyalarni ko'chirish;
   xato bo'lsa yarim tayyor baza o'chiriladi.
+- Faol baza asosiydan farq qilsa, UI sariq banner bilan ogohlantiradi (snapshotdagi
+  `activeDatabase.isBase` asosida) — tasodifan boshqa bazada ishlab ketish oldini oladi.
 
 ### 5.7 Sanalar
 - Frontend: `getTodayISO()` (mahalliy) — `toISOString()` **ishlatilmaydi** (UTC siljishi).
@@ -206,9 +208,9 @@ kiritadi; qaytish `sana + return_gap_days`. Hamkor bo'sh qolsa — avvalgi ta'mi
 | POST | `/api/auth/login/` | JWT (throttle 10/min) |
 | POST | `/api/auth/refresh/`, `/api/auth/logout/` | token rotatsiyasi / blacklist |
 | GET | `/api/health/` | ochiq |
-| GET | `/api/data/snapshot/` | hamma ma'lumot + `categories` |
+| GET | `/api/data/snapshot/` | hamma ma'lumot + `categories` + `activeDatabase` (`name/dbName/isBase`) |
 | POST | `/api/data/import/` | faqat admin; avval validatsiya, xato bo'lsa hech narsa o'chirilmaydi |
-| POST | `/api/data/reset/` | faqat admin, **destruktiv** |
+| POST | `/api/data/reset/` | faqat admin, **destruktiv** — `{"confirm": "TOZALASH"}`siz ishlamaydi |
 | CRUD | `/api/partners/`, `/api/sales/`, `/api/cash/payments/`, `/api/cash/offsets/`, `/api/cash/accounts/` | |
 | CRUD | `/api/batches/` | filtrlar: `status`, `category`, `accounted=pending/done`, `auto=1/0` |
 | POST | `/api/batches/bulk/` | bir nechta partiya + ixtiyoriy to'lov |
@@ -257,6 +259,10 @@ python manage.py check_integrity
 `check_integrity` tekshiradi: qoldiq = jami − sotilgan (ikkala pool), tannarx,
 sotuv summasi/foydasi, reys sinxronligi, segment, hamkor balansi, faol baza yagonaligi.
 Xato topsa **1 kod** bilan chiqadi — deploydan keyin albatta ishga tushiring.
+
+Standart rejimda **faol baza** (HTTP so'rovlarga xizmat qilayotgani) tekshiriladi.
+Qo'shimcha: `--database <alias>` — aniq baza; `--all` — asosiy baza + ro'yxatdagi
+barcha bazalar (ko'p-bazali rejimda deploy tekshiruvi uchun ayniqsa muhim).
 
 Prod nusxasida to'liq e2e (sqlite'da):
 
@@ -344,7 +350,10 @@ sxema bilan ishlashi mumkin — bunday holatda bazani ham backup'dan tiklang.
 
 ### Backup
 - Har kuni **03:30** da `/opt/aviakassa/backup.sh` → `/root/aviakassa_backups/db_*.sql.gz`
-  (14 kun saqlanadi). `backup.sh` serverda, **gitda emas**.
+  (14 kun saqlanadi). `backup.sh` serverda, **gitda emas**. Faqat `aviakassa_db`ni oladi!
+- Ko'p-bazali rejimda qo'shimcha bazalar ham kerak — gitdagi buyruq:
+  `python manage.py backup_databases --outdir <papka>` har bir bazani
+  `<db_name>_<sana>.json.gz` qilib saqlaydi (tiklanishi: `loaddata --database=<alias>`).
 - Deploy oldidan qo'lda backup olinadi (`db_before_*`).
 - Off-site nusxa **yo'q** — muhim ma'lumot bo'lsa, tashqi joyga ko'chirish tavsiya etiladi.
 
@@ -357,8 +366,9 @@ sxema bilan ishlashi mumkin — bunday holatda bazani ham backup'dan tiklang.
 3. **Monitoring yo'q** — faqat `docker compose logs`; xatolar haqida ogohlantirish yo'q.
 4. **CI yo'q** — testlar qo'lda ishga tushiriladi.
 5. **Vaqtni tarqatish UI'da yo'q** — hozircha faqat API (`propagateToFuture`).
-6. **Ko'p-bazali rejim prodda sinalmagan** — kod va testlar bor, lekin real ikkinchi baza
-   ochilmagan. Ochishdan oldin `check_integrity` va sinov bazasida tekshirish kerak.
+6. **Ko'p-bazali rejim endi prodda ishlatilmoqda** — sinovdan keyin ham ehtiyotkor bo'ling:
+   faol baza asosiydan farq qilsa UI sariq banner bilan ogohlantiradi; `check_integrity --all`
+   va `backup_databases` barcha bazalarni qamrab oladi.
 7. **Bitta valyuta (USD)** — `NAQD_UZS` kabi eski choice'lar kodda qolgan, lekin UI'da yo'q.
 8. **`README.md` eskirgan** — localStorage/Cloudflare haqida yozilgan; haqiqiy holat shu faylda.
 

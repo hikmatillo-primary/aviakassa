@@ -30,6 +30,7 @@ interface DatabaseModalProps {
 }
 
 const CATEGORIES: { key: keyof DatabaseCopySelection; label: string }[] = [
+  { key: "categories", label: "Xarid turlari (kategoriyalar)" },
   { key: "partners", label: "Hamkorlar" },
   { key: "batches", label: "Partiyalar" },
   { key: "sales", label: "Sotuvlar" },

@@ -55,6 +55,7 @@ import {
   apiDeleteAccount,
   apiImportData,
   apiListDatabases,
+  ActiveDatabaseInfo,
   DatabaseInfo,
   UNAUTHORIZED_EVENT,
 } from "@/lib/api";
@@ -73,6 +74,8 @@ export function AppContainer() {
   const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [syncError, setSyncError] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
+  // Faol baza (asosiydan farq qilsa — UI ogohlantiradi).
+  const [activeDatabase, setActiveDatabase] = useState<ActiveDatabaseInfo | null>(null);
   const [databases, setDatabases] = useState<DatabaseInfo[]>([]);
   const [isDatabaseModalOpen, setIsDatabaseModalOpen] = useState(false);
 
@@ -177,9 +180,10 @@ export function AppContainer() {
     let cancelled = false;
     setIsSyncing(true);
     apiFetchAll()
-      .then((backendData) => {
+      .then(({ data: backendData, activeDatabase: activeDb }) => {
         if (cancelled) return;
         setData(backendData);
+        setActiveDatabase(activeDb);
         setSyncError(null);
       })
       .catch((err) => {
@@ -238,8 +242,9 @@ export function AppContainer() {
   const syncFromServer = async (): Promise<boolean> => {
     setIsSyncing(true);
     try {
-      const synced = await apiFetchAll();
+      const { data: synced, activeDatabase: activeDb } = await apiFetchAll();
       setData(synced);
+      setActiveDatabase(activeDb);
       setSyncError(null);
       return true;
     } catch (e) {
@@ -393,7 +398,7 @@ export function AppContainer() {
       showToast("O‘zaro qarz muvaffaqiyatli surildi! 🔄");
     } catch (e) {
       console.error("O'zaro qarz saqlashda xato:", e);
-      await syncFromServer();
+      await syncFromServer().catch(() => {});
       throw e;
     }
   };
@@ -509,7 +514,7 @@ export function AppContainer() {
       showToast("Chipta sotuvi muvaffaqiyatli saqlandi! 🎉");
     } catch (e) {
       console.error("Sotuvni saqlashda xato:", e);
-      await syncFromServer();
+      await syncFromServer().catch(() => {});
       throw e;
     }
   };
@@ -586,7 +591,7 @@ export function AppContainer() {
       showToast("Yangi partiya omborga kiritildi! ✈️");
     } catch (e) {
       console.error("Partiyani saqlashda xato:", e);
-      await syncFromServer();
+      await syncFromServer().catch(() => {});
       throw e;
     }
   };
@@ -870,7 +875,7 @@ export function AppContainer() {
       showToast("Partiya ma'lumotlari yangilandi!");
     } catch (e) {
       console.error("Partiya ma'lumotlarini yangilashda xato:", e);
-      await syncFromServer();
+      await syncFromServer().catch(() => {});
       throw e;
     }
   };
@@ -892,7 +897,7 @@ export function AppContainer() {
       showToast("Sotuv ma'lumotlari yangilandi!");
     } catch (e) {
       console.error("Sotuv ma'lumotlarini yangilashda xato:", e);
-      await syncFromServer();
+      await syncFromServer().catch(() => {});
       throw e;
     }
   };
@@ -902,10 +907,10 @@ export function AppContainer() {
     try {
       await apiUpdateBatch(batchId, payload);
       await syncFromServer();
-      showToast("Partiya ma'lumotlari yangilandi! \u2708\uFE0F");
+      showToast("Partiya ma'lumotlari yangilandi! ✈️");
     } catch (e) {
       console.error("Partiyani tahrirlashda xato:", e);
-      await syncFromServer();
+      await syncFromServer().catch(() => {});
       throw e;
     }
   };
@@ -915,10 +920,10 @@ export function AppContainer() {
     try {
       await apiUpdateSale(saleId, payload);
       await syncFromServer();
-      showToast("Sotuv ma'lumotlari yangilandi! \u{1F389}");
+      showToast("Sotuv ma'lumotlari yangilandi! 🎉");
     } catch (e) {
       console.error("Sotuvni tahrirlashda xato:", e);
-      await syncFromServer();
+      await syncFromServer().catch(() => {});
       throw e;
     }
   };
@@ -1024,6 +1029,28 @@ export function AppContainer() {
           >
             {isSyncing ? "Yuklanmoqda..." : "Qayta urinish"}
           </button>
+        </div>
+      )}
+
+      {activeDatabase && !activeDatabase.isBase && (
+        <div
+          role="alert"
+          className="bg-amber-50 dark:bg-amber-950/40 border-b border-amber-200 dark:border-amber-900/40 px-4 py-2.5 text-amber-800 dark:text-amber-300 text-xs sm:text-sm font-medium flex flex-wrap items-center justify-center gap-x-3 gap-y-1"
+        >
+          <span className="inline-flex items-center gap-1.5">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            Diqqat: hozir «{activeDatabase.name}» bazasi faol — bu asosiy baza emas.
+            Ma&apos;lumotlar shu bazadan ko&apos;rsatilmoqda.
+          </span>
+          {currentUser?.isStaff && (
+            <button
+              type="button"
+              onClick={() => setIsDatabaseModalOpen(true)}
+              className="underline font-bold cursor-pointer"
+            >
+              Bazalarni boshqarish
+            </button>
+          )}
         </div>
       )}
 

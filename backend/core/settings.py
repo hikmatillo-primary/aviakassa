@@ -99,12 +99,19 @@ ASGI_APPLICATION = "core.asgi.application"
 DB_ENGINE = os.environ.get("DB_ENGINE", "")
 
 if DB_ENGINE == "django.db.backends.postgresql":
+    # Parol uchun "jim" fallback bo'lmasligi kerak: env unutilsa, prod
+    # tasodifan kutilmagan parol bilan ishga tushmasin — darhol to'xtaymiz.
+    _db_password = os.environ.get("DB_PASSWORD")
+    if not _db_password:
+        raise RuntimeError(
+            "DB_PASSWORD environment variable majburiy (PostgreSQL rejimida)!"
+        )
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
             "NAME": os.environ.get("DB_NAME", "aviakassa_db"),
             "USER": os.environ.get("DB_USER", "aviakassa_user"),
-            "PASSWORD": os.environ.get("DB_PASSWORD", "aviakassa_secure_password_2026"),
+            "PASSWORD": _db_password,
             "HOST": os.environ.get("DB_HOST", "db"),
             "PORT": os.environ.get("DB_PORT", "5432"),
         }

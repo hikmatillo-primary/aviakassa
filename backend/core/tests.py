@@ -84,7 +84,9 @@ class DataImportResetAPITests(APITestCase):
             username="regular2", password="test-pass-12345", is_staff=False
         )
         self.client.force_authenticate(user=user)
-        res = self.client.post("/api/data/reset/", {}, format="json")
+        res = self.client.post(
+            "/api/data/reset/", {"confirm": "TOZALASH"}, format="json"
+        )
         self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_import_data_replaces_and_remaps(self):
@@ -120,7 +122,9 @@ class DataImportResetAPITests(APITestCase):
         self.client.post("/api/data/import/", self._sample_payload(), format="json")
         self.assertGreater(Partner.objects.count(), 0)
 
-        res = self.client.post("/api/data/reset/", {}, format="json")
+        res = self.client.post(
+            "/api/data/reset/", {"confirm": "TOZALASH"}, format="json"
+        )
         self.assertEqual(res.status_code, status.HTTP_200_OK)
 
         self.assertEqual(Partner.objects.count(), 0)
@@ -128,6 +132,37 @@ class DataImportResetAPITests(APITestCase):
         self.assertEqual(Sale.objects.count(), 0)
         self.assertEqual(Payment.objects.count(), 0)
         self.assertEqual(DebtOffset.objects.count(), 0)
+
+    def test_reset_data_requires_confirmation(self):
+        self.client.post("/api/data/import/", self._sample_payload(), format="json")
+        self.assertGreater(Partner.objects.count(), 0)
+
+        # Tasdiq so'zisiz so'rov hech narsani o'chirmaydi.
+        res = self.client.post("/api/data/reset/", {}, format="json")
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(Partner.objects.count(), 2)
+        self.assertEqual(Batch.objects.count(), 1)
+
+        # Noto'g'ri tasdiq so'zi ham qabul qilinmaydi.
+        res = self.client.post(
+            "/api/data/reset/", {"confirm": "reset"}, format="json"
+        )
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(Partner.objects.count(), 2)
+
+    def test_import_data_restores_categories_and_links_to_batch(self):
+        payload = self._sample_payload()
+        payload["categories"] = [{"id": 5, "name": "Namangan bloki"}]
+        payload["batches"][0]["categoryId"] = 5
+        res = self.client.post("/api/data/import/", payload, format="json")
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data["created"]["categories"], 1)
+
+        from apps.flights.models import BatchCategory
+        cat = BatchCategory.objects.filter(name="Namangan bloki").first()
+        self.assertIsNotNone(cat)
+        batch = Batch.objects.first()
+        self.assertEqual(batch.category, cat)
 
 
 class BulkSaleAPITests(APITestCase):
