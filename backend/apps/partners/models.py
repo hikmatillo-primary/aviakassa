@@ -37,7 +37,11 @@ class Partner(models.Model):
 
         Hisob-kitob faqat Decimal bilan bajariladi — float yaxlitlash xatosi yo'q.
         """
-        total_sold_to_us = money_sum(b.total_cost for b in self.batches.all())
+        # Faqat hisobga olingan partiyalar qarzga qo'shiladi (avto-xarid
+        # «Hisobga qo'shish» bosilgunga qadar balansda ko'rinmaydi).
+        total_sold_to_us = money_sum(
+            b.total_cost for b in self.batches.all() if b.accounted_at is not None
+        )
         total_paid_by_us = money_sum(
             p.amount for p in self.payments.all() if p.type == 'EXPENSE'
         )

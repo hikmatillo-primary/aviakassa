@@ -6,10 +6,23 @@ from core.db_state import get_active_alias
 from core.fields import MoneyField
 from core.money import to_money
 
-from .models import Batch
+from .models import Batch, BatchCategory
 from apps.partners.models import Partner
 from apps.sales.models import Sale
 
+
+class BatchCategorySerializer(serializers.ModelSerializer):
+    createdAt = serializers.DateTimeField(source='created_at', read_only=True)
+
+    class Meta:
+        model = BatchCategory
+        fields = ['id', 'name', 'createdAt']
+
+    def validate_name(self, value):
+        name = (value or "").strip()
+        if not name:
+            raise serializers.ValidationError("Xarid turi nomi bo'sh bo'lishi mumkin emas.")
+        return name
 
 class BatchSerializer(serializers.ModelSerializer):
     batchNumber = serializers.CharField(source='batch_number', required=False, allow_blank=True)
@@ -34,6 +47,22 @@ class BatchSerializer(serializers.ModelSerializer):
     # Holat qoldiqdan avtomatik hisoblanadi (Batch.save), shuning uchun faqat o'qish uchun.
     status = serializers.ChoiceField(choices=Batch.Status.choices, read_only=True)
     createdAt = serializers.DateTimeField(source='created_at', read_only=True)
+
+    # --- Avto xarid / hisobga olish / kategoriya ---
+    categoryId = serializers.PrimaryKeyRelatedField(
+        source='category', queryset=BatchCategory.objects.all(),
+        required=False, allow_null=True,
+    )
+    categoryName = serializers.SerializerMethodField()
+
+    def get_categoryName(self, obj):
+        return obj.category.name if obj.category_id else None
+    isAuto = serializers.BooleanField(source='is_auto', read_only=True)
+    accountedAt = serializers.DateTimeField(source='accounted_at', read_only=True)
+    seriesId = serializers.UUIDField(source='series_id', read_only=True, allow_null=True)
+    returnGapDays = serializers.IntegerField(source='return_gap_days', read_only=True, allow_null=True)
+    # Vaqt o'zgarganda shu seriyadagi keyingi reyslarga ham qo'llash.
+    propagateToFuture = serializers.BooleanField(required=False, write_only=True)
 
     class Meta:
         model = Batch
@@ -62,11 +91,19 @@ class BatchSerializer(serializers.ModelSerializer):
             'status',
             'notes',
             'createdAt',
+            'categoryId',
+            'categoryName',
+            'isAuto',
+            'accountedAt',
+            'seriesId',
+            'returnGapDays',
+            'propagateToFuture',
         ]
 
     def create(self, validated_data):
         # Raqam bo'sh bo'lsa model o'zi generatsiya qiladi; band bo'lsa model
         # aniq xato qaytaradi (jim ravishda boshqa raqam qo'yilmaydi).
+        validated_data.pop('propagateToFuture', None)
         return super().create(validated_data)
 
     def validate(self, attrs):
@@ -95,6 +132,7 @@ class BatchSerializer(serializers.ModelSerializer):
         return attrs
 
     def update(self, instance, validated_data):
+        propagate = validated_data.pop('propagateToFuture', False)
         # total_qty o'zgarsa, qoldiqni shu farqqa moslab o'zgartiramiz (sotilganlar saqlanadi).
         # Borish-kelish partiyada ikkala pool ham delta bo'yicha moslashadi.
         if 'total_qty' in validated_data:
@@ -124,4 +162,22 @@ class BatchSerializer(serializers.ModelSerializer):
                 sale.profit = to_money(sale.total_amount - new_price * sale.qty)
             if sales:
                 Sale.objects.using(db).bulk_update(sales, ["buy_price", "profit"], batch_size=500)
+
+        # Vaqt/reys o'zgarishi shu seriyadagi KEYINGI reyslarga ham qo'llanadi
+        # (o'tgan sanalardagi reyslar tegilmaydi — ular allaqachon sotilgan).
+        if propagate and obj.series_id:
+            propagate_fields = (
+                'flight_number', 'departure_time', 'arrival_time',
+                'return_flight_number', 'return_departure_time', 'return_arrival_time',
+                'baggage',
+            )
+            updates = {
+                field: getattr(obj, field)
+                for field in propagate_fields
+                if field in validated_data
+            }
+            if updates:
+                Batch.objects.using(get_active_alias()).filter(
+                    series_id=obj.series_id, flight_date__gte=obj.flight_date
+                ).exclude(pk=obj.pk).update(**updates)
         return obj

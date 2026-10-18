@@ -42,6 +42,7 @@ interface BatchDetailViewProps {
     defaultNotes?: string,
     defaultAmount?: number
   ) => void;
+  onRepeatBatch?: (batch: any) => void;
 }
 
 export function BatchDetailView({
@@ -57,6 +58,7 @@ export function BatchDetailView({
   onDeleteSale,
   onOpenHistoryModal,
   onOpenPaymentModal,
+  onRepeatBatch,
 }: BatchDetailViewProps) {
   const [saleSearch, setSaleSearch] = useState("");
 
@@ -107,6 +109,17 @@ export function BatchDetailView({
           <ArrowLeft className="w-4 h-4 text-slate-500" />
           Omborga qaytish
         </button>
+
+        {onRepeatBatch && (
+          <button
+            type="button"
+            onClick={() => onRepeatBatch(batch)}
+            className="inline-flex items-center gap-2 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-sm shadow-blue-500/20 transition-all cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            Yana qo&apos;shish
+          </button>
+        )}
 
         <div className="flex items-center gap-2 min-w-0">
           <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 shrink-0">

@@ -1,4 +1,4 @@
-import { AviakassaData, Batch, CashAccount, DebtOffset, Partner, Payment, Sale } from "./storage";
+import { AviakassaData, Batch, BatchCategory, CashAccount, DebtOffset, Partner, Payment, Sale } from "./storage";
 
 // Default: same-origin "/api" (nginx frontend /api/ ni backendga proksilaydi).
 // Kerak bo'lsa NEXT_PUBLIC_API_URL orqali to'liq manzil beriladi.
@@ -312,6 +312,67 @@ export async function apiCreateBatchesBulk(
   return request<{ created: Batch[]; paymentId: number | null }>("/batches/bulk/", {
     method: "POST",
     body: JSON.stringify(payload),
+  });
+}
+
+// ================= Avto xarid / hisobga olish =================
+export interface AutoBatchPayload {
+  supplierId: number;
+  route: string;
+  flightDate: string;
+  flightNumber?: string;
+  departureTime?: string;
+  arrivalTime?: string;
+  isRoundTrip?: boolean;
+  returnDate?: string | null;
+  returnFlightNumber?: string;
+  returnDepartureTime?: string;
+  returnArrivalTime?: string;
+  baggage?: string;
+  totalQty: number;
+  buyPrice: number;
+  purchaseDate?: string;
+  categoryId?: number | null;
+  notes?: string;
+  until: string;
+  intervalDays?: number;
+}
+
+export async function apiCreateAutoBatches(payload: AutoBatchPayload): Promise<{
+  created: Batch[];
+  skipped: string[];
+  seriesId: string;
+  count: number;
+}> {
+  return request("/batches/auto/", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function apiAccountBatch(id: number): Promise<Batch> {
+  return request<Batch>(`/batches/${id}/account/`, { method: "POST" });
+}
+
+export async function apiAccountSeries(payload: {
+  seriesId?: string;
+  ids?: number[];
+}): Promise<{ updated: number }> {
+  return request<{ updated: number }>("/batches/account-all/", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+// ================= Xarid turlari (kategoriya) =================
+export async function apiListCategories(): Promise<BatchCategory[]> {
+  return requestAll<BatchCategory>("/categories/");
+}
+
+export async function apiCreateCategory(name: string): Promise<BatchCategory> {
+  return request<BatchCategory>("/categories/", {
+    method: "POST",
+    body: JSON.stringify({ name }),
   });
 }
 

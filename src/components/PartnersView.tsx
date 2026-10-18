@@ -17,6 +17,9 @@ interface PartnersViewProps {
   onDeleteBatch?: (batch: any) => void;
   onOpenHistoryModal?: (partnerId: number) => void;
   onSelectBatch?: (batchId: number) => void;
+  categories?: Array<{ id: number; name: string }>;
+  onAccountBatch?: (batch: any) => void | Promise<void>;
+  onAccountSeries?: (seriesId: string) => void | Promise<void>;
 }
 
 export function PartnersView({
@@ -29,19 +32,29 @@ export function PartnersView({
   onDeleteBatch,
   onOpenHistoryModal,
   onSelectBatch,
+  categories = [],
+  onAccountBatch,
+  onAccountSeries,
 }: PartnersViewProps) {
   const [search, setSearch] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
 
   const clearAllFilters = () => {
     setSearch("");
     setDateFrom("");
     setDateTo("");
+    setCategoryFilter("");
   };
 
+  const pendingBatches = batches.filter((b) => b.accountedAt === null);
+
   const filteredBatches = batches.filter(
-    (b) => matchesBatchSearch(b, search) && isDateInRange(b.purchaseDate, dateFrom, dateTo)
+    (b) =>
+      matchesBatchSearch(b, search) &&
+      isDateInRange(b.purchaseDate, dateFrom, dateTo) &&
+      (!categoryFilter || String(b.categoryId || "") === categoryFilter)
   );
 
   return (
@@ -109,6 +122,23 @@ export function PartnersView({
           ta partiya
         </div>
       </div>
+
+      {pendingBatches.length > 0 && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-2xl border border-amber-200/80 dark:border-amber-500/30 bg-amber-50/70 dark:bg-amber-500/[0.06] px-4 py-3">
+          <div className="text-xs font-medium text-amber-800 dark:text-amber-300">
+            <strong>{pendingBatches.length} ta avto-partiya</strong> hali hisobga olinmagan — hamkor qarzida ko&apos;rinmaydi.
+          </div>
+          {pendingBatches[0]?.seriesId && onAccountSeries && (
+            <button
+              type="button"
+              onClick={() => onAccountSeries(pendingBatches[0].seriesId)}
+              className="px-3.5 py-2 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-xl cursor-pointer"
+            >
+              Seriyani hisobga qo&apos;shish
+            </button>
+          )}
+        </div>
+      )}
 
       {/* MOBILE LIST VIEW */}
       <div className="space-y-3 block md:hidden">
@@ -186,6 +216,15 @@ export function PartnersView({
               <div className="flex items-center gap-1.5">
                 <RowActionsMenu
                   actions={[
+                    ...(batch.accountedAt === null && onAccountBatch
+                      ? [
+                          {
+                            label: "Hisobga qo'shish",
+                            icon: <PackagePlus className="w-3.5 h-3.5" />,
+                            onClick: () => onAccountBatch(batch),
+                          },
+                        ]
+                      : []),
                     ...(onFullEditBatch
                       ? [
                           {

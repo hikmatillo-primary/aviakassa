@@ -1,11 +1,29 @@
+import uuid
+from datetime import date
 from decimal import Decimal
 
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.utils import timezone
 
 from apps.partners.models import Partner
 from core.db_state import get_active_alias
 from core.money import ZERO, to_money
+
+
+class BatchCategory(models.Model):
+    """Xarid turi (masalan: «1 oylik», «Yillik», «Namangan»)."""
+
+    name = models.CharField(max_length=100, unique=True, verbose_name="Nomi")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Yaratilgan vaqti")
+
+    class Meta:
+        verbose_name = "Xarid turi"
+        verbose_name_plural = "Xarid turlari"
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
 
 
 class Batch(models.Model):
@@ -28,6 +46,29 @@ class Batch(models.Model):
 
     purchase_date = models.DateField(blank=True, null=True, db_index=True, verbose_name="Xarid sanasi")
     baggage = models.CharField(max_length=50, blank=True, default="20kg", verbose_name="Bagaj")
+
+    category = models.ForeignKey(
+        BatchCategory,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="batches",
+        verbose_name="Xarid turi",
+    )
+
+    # --- Avto xarid ---
+    # `is_auto` — jadval bo'yicha avtomatik yaratilgan partiya.
+    # `accounted_at` — hamkor qarziga qo'shilgan vaqt; None bo'lsa hisobga olinmagan.
+    is_auto = models.BooleanField(default=False, db_index=True, verbose_name="Avto xarid")
+    accounted_at = models.DateTimeField(
+        null=True, blank=True, db_index=True, verbose_name="Hisobga olingan vaqt"
+    )
+    series_id = models.UUIDField(
+        null=True, blank=True, db_index=True, verbose_name="Seriya identifikatori"
+    )
+    return_gap_days = models.PositiveSmallIntegerField(
+        null=True, blank=True, verbose_name="Qaytish oraliği (kun)"
+    )
 
     supplier = models.ForeignKey(
         Partner,
@@ -152,6 +193,21 @@ class Batch(models.Model):
             self.remaining_qty = self.total_qty
         if self.return_remaining_qty is None:
             self.return_remaining_qty = self.total_qty
+
+        # Borish-kelish oraliği: «Yana qo'shish» va avto-jadval uchun saqlanadi.
+        # (Modelga ba'zan satr ko'rinishida sana beriladi — faqat date bo'lsa hisoblaymiz.)
+        if (
+            self.is_round_trip
+            and isinstance(self.flight_date, date)
+            and isinstance(self.return_date, date)
+        ):
+            self.return_gap_days = (self.return_date - self.flight_date).days
+
+        # Qo'lda kiritilgan xarid darhol hisobga olinadi; avto-xarid esa
+        # «Hisobga qo'shish» bosilgunga qadar kutiladi.
+        if not self.is_auto and self.accounted_at is None:
+            self.accounted_at = timezone.now()
+
         self.recalc_status()
 
         super().save(*args, **kwargs)

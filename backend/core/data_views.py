@@ -8,8 +8,8 @@ from rest_framework.response import Response
 
 from apps.partners.models import Partner
 from apps.partners.serializers import PartnerSerializer
-from apps.flights.models import Batch
-from apps.flights.serializers import BatchSerializer
+from apps.flights.models import Batch, BatchCategory
+from apps.flights.serializers import BatchCategorySerializer, BatchSerializer
 from apps.sales.models import Sale
 from apps.sales.serializers import SaleSerializer
 from apps.cash.models import Payment, DebtOffset, CashAccount, account_for_payment_method
@@ -81,6 +81,9 @@ def snapshot(request):
             "payments": PaymentSerializer(payments, many=True).data,
             "debtOffsets": DebtOffsetSerializer(offsets, many=True).data,
             "accounts": CashAccountSerializer(accounts, many=True).data,
+            "categories": BatchCategorySerializer(
+                BatchCategory.objects.all().order_by("name"), many=True
+            ).data,
         }
     )
 

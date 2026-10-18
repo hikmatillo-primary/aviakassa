@@ -45,6 +45,14 @@ export interface Batch {
   status: "ACTIVE" | "COMPLETED";
   notes?: string;
   createdAt: string;
+  /** Avto-xarid partiyasi (jadval bo'yicha yaratilgan). */
+  isAuto?: boolean;
+  /** Hamkor qarziga qo'shilgan vaqt; null bo'lsa hali hisobga olinmagan. */
+  accountedAt?: string | null;
+  seriesId?: string | null;
+  returnGapDays?: number | null;
+  categoryId?: number | null;
+  categoryName?: string | null;
 }
 
 export interface Sale {
@@ -81,6 +89,12 @@ export interface CashAccount {
   createdAt: string;
 }
 
+export interface BatchCategory {
+  id: number;
+  name: string;
+  createdAt?: string;
+}
+
 export interface Payment {
   id: number;
   partnerId: number;
@@ -115,6 +129,7 @@ export interface AviakassaData {
   payments: Payment[];
   debtOffsets?: DebtOffset[];
   accounts?: CashAccount[];
+  categories?: BatchCategory[];
 }
 
 export const EMPTY_AVIAKASSA_DATA: AviakassaData = {
@@ -225,6 +240,8 @@ export function calculateEnrichedData(data: AviakassaData) {
   // Hamkor ko'rsatkichlari: server hisoblagan qiymatlar ustuvor.
   const soldToUsByPartner = new Map<number, number[]>();
   for (const b of enrichedBatches) {
+    // Hisobga olinmagan avto-partiyalar hamkor qarziga qo'shilmaydi.
+    if (b.accountedAt === null) continue;
     const list = soldToUsByPartner.get(b.supplierId) || [];
     list.push(b.totalCost || 0);
     soldToUsByPartner.set(b.supplierId, list);

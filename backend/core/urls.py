@@ -68,6 +68,7 @@ urlpatterns = [
     path("api/auth/user/", current_user, name="current_user"),
     path("api/partners/", include("apps.partners.urls")),
     path("api/batches/", include("apps.flights.urls")),
+    path("api/categories/", include("apps.flights.category_urls")),
     path("api/sales/", include("apps.sales.urls")),
     path("api/cash/", include("apps.cash.urls")),
     path("api/databases/", include("apps.control.urls")),

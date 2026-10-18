@@ -36,6 +36,11 @@ import {
   apiUpdateSale,
   apiCreateSalesBulk,
   apiCreateBatchesBulk,
+  apiCreateAutoBatches,
+  apiAccountBatch,
+  apiAccountSeries,
+  apiCreateCategory,
+  AutoBatchPayload,
   apiCreatePayment,
   apiCreatePartner,
   apiUpdatePartner,
@@ -297,6 +302,8 @@ export function AppContainer() {
 
   const [fullEditingBatch, setFullEditingBatch] = useState<Batch | null>(null);
   const [fullEditingSale, setFullEditingSale] = useState<Sale | null>(null);
+  // «Yana qo'shish» — mavjud partiya ma'lumotlari bilan yangi xarid formasi.
+  const [repeatBatch, setRepeatBatch] = useState<Batch | null>(null);
 
   // Quick Open Handlers
   const handleOpenSaleModal = (batchId?: number) => {
@@ -392,6 +399,55 @@ export function AppContainer() {
   };
 
   // CRUD Operations
+  // Avto-xarid: jadval bo'yicha haftalik partiyalar
+  const handleAddAutoBatches = async (payload: AutoBatchPayload) => {
+    try {
+      const res = await apiCreateAutoBatches(payload);
+      await syncFromServer();
+      showToast(
+        `${res.count} ta avto-partiya yaratildi` +
+          (res.skipped.length ? `, ${res.skipped.length} tasi allaqachon bor edi` : "")
+      );
+      return res;
+    } catch (e) {
+      console.error("Avto-xarid yaratishda xato:", e);
+      throw e;
+    }
+  };
+
+  const handleAccountBatch = async (batch: Batch) => {
+    try {
+      await apiAccountBatch(batch.id);
+      await syncFromServer();
+      showToast("Partiya hisobga qo'shildi! ✅");
+    } catch (e) {
+      console.error("Hisobga qo'shishda xato:", e);
+      throw e;
+    }
+  };
+
+  const handleAccountSeries = async (seriesId: string) => {
+    try {
+      const res = await apiAccountSeries({ seriesId });
+      await syncFromServer();
+      showToast(`${res.updated} ta partiya hisobga qo'shildi! ✅`);
+    } catch (e) {
+      console.error("Seriyani hisobga qo'shishda xato:", e);
+      throw e;
+    }
+  };
+
+  const handleCreateCategory = async (name: string) => {
+    try {
+      await apiCreateCategory(name);
+      await syncFromServer();
+      showToast("Yangi xarid turi qo'shildi!");
+    } catch (e) {
+      console.error("Xarid turini qo'shishda xato:", e);
+      throw e;
+    }
+  };
+
   const handleAddSale = async (saleInput: {
     clientId: number;
     saleDate: string;
@@ -1035,6 +1091,9 @@ export function AppContainer() {
           <PartnersView
             batches={batches}
             suppliers={suppliers}
+            categories={data.categories || []}
+            onAccountBatch={handleAccountBatch}
+            onAccountSeries={handleAccountSeries}
             onOpenBatchModal={handleOpenBatchModal}
             onOpenPartnerModal={() => handleOpenPartnerModal("SUPPLIER")}
             onEditBatch={handleOpenEditBatch}
@@ -1056,6 +1115,7 @@ export function AppContainer() {
               allBatches={batches}
               allSales={sales}
               onBack={() => setDetailBatchId(null)}
+              onRepeatBatch={(batch) => setRepeatBatch(batch)}
               onOpenBatchModal={handleOpenBatchModal}
               onOpenSaleModal={(batchId) => handleOpenSaleModal(batchId)}
               onEditBatch={handleOpenEditBatch}
@@ -1177,14 +1237,19 @@ export function AppContainer() {
       />
 
       <BatchModal
-        isOpen={isBatchModalOpen}
+        isOpen={isBatchModalOpen || repeatBatch !== null}
         onClose={() => {
           setIsBatchModalOpen(false);
+          setRepeatBatch(null);
           setLastCreatedPartnerId(null);
         }}
         suppliers={partners}
         accounts={accounts}
         existingBatches={batches}
+        categories={data.categories || []}
+        repeatFrom={repeatBatch}
+        onSaveAuto={handleAddAutoBatches}
+        onCreateCategory={handleCreateCategory}
         onSave={handleAddBatch}
         newlyCreatedPartnerId={lastCreatedPartnerId}
         onOpenSupplierModal={() => {

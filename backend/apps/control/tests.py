@@ -8,14 +8,14 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from apps.partners.models import Partner
-from apps.flights.models import Batch
+from apps.flights.models import Batch, BatchCategory
 from apps.sales.models import Sale
 from apps.cash.models import Payment, DebtOffset, CashAccount
 
 from . import services
 from .models import DatabaseRegistry
 
-BUSINESS_MODELS = [CashAccount, Partner, Batch, Sale, Payment, DebtOffset]
+BUSINESS_MODELS = [BatchCategory, CashAccount, Partner, Batch, Sale, Payment, DebtOffset]
 
 
 class CategoryNormalizationTests(APITestCase):

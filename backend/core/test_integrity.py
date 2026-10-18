@@ -12,12 +12,12 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from apps.cash.models import CashAccount, DebtOffset, Payment
-from apps.flights.models import Batch
+from apps.flights.models import Batch, BatchCategory
 from apps.partners.models import Partner
 from apps.sales.models import Sale
 from core.db_state import reset_active_alias, set_active_alias
 
-BUSINESS_MODELS = [CashAccount, Partner, Batch, Sale, Payment, DebtOffset]
+BUSINESS_MODELS = [BatchCategory, CashAccount, Partner, Batch, Sale, Payment, DebtOffset]
 
 
 class MoneyPrecisionTests(TestCase):

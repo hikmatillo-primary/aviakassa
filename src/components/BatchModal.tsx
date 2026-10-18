@@ -4,7 +4,8 @@ import React, { useState, useEffect } from "react";
 import { Modal } from "./Modal";
 import { Plus, Trash2, Sparkles, PlaneTakeoff, PlaneLanding, X, Loader2 } from "lucide-react";
 import { formatUSD, getTodayISO } from "@/lib/format";
-import { CashAccount } from "@/lib/storage";
+import { BatchCategory, CashAccount } from "@/lib/storage";
+import type { AutoBatchPayload } from "@/lib/api";
 
 export interface BatchItemInput {
   id: string;
@@ -57,6 +58,10 @@ interface BatchModalProps {
   onOpenSupplierModal?: () => void;
   newlyCreatedPartnerId?: number | null;
   existingBatches?: any[];
+  categories?: BatchCategory[];
+  repeatFrom?: any | null;
+  onSaveAuto?: (payload: AutoBatchPayload) => Promise<{ count: number }>;
+  onCreateCategory?: (name: string) => Promise<void>;
 }
 
 import { DatePicker } from "./DatePicker";
@@ -76,6 +81,10 @@ export function BatchModal({
   onOpenSupplierModal,
   newlyCreatedPartnerId,
   existingBatches = [],
+  categories = [],
+  repeatFrom = null,
+  onSaveAuto,
+  onCreateCategory,
 }: BatchModalProps) {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -85,6 +94,9 @@ export function BatchModal({
   const [paymentMethod, setPaymentMethod] = useState<string>("CASH");
   const [accountId, setAccountId] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
+  const [categoryId, setCategoryId] = useState<string>("");
+  const [autoEnabled, setAutoEnabled] = useState(false);
+  const [autoUntil, setAutoUntil] = useState("");
 
   const [items, setItems] = useState<BatchItemInput[]>([]);
   const prevIsOpenRef = React.useRef(false);
@@ -118,6 +130,42 @@ export function BatchModal({
       setAccountId("");
       setError(null);
       setIsSubmitting(false);
+      setCategoryId("");
+      setAutoEnabled(false);
+      setAutoUntil("");
+
+      // «Yana qo'shish»: mavjud partiya ma'lumotlarini oldindan to'ldiramiz.
+      if (repeatFrom) {
+        const gap = Number(repeatFrom.returnGapDays) || 0;
+        const startDate = today;
+        const returnDate =
+          repeatFrom.isRoundTrip && gap > 0
+            ? new Date(new Date(startDate).getTime() + gap * 86400000)
+                .toISOString()
+                .slice(0, 10)
+            : "";
+        setSupplierId(String(repeatFrom.supplierId));
+        setCategoryId(repeatFrom.categoryId ? String(repeatFrom.categoryId) : "");
+        setItems([
+          {
+            id: Math.random().toString(),
+            fromCity: (repeatFrom.route || "—").split("—")[0].trim(),
+            toCity: (repeatFrom.route || "—").split("—")[1]?.trim() || "",
+            flightDate: startDate,
+            flightNumber: repeatFrom.flightNumber || "",
+            departureTime: repeatFrom.departureTime || "",
+            arrivalTime: repeatFrom.arrivalTime || "",
+            isRoundTrip: Boolean(repeatFrom.isRoundTrip),
+            returnDate,
+            returnFlightNumber: repeatFrom.returnFlightNumber || "",
+            returnDepartureTime: repeatFrom.returnDepartureTime || "",
+            returnArrivalTime: repeatFrom.returnArrivalTime || "",
+            totalQty: repeatFrom.totalQty || 1,
+            buyPrice: repeatFrom.buyPrice || 0,
+            baggage: repeatFrom.baggage || "",
+          },
+        ]);
+      }
     }
     prevIsOpenRef.current = isOpen;
   }, [isOpen]);
@@ -209,6 +257,44 @@ export function BatchModal({
 
     setIsSubmitting(true);
     try {
+      if (autoEnabled && items.length === 1) {
+        if (!autoUntil) {
+          setError("Tugash sanasini tanlang!");
+          setIsSubmitting(false);
+          return;
+        }
+        if (autoUntil < items[0].flightDate) {
+          setError("Tugash sanasi birinchi uchish sanasidan keyin bo'lishi kerak!");
+          setIsSubmitting(false);
+          return;
+        }
+        const it = items[0];
+        const hasReturn = Boolean(it.isRoundTrip && it.returnDate);
+        await onSaveAuto?.({
+          supplierId: Number(supplierId),
+          route: `${it.fromCity.trim()} — ${it.toCity.trim()}`,
+          flightDate: it.flightDate,
+          flightNumber: it.flightNumber.trim().toUpperCase(),
+          departureTime: it.departureTime,
+          arrivalTime: it.arrivalTime,
+          isRoundTrip: hasReturn,
+          returnDate: hasReturn ? it.returnDate : null,
+          returnFlightNumber: hasReturn ? it.returnFlightNumber : "",
+          returnDepartureTime: hasReturn ? it.returnDepartureTime : "",
+          returnArrivalTime: hasReturn ? it.returnArrivalTime : "",
+          baggage: it.baggage,
+          totalQty: Number(it.totalQty),
+          buyPrice: Number(it.buyPrice),
+          purchaseDate: purchaseDate || getTodayISO(),
+          categoryId: categoryId ? Number(categoryId) : null,
+          notes,
+          until: autoUntil,
+          intervalDays: 7,
+        });
+        onClose();
+        return;
+      }
+
       await onSave({
         supplierId: Number(supplierId),
         purchaseDate: purchaseDate || getTodayISO(),
@@ -753,6 +839,81 @@ export function BatchModal({
         </div>
 
         {/* 5. Izoh */}
+        <div className="rounded-2xl border border-blue-200/70 dark:border-blue-500/20 bg-blue-50/40 dark:bg-blue-500/[0.04] p-3 space-y-2">
+          <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-200 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={autoEnabled}
+              onChange={(e) => setAutoEnabled(e.target.checked)}
+              disabled={items.length !== 1}
+              className="w-4 h-4 accent-blue-600"
+            />
+            Avto xarid (har 7 kunda bir xil narx va sonda)
+          </label>
+          {autoEnabled && (
+            <div className="space-y-1.5">
+              <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-300">
+                Qaysi sanagacha
+              </label>
+              <input
+                type="date"
+                value={autoUntil}
+                onChange={(e) => setAutoUntil(e.target.value)}
+                className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                Yaratiladi:{" "}
+                <strong className="text-blue-600 dark:text-blue-400">
+                  {autoUntil && items[0]?.flightDate
+                    ? Math.max(
+                        0,
+                        Math.floor(
+                          (new Date(autoUntil).getTime() -
+                            new Date(items[0].flightDate).getTime()) /
+                            86400000
+                        ) /
+                          7
+                      ) + 1
+                    : 0}{" "}
+                  ta partiya
+                </strong>{" "}
+                — hammasi «hisobga olinmagan» holatda
+              </p>
+            </div>
+          )}
+          <div>
+            <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-1">
+              Xarid turi
+            </label>
+            <div className="flex gap-2">
+              <select
+                value={categoryId}
+                onChange={(e) => setCategoryId(e.target.value)}
+                className="flex-1 px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">— Tanlanmagan —</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={String(c.id)}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+              {onCreateCategory && (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const name = window.prompt("Yangi xarid turi nomi (masalan: 1 oylik)");
+                    if (name?.trim()) await onCreateCategory(name.trim());
+                  }}
+                  className="px-3 py-2 text-xs font-semibold text-blue-600 dark:text-blue-400 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl cursor-pointer"
+                >
+                  + Tur
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
         <div>
           <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
             Izoh (ixtiyoriy)
