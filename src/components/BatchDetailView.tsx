@@ -147,24 +147,66 @@ export function BatchDetailView({
               )}
             </div>
 
-            {/* Qoldiq progress bari */}
-            <div className="pt-2 border-t border-slate-200/60 dark:border-white/[0.06] tabular-nums">
-              <div className="flex items-center justify-between text-[11px] sm:text-xs font-semibold mb-1.5">
-                <span className="text-blue-600 dark:text-blue-400">
-                  {batch.isRoundTrip
-                    ? `Borish: ${remainingQty} ta · Kelish: ${retRemainingQty} ta`
-                    : `Qoldiq: ${remainingQty} ta`}
-                </span>
-                <span className="text-slate-500 dark:text-slate-400">
-                  Jami {totalQty} tadan ({soldQty} ta sotildi • {percentSold}%)
-                </span>
-              </div>
-              <div className="w-full bg-slate-200 dark:bg-white/[0.08] h-2 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-blue-600 rounded-full transition-all duration-300"
-                  style={{ width: `${percentSold}%` }}
-                />
-              </div>
+            {/* Qoldiq progress barlari */}
+            <div className="pt-2 border-t border-slate-200/60 dark:border-white/[0.06] tabular-nums space-y-2">
+              {batch.isRoundTrip ? (
+                <>
+                  {/* Borish load bari */}
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-[11px] sm:text-xs font-semibold">
+                      <span className="text-blue-600 dark:text-blue-400 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-blue-500 inline-block" />
+                        Borish: {remainingQty} ta qoldi
+                      </span>
+                      <span className="text-slate-500 dark:text-slate-400">
+                        {soldOut}/{totalQty} ta sotildi ({totalQty > 0 ? Math.round((soldOut / totalQty) * 100) : 0}%)
+                      </span>
+                    </div>
+                    <div className="w-full bg-slate-200 dark:bg-white/[0.08] h-2 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-blue-600 rounded-full transition-all duration-300"
+                        style={{ width: `${totalQty > 0 ? Math.round((soldOut / totalQty) * 100) : 0}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Kelish load bari */}
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-[11px] sm:text-xs font-semibold">
+                      <span className="text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 inline-block" />
+                        Kelish: {retRemainingQty} ta qoldi
+                      </span>
+                      <span className="text-slate-500 dark:text-slate-400">
+                        {soldRet}/{totalQty} ta sotildi ({totalQty > 0 ? Math.round((soldRet / totalQty) * 100) : 0}%)
+                      </span>
+                    </div>
+                    <div className="w-full bg-slate-200 dark:bg-white/[0.08] h-2 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-indigo-600 rounded-full transition-all duration-300"
+                        style={{ width: `${totalQty > 0 ? Math.round((soldRet / totalQty) * 100) : 0}%` }}
+                      />
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div>
+                  <div className="flex items-center justify-between text-[11px] sm:text-xs font-semibold mb-1.5">
+                    <span className="text-blue-600 dark:text-blue-400">
+                      Qoldiq: {remainingQty} ta
+                    </span>
+                    <span className="text-slate-500 dark:text-slate-400">
+                      Jami {totalQty} tadan ({soldQty} ta sotildi • {percentSold}%)
+                    </span>
+                  </div>
+                  <div className="w-full bg-slate-200 dark:bg-white/[0.08] h-2 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-blue-600 rounded-full transition-all duration-300"
+                      style={{ width: `${percentSold}%` }}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

@@ -48,8 +48,6 @@ export function PartnersView({
     setCategoryFilter("");
   };
 
-  const pendingBatches = batches.filter((b) => b.accountedAt === null);
-
   const filteredBatches = batches.filter(
     (b) =>
       matchesBatchSearch(b, search) &&
@@ -123,22 +121,7 @@ export function PartnersView({
         </div>
       </div>
 
-      {pendingBatches.length > 0 && (
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-2xl border border-amber-200/80 dark:border-amber-500/30 bg-amber-50/70 dark:bg-amber-500/[0.06] px-4 py-3">
-          <div className="text-xs font-medium text-amber-800 dark:text-amber-300">
-            <strong>{pendingBatches.length} ta avto-partiya</strong> hali hisobga olinmagan — hamkor qarzida ko&apos;rinmaydi.
-          </div>
-          {pendingBatches[0]?.seriesId && onAccountSeries && (
-            <button
-              type="button"
-              onClick={() => onAccountSeries(pendingBatches[0].seriesId)}
-              className="px-3.5 py-2 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-xl cursor-pointer"
-            >
-              Seriyani hisobga qo&apos;shish
-            </button>
-          )}
-        </div>
-      )}
+
 
       {/* MOBILE LIST VIEW */}
       <div className="space-y-3 block md:hidden">
@@ -213,18 +196,35 @@ export function PartnersView({
                 </span>
               </div>
 
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-2">
+                {batch.isAuto && (
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    className="flex items-center gap-1.5"
+                  >
+                    {batch.accountedAt ? (
+                      <span
+                        title="Hisobga olingan (hamkor balansiga qo'shilgan)"
+                        className="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold text-xs ring-1 ring-inset ring-emerald-500/20"
+                      >
+                        ✓
+                      </span>
+                    ) : (
+                      <label className="flex items-center gap-1 cursor-pointer text-[11px] text-blue-600 dark:text-blue-400 font-medium bg-blue-50 dark:bg-blue-950/40 px-2 py-1 rounded-lg border border-blue-200 dark:border-blue-800/40">
+                        <input
+                          type="checkbox"
+                          checked={false}
+                          onChange={() => onAccountBatch?.(batch)}
+                          className="w-3.5 h-3.5 accent-blue-600 rounded cursor-pointer"
+                        />
+                        <span>Hisobga olish</span>
+                      </label>
+                    )}
+                  </div>
+                )}
+
                 <RowActionsMenu
                   actions={[
-                    ...(batch.accountedAt === null && onAccountBatch
-                      ? [
-                          {
-                            label: "Hisobga qo'shish",
-                            icon: <PackagePlus className="w-3.5 h-3.5" />,
-                            onClick: () => onAccountBatch(batch),
-                          },
-                        ]
-                      : []),
                     ...(onFullEditBatch
                       ? [
                           {
@@ -288,6 +288,7 @@ export function PartnersView({
                 <th className="py-3.5 px-5 font-medium text-center">Chiptalar soni</th>
                 <th className="py-3.5 px-5 font-medium text-right">1 dona narxi</th>
                 <th className="py-3.5 px-5 font-medium text-right">Jami hisob</th>
+                <th className="py-3.5 px-4 font-medium text-center">Hisobga olish</th>
                 <th className="py-3.5 px-5 font-medium text-right">Amal</th>
               </tr>
             </thead>
@@ -338,29 +339,38 @@ export function PartnersView({
                     {formatUSD(batch.totalCost)}
                   </td>
 
+                  {/* Hisobga olish Checkbox */}
+                  <td
+                    className="py-4 px-4 text-center"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {batch.isAuto ? (
+                      batch.accountedAt ? (
+                        <span
+                          title="Hisobga olingan (hamkor balansiga qo'shilgan)"
+                          className="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold ring-1 ring-inset ring-emerald-500/20"
+                        >
+                          ✓
+                        </span>
+                      ) : (
+                        <input
+                          type="checkbox"
+                          checked={false}
+                          onChange={() => onAccountBatch?.(batch)}
+                          title="Hisobga olish uchun bosing (hamkor qarziga qo'shiladi)"
+                          className="w-4 h-4 accent-blue-600 rounded cursor-pointer transition-transform hover:scale-110"
+                        />
+                      )
+                    ) : (
+                      <span className="text-[11px] text-slate-400 dark:text-slate-500">—</span>
+                    )}
+                  </td>
+
                   {/* Edit Action */}
                   <td className="py-4 px-5 text-right">
                     <div className="inline-flex items-center gap-1.5">
                       <RowActionsMenu
                         actions={[
-                          ...(batch.accountedAt === null && onAccountBatch
-                            ? [
-                                {
-                                  label: "Hisobga qo'shish",
-                                  icon: <PackagePlus className="w-3.5 h-3.5" />,
-                                  onClick: () => onAccountBatch(batch),
-                                },
-                              ]
-                            : []),
-                          ...(batch.accountedAt === null && batch.seriesId && onAccountSeries
-                            ? [
-                                {
-                                  label: "Seriyani hisobga qo'shish",
-                                  icon: <PackagePlus className="w-3.5 h-3.5" />,
-                                  onClick: () => onAccountSeries(batch.seriesId),
-                                },
-                              ]
-                            : []),
                           ...(onFullEditBatch
                             ? [
                                 {

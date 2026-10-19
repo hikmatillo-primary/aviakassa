@@ -1,3 +1,4 @@
+from datetime import timedelta
 from decimal import Decimal
 
 from rest_framework import serializers
@@ -147,13 +148,17 @@ class BatchSerializer(serializers.ModelSerializer):
                     validated_data['return_remaining_qty'] = max(0, ret_left + delta)
 
         old_buy_price = instance.buy_price
+        old_flight_date = instance.flight_date
+        old_return_date = instance.return_date
+
         obj = super().update(instance, validated_data)
+
+        db = get_active_alias()
 
         # Tan narx o'zgargan bo'lsa, shu partiyaga tegishli sotuvlarning
         # tan narxi va sof foydasini aniq Decimal bilan qayta hisoblaymiz.
         if 'buy_price' in validated_data and obj.buy_price != old_buy_price:
             new_price = to_money(obj.buy_price)
-            db = get_active_alias()
             sales = list(
                 Sale.objects.using(db).filter(batch=obj).only("pk", "total_amount", "qty")
             )
@@ -163,34 +168,102 @@ class BatchSerializer(serializers.ModelSerializer):
             if sales:
                 Sale.objects.using(db).bulk_update(sales, ["buy_price", "profit"], batch_size=500)
 
-        # Vaqt/reys o'zgarishi shu seriyadagi KEYINGI reyslarga ham qo'llanadi
+        # Partiyaning o'ziga bog'langan sotuvlar ma'lumotlarini sinxronlashtirish
+        obj_sales = list(Sale.objects.using(db).filter(batch=obj))
+        if obj_sales:
+            obj_sale_updates = {}
+            for field in (
+                'flight_number', 'departure_time', 'arrival_time',
+                'return_flight_number', 'return_departure_time', 'return_arrival_time',
+            ):
+                if field in validated_data:
+                    obj_sale_updates[field] = getattr(obj, field)
+            if 'flight_date' in validated_data:
+                obj_sale_updates['flight_date'] = obj.flight_date
+            if 'return_date' in validated_data:
+                obj_sale_updates['return_date'] = obj.return_date
+            if 'route' in validated_data:
+                obj_sale_updates['route'] = obj.route
+
+            if obj_sale_updates:
+                for s in obj_sales:
+                    for k, v in obj_sale_updates.items():
+                        setattr(s, k, v)
+                Sale.objects.using(db).bulk_update(obj_sales, list(obj_sale_updates.keys()), batch_size=500)
+
+        # Vaqt/reys/sana o'zgarishi shu seriyadagi KEYINGI reyslarga ham qo'llanadi
         # (o'tgan sanalardagi reyslar tegilmaydi — ular allaqachon sotilgan).
         if propagate and obj.series_id:
+            flight_delta_days = 0
+            if 'flight_date' in validated_data and old_flight_date and obj.flight_date:
+                flight_delta_days = (obj.flight_date - old_flight_date).days
+
+            return_delta_days = 0
+            if 'return_date' in validated_data and old_return_date and obj.return_date:
+                return_delta_days = (obj.return_date - old_return_date).days
+            elif flight_delta_days != 0:
+                return_delta_days = flight_delta_days
+
             propagate_fields = (
                 'flight_number', 'departure_time', 'arrival_time',
                 'return_flight_number', 'return_departure_time', 'return_arrival_time',
                 'baggage',
             )
-            updates = {
+            field_updates = {
                 field: getattr(obj, field)
                 for field in propagate_fields
                 if field in validated_data
             }
-            if updates:
-                db = get_active_alias()
-                future_qs = Batch.objects.using(db).filter(
-                    series_id=obj.series_id, flight_date__gte=obj.flight_date
-                ).exclude(pk=obj.pk)
-                future_ids = list(future_qs.values_list('pk', flat=True))
-                future_qs.update(**updates)
 
-                flight_updates = {
-                    k: v for k, v in updates.items()
-                    if k in {
-                        'flight_number', 'departure_time', 'arrival_time',
-                        'return_flight_number', 'return_departure_time', 'return_arrival_time',
-                    }
-                }
-                if flight_updates and future_ids:
-                    Sale.objects.using(db).filter(batch_id__in=future_ids).update(**flight_updates)
+            filter_date = old_flight_date or obj.flight_date
+            future_batches = list(
+                Batch.objects.using(db).filter(
+                    series_id=obj.series_id,
+                    flight_date__gte=filter_date,
+                ).exclude(pk=obj.pk).order_by('flight_date')
+            )
+
+            if future_batches:
+                batch_update_fields = set()
+                for fb in future_batches:
+                    if flight_delta_days != 0 and fb.flight_date:
+                        fb.flight_date = fb.flight_date + timedelta(days=flight_delta_days)
+                        batch_update_fields.add('flight_date')
+                    if return_delta_days != 0 and fb.return_date:
+                        fb.return_date = fb.return_date + timedelta(days=return_delta_days)
+                        batch_update_fields.add('return_date')
+                    for field, val in field_updates.items():
+                        setattr(fb, field, val)
+                        batch_update_fields.add(field)
+
+                if batch_update_fields:
+                    Batch.objects.using(db).bulk_update(
+                        future_batches, list(batch_update_fields), batch_size=500
+                    )
+
+                future_ids = [fb.pk for fb in future_batches]
+                future_sales = list(Sale.objects.using(db).filter(batch_id__in=future_ids))
+                if future_sales:
+                    batch_map = {fb.pk: fb for fb in future_batches}
+                    sale_update_fields = set()
+                    for sale in future_sales:
+                        fb = batch_map.get(sale.batch_id)
+                        if not fb:
+                            continue
+                        if flight_delta_days != 0 and fb.flight_date:
+                            sale.flight_date = fb.flight_date
+                            sale_update_fields.add('flight_date')
+                        if return_delta_days != 0 and fb.return_date:
+                            sale.return_date = fb.return_date
+                            sale_update_fields.add('return_date')
+                        for k in ('flight_number', 'departure_time', 'arrival_time',
+                                  'return_flight_number', 'return_departure_time', 'return_arrival_time'):
+                            if k in field_updates:
+                                setattr(sale, k, field_updates[k])
+                                sale_update_fields.add(k)
+                    if sale_update_fields:
+                        Sale.objects.using(db).bulk_update(
+                            future_sales, list(sale_update_fields), batch_size=500
+                        )
+
         return obj

@@ -218,6 +218,25 @@ class TimePropagationTests(APITestCase):
             batch.refresh_from_db()
         self.assertEqual([b.departure_time for b in self.batches], ["10:00", "16:30", "10:00", "10:00"])
 
+    def test_propagates_date_shift_to_future_batches(self):
+        middle = self.batches[1]  # 2026-11-08
+        res = self.client.patch(
+            f"/api/batches/{middle.pk}/",
+            {"flightDate": "2026-11-10", "departureTime": "14:00", "propagateToFuture": True},
+            format="json",
+        )
+        self.assertEqual(res.status_code, 200, res.data)
+        for batch in self.batches:
+            batch.refresh_from_db()
+        self.assertEqual(
+            [b.flight_date.isoformat() for b in self.batches],
+            ["2026-11-01", "2026-11-10", "2026-11-17", "2026-11-24"],
+        )
+        self.assertEqual(
+            [b.departure_time for b in self.batches],
+            ["10:00", "14:00", "14:00", "14:00"],
+        )
+
 
 class CategoryTests(APITestCase):
     def setUp(self):

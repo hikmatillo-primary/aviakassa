@@ -48,6 +48,7 @@ interface BatchModalProps {
     paidNow?: number;
     paymentMethod?: string;
     accountId?: number;
+    categoryId?: number;
     notes?: string;
     items: Array<{
       route: string;
@@ -73,7 +74,7 @@ interface BatchModalProps {
   categories?: BatchCategory[];
   repeatFrom?: any | null;
   onSaveAuto?: (payload: AutoBatchPayload) => Promise<{ count: number }>;
-  onCreateCategory?: (name: string) => Promise<void>;
+  onCreateCategory?: (name: string) => Promise<any>;
 }
 
 import { DatePicker } from "./DatePicker";
@@ -148,13 +149,17 @@ export function BatchModal({
       // «Yana qo'shish»: mavjud partiya ma'lumotlarini oldindan to'ldiramiz.
       if (repeatFrom) {
         const gap = Number(repeatFrom.returnGapDays) || 0;
-        const startDate = today;
+        const startDate = repeatFrom.flightDate || today;
         const returnDate =
-          repeatFrom.isRoundTrip && gap > 0
+          repeatFrom.returnDate ||
+          (repeatFrom.isRoundTrip && gap > 0
             ? new Date(new Date(startDate).getTime() + gap * 86400000)
                 .toISOString()
                 .slice(0, 10)
-            : "";
+            : "");
+        if (repeatFrom.purchaseDate) {
+          setPurchaseDate(repeatFrom.purchaseDate);
+        }
         setSupplierId(String(repeatFrom.supplierId));
         setCategoryId(repeatFrom.categoryId ? String(repeatFrom.categoryId) : "");
         setItems([
@@ -332,6 +337,7 @@ export function BatchModal({
           paidNow: numPaid,
           paymentMethod: numPaid > 0 ? paymentMethod : undefined,
           accountId: numPaid > 0 && accounts.length > 0 ? Number(accountId || accounts[0].id) : undefined,
+          categoryId: categoryId ? Number(categoryId) : undefined,
           notes,
           items: regularItems.map((it, idx) => {
             const fullRoute = `${it.fromCity.trim()} — ${it.toCity.trim()}`;
@@ -984,7 +990,12 @@ export function BatchModal({
                   type="button"
                   onClick={async () => {
                     const name = window.prompt("Yangi xarid turi nomi (masalan: 1 oylik)");
-                    if (name?.trim()) await onCreateCategory(name.trim());
+                    if (name?.trim()) {
+                      const newCat = await onCreateCategory(name.trim());
+                      if (newCat && newCat.id) {
+                        setCategoryId(String(newCat.id));
+                      }
+                    }
                   }}
                   className="px-3 py-2 text-xs font-semibold text-blue-600 dark:text-blue-400 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
                 >

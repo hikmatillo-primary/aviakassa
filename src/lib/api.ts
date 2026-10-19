@@ -358,6 +358,7 @@ export interface BatchBulkPayload {
   accountId?: number;
   notes?: string;
   paymentNotes?: string;
+  categoryId?: number | null;
   items: Array<Record<string, unknown>>;
 }
 

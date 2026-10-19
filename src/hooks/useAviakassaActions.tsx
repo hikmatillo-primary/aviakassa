@@ -4,6 +4,7 @@ import React from "react";
 import {
   AviakassaData,
   Batch,
+  BatchCategory,
   CashAccount,
   DebtOffset,
   Partner,
@@ -133,11 +134,12 @@ export function useAviakassaActions({
     }
   };
 
-  const handleCreateCategory = async (name: string) => {
+  const handleCreateCategory = async (name: string): Promise<BatchCategory> => {
     try {
-      await apiCreateCategory(name);
+      const cat = await apiCreateCategory(name);
       await syncFromServer();
       showToast("Yangi xarid turi qo'shildi!");
+      return cat;
     } catch (e) {
       console.error("Xarid turini qo'shishda xato:", e);
       throw e;
@@ -216,6 +218,7 @@ export function useAviakassaActions({
     paidNow?: number;
     paymentMethod?: string;
     accountId?: number;
+    categoryId?: number;
     notes?: string;
     items: Array<{
       route: string;
@@ -271,6 +274,7 @@ export function useAviakassaActions({
         paidNow: batchInput.paidNow || 0,
         paymentMethod: batchInput.paymentMethod || "CASH",
         accountId: batchInput.accountId,
+        categoryId: batchInput.categoryId,
         paymentNotes:
           batchInput.paidNow && batchInput.paidNow > 0
             ? `Partiyalar xaridi uchun to'lov (${routeNames.join(", ")})`

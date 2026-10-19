@@ -57,6 +57,21 @@ export function BatchesView({
         const isSoldOut = outLeft === 0 && (!b.isRoundTrip || retLeft === 0);
         return soldFilter === "SOLD" ? isSoldOut : !isSoldOut;
       });
+
+      // Eng yaqin uchish sanasi tepada turishi uchun o'sish tartibida saralaymiz
+      rows.sort((a, b) => {
+        const dateA = a.flightDate || "";
+        const dateB = b.flightDate || "";
+        if (!dateA && !dateB) return 0;
+        if (!dateA) return 1;
+        if (!dateB) return -1;
+        const cmp = dateA.localeCompare(dateB);
+        if (cmp !== 0) return cmp;
+        const timeA = a.departureTime || "";
+        const timeB = b.departureTime || "";
+        return timeA.localeCompare(timeB);
+      });
+
       const totalQty = rows.reduce((sum, b) => sum + (b.totalQty || 0), 0);
       // Borish-kelish partiyalarda ikkala qoldiq (borish + kelish) qo'shiladi.
       const remainingQty = rows.reduce((sum, b) => {

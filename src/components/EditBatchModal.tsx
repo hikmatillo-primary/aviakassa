@@ -27,6 +27,7 @@ export interface BatchUpdatePayload {
   buyPrice: number;
   baggage: string;
   notes: string;
+  propagateToFuture?: boolean;
 }
 
 interface EditBatchModalProps {
@@ -75,6 +76,7 @@ export function EditBatchModal({
   const [buyPrice, setBuyPrice] = useState<number | string>(0);
   const [baggage, setBaggage] = useState<string>("20");
   const [notes, setNotes] = useState<string>("");
+  const [propagateToFuture, setPropagateToFuture] = useState(true);
 
   useEffect(() => {
     if (isOpen && batch) {
@@ -96,6 +98,7 @@ export function EditBatchModal({
       setBuyPrice(batch.buyPrice || 0);
       setBaggage((batch.baggage || "20").replace(/[^0-9]/g, "") || "20");
       setNotes(batch.notes || "");
+      setPropagateToFuture(Boolean(batch.seriesId || batch.isAuto));
       setError(null);
       setIsSubmitting(false);
     }
@@ -177,6 +180,7 @@ export function EditBatchModal({
         buyPrice: numPrice,
         baggage: `${baggage.replace(/[^0-9]/g, "") || "0"} kg`,
         notes: notes.trim(),
+        propagateToFuture: Boolean((batch.seriesId || batch.isAuto) && propagateToFuture),
       });
       onClose();
     } catch (err) {
@@ -467,6 +471,25 @@ export function EditBatchModal({
             sotuvlarning sof foydasi qayta hisoblanadi.
           </span>
         </div>
+
+        {Boolean(batch.seriesId || batch.isAuto) && (
+          <label className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-800/40 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={propagateToFuture}
+              onChange={(e) => setPropagateToFuture(e.target.checked)}
+              className="w-4 h-4 mt-0.5 accent-amber-600 rounded cursor-pointer shrink-0"
+            />
+            <div className="text-xs text-amber-900 dark:text-amber-200">
+              <strong className="block font-semibold">
+                Shartnomadagi keyingi barcha reyslarga ham qo&lsquo;llash
+              </strong>
+              <span className="text-[11px] text-amber-700/90 dark:text-amber-300/90">
+                Ushbu reys sanasi yoki vaqti o&lsquo;zgarsa, shu shartnoma bo&lsquo;yicha keyingi barcha reyslar ham belgilangan oraliqda suriladi.
+              </span>
+            </div>
+          </label>
+        )}
 
         <div>
           <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
