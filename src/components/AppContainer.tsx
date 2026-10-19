@@ -346,6 +346,8 @@ export function AppContainer() {
           <SalesView
             sales={sales}
             clients={clients}
+            batches={batches}
+            categories={data.categories || []}
             onOpenSaleModal={() => modals.handleOpenSaleModal()}
             onOpenPartnerModal={() => modals.handleOpenPartnerModal("CLIENT")}
             onEditSale={modals.handleOpenEditSale}

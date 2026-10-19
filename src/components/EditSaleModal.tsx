@@ -17,6 +17,7 @@ import {
 import { getValidationMessage } from "@/lib/api";
 import { PlaneTakeoff, PlaneLanding, Loader2, Info } from "lucide-react";
 import { Batch, Sale } from "@/lib/storage";
+import { CustomSelect } from "./CustomSelect";
 
 export interface SaleUpdatePayload {
   batchId: number;
@@ -367,26 +368,27 @@ export function EditSaleModal({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className={labelCls}>Partiya *</label>
-            <select
+            <CustomSelect
               value={batchId}
-              onChange={(e) => handleBatchChange(e.target.value)}
-              className={`${inputCls} cursor-pointer`}
-            >
-              <option value="">Partiyani tanlang</option>
-              {selectableBatches.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.batchNumber} — {b.route}
-                  {b.id === sale.batchId ? " (joriy)" : ""} —{" "}
-                  {b.isRoundTrip
-                    ? `borish: ${b.remainingQty} ta, kelish: ${
-                        typeof b.returnRemainingQty === "number"
-                          ? b.returnRemainingQty
-                          : b.remainingQty
-                      } ta`
-                    : `qoldiq: ${b.remainingQty} ta`}
-                </option>
-              ))}
-            </select>
+              onChange={(val) => handleBatchChange(val)}
+              options={[
+                { value: "", label: "Partiyani tanlang" },
+                ...selectableBatches.map((b) => ({
+                  value: String(b.id),
+                  label: `${b.batchNumber} — ${b.route}${b.id === sale.batchId ? " (joriy)" : ""} — ${
+                    b.isRoundTrip
+                      ? `borish: ${b.remainingQty} ta, kelish: ${
+                          typeof b.returnRemainingQty === "number"
+                            ? b.returnRemainingQty
+                            : b.remainingQty
+                        } ta`
+                      : `qoldiq: ${b.remainingQty} ta`
+                  }`,
+                })),
+              ]}
+              className="w-full"
+              size="md"
+            />
             {selectedBatch && (
               <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400 tabular-nums">
                 Mavjud: <strong className="text-slate-700 dark:text-slate-300">{availableQty} ta</strong>

@@ -8,6 +8,7 @@ import { DatePicker } from "./DatePicker";
 import { PartnerSelect } from "./PartnerSelect";
 import { getValidationMessage } from "@/lib/api";
 import { CashAccount } from "@/lib/storage";
+import { CustomSelect } from "./CustomSelect";
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -307,27 +308,28 @@ export function PaymentModal({
               {accounts.length > 0 ? "Hisob raqam" : "To‘lov shakli"}
             </label>
             {accounts.length > 0 ? (
-              <select
+              <CustomSelect
                 value={accountId || String(accounts[0].id)}
-                onChange={(e) => setAccountId(e.target.value)}
-                className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                {accounts.map((acc) => (
-                  <option key={acc.id} value={String(acc.id)}>
-                    {acc.name}
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setAccountId(val)}
+                options={accounts.map((acc) => ({
+                  value: String(acc.id),
+                  label: acc.name,
+                }))}
+                className="w-full"
+                size="md"
+              />
             ) : (
-              <select
+              <CustomSelect
                 value={paymentMethod}
-                onChange={(e) => setPaymentMethod(e.target.value)}
-                className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="CASH">Naqd (Cash)</option>
-                <option value="CARD">Karta / O&apos;tkazma</option>
-                <option value="BANK">Bank hisob raqami</option>
-              </select>
+                onChange={(val) => setPaymentMethod(val)}
+                options={[
+                  { value: "CASH", label: "Naqd (Cash)" },
+                  { value: "CARD", label: "Karta / O'tkazma" },
+                  { value: "BANK", label: "Bank hisob raqami" },
+                ]}
+                className="w-full"
+                size="md"
+              />
             )}
           </div>
         </div>

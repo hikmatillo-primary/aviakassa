@@ -25,7 +25,7 @@ const PERIOD_OPTIONS = [
   { label: "12 oy", months: 12 },
 ];
 import { formatMoney, formatUSD, formatDate, matchesRouteSearch, isSegmentSellable, getBatchSegmentRemaining } from "@/lib/format";
-import { DailyActivityModal } from "@/components/DailyActivityModal";
+import { DailyActivityView } from "@/components/DailyActivityView";
 
 interface DashboardViewProps {
   stats: any;
@@ -59,7 +59,7 @@ export function DashboardView({
   const [search, setSearch] = useState("");
   const [periodMonths, setPeriodMonths] = useState(6);
   const [isPeriodOpen, setIsPeriodOpen] = useState(false);
-  const [isDailyLogOpen, setIsDailyLogOpen] = useState(false);
+  const [dashboardTab, setDashboardTab] = useState<"OVERVIEW" | "DAILY">("OVERVIEW");
   const periodRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -172,7 +172,7 @@ export function DashboardView({
 
   return (
     <div className="space-y-6">
-      {/* 1. Header Title & Filter */}
+      {/* 1. Header Title & Subtabs Switcher & Filters */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
@@ -181,63 +181,92 @@ export function DashboardView({
         </div>
 
         <div className="flex items-center gap-2.5">
-          <button
-            type="button"
-            onClick={() => setIsDailyLogOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold bg-white dark:bg-[#111726] text-blue-600 dark:text-blue-400 hover:bg-blue-50/70 dark:hover:bg-blue-500/10 rounded-xl border border-blue-200/80 dark:border-blue-500/20 shadow-2xs transition-all cursor-pointer"
-          >
-            <CalendarDays className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-            <span>Kunlik hisobot</span>
-          </button>
-
-          {/* Period filter pill */}
-          <div className="flex items-center gap-2.5 relative" ref={periodRef}>
+          {/* Subtabs switcher */}
+          <div className="inline-flex p-1 bg-slate-100 dark:bg-white/[0.06] rounded-xl border border-slate-200/80 dark:border-white/[0.08]">
             <button
               type="button"
-              onClick={() => setIsPeriodOpen((v) => !v)}
-              aria-haspopup="listbox"
-              aria-expanded={isPeriodOpen}
-              aria-label="Davrni tanlash"
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold bg-white dark:bg-[#111726] text-slate-700 dark:text-slate-200 rounded-xl border border-slate-200/80 dark:border-white/[0.08] shadow-xs hover:border-slate-300 dark:hover:border-white/[0.15] transition-all cursor-pointer"
+              onClick={() => setDashboardTab("OVERVIEW")}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                dashboardTab === "OVERVIEW"
+                  ? "bg-white dark:bg-[#111726] text-slate-900 dark:text-white shadow-xs"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+              }`}
             >
-              Oxirgi {periodLabel}
-              <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${isPeriodOpen ? "rotate-180" : ""}`} />
+              <TrendingUp className="w-3.5 h-3.5" />
+              <span>Umumiy tahlil</span>
             </button>
-
-            {isPeriodOpen && (
-              <div
-                role="listbox"
-                aria-label="Davr"
-                className="absolute right-0 top-full mt-1.5 z-30 w-32 bg-white dark:bg-[#111726] rounded-xl border border-slate-200/80 dark:border-white/[0.08] shadow-lg overflow-hidden py-1"
-              >
-                {PERIOD_OPTIONS.map((opt) => (
-                  <button
-                    key={opt.months}
-                    type="button"
-                    role="option"
-                    aria-selected={opt.months === periodMonths}
-                    onClick={() => {
-                      setPeriodMonths(opt.months);
-                      setIsPeriodOpen(false);
-                    }}
-                    className={`w-full text-left px-3.5 py-2 text-xs font-semibold transition-colors cursor-pointer ${
-                      opt.months === periodMonths
-                        ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10"
-                        : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/[0.05]"
-                    }`}
-                  >
-                    Oxirgi {opt.label}
-                  </button>
-                ))}
-              </div>
-            )}
+            <button
+              type="button"
+              onClick={() => setDashboardTab("DAILY")}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                dashboardTab === "DAILY"
+                  ? "bg-white dark:bg-[#111726] text-blue-600 dark:text-blue-400 shadow-xs"
+                  : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+              }`}
+            >
+              <CalendarDays className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+              <span>Kunlik hisobot</span>
+            </button>
           </div>
+
+          {dashboardTab === "OVERVIEW" && (
+            <div className="flex items-center gap-2.5 relative" ref={periodRef}>
+              <button
+                type="button"
+                onClick={() => setIsPeriodOpen((v) => !v)}
+                aria-haspopup="listbox"
+                aria-expanded={isPeriodOpen}
+                aria-label="Davrni tanlash"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold bg-white dark:bg-[#111726] text-slate-700 dark:text-slate-200 rounded-xl border border-slate-200/80 dark:border-white/[0.08] shadow-xs hover:border-slate-300 dark:hover:border-white/[0.15] transition-all cursor-pointer"
+              >
+                Oxirgi {periodLabel}
+                <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${isPeriodOpen ? "rotate-180" : ""}`} />
+              </button>
+
+              {isPeriodOpen && (
+                <div
+                  role="listbox"
+                  aria-label="Davr"
+                  className="absolute right-0 top-full mt-1.5 z-30 w-32 bg-white dark:bg-[#111726] rounded-xl border border-slate-200/80 dark:border-white/[0.08] shadow-lg overflow-hidden py-1"
+                >
+                  {PERIOD_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.months}
+                      type="button"
+                      role="option"
+                      aria-selected={opt.months === periodMonths}
+                      onClick={() => {
+                        setPeriodMonths(opt.months);
+                        setIsPeriodOpen(false);
+                      }}
+                      className={`w-full text-left px-3.5 py-2 text-xs font-semibold transition-colors cursor-pointer ${
+                        opt.months === periodMonths
+                          ? "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10"
+                          : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/[0.05]"
+                      }`}
+                    >
+                      Oxirgi {opt.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
-
-      {/* 2. Top 4 KPI Cards Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 tabular-nums">
+      {dashboardTab === "DAILY" ? (
+        <DailyActivityView
+          batches={batches}
+          sales={sales}
+          payments={payments}
+          debtOffsets={debtOffsets}
+          partners={partners}
+        />
+      ) : (
+        <>
+          {/* 2. Top 4 KPI Cards Row */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 tabular-nums">
         {/* Card 1: Sof Foyda */}
         <div
           onClick={() => onNavigateTab && onNavigateTab("sales")}
@@ -856,16 +885,8 @@ export function DashboardView({
           </table>
         </div>
       </div>
-
-      <DailyActivityModal
-        isOpen={isDailyLogOpen}
-        onClose={() => setIsDailyLogOpen(false)}
-        batches={batches}
-        sales={sales}
-        payments={payments}
-        debtOffsets={debtOffsets}
-        partners={partners}
-      />
+        </>
+      )}
     </div>
   );
 }

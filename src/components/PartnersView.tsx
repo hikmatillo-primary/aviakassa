@@ -6,6 +6,8 @@ import { formatUSD, formatDate, matchesBatchSearch, isDateInRange } from "@/lib/
 import { FlightBar } from "@/components/FlightBar";
 import { RowActionsMenu } from "@/components/RowActionsMenu";
 import { DateRangeFilter } from "@/components/DateRangeFilter";
+import { CategoryModal } from "@/components/CategoryModal";
+import { CustomSelect } from "@/components/CustomSelect";
 
 interface PartnersViewProps {
   batches?: any[];
@@ -42,6 +44,7 @@ export function PartnersView({
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
 
   const clearAllFilters = () => {
     setSearch("");
@@ -70,12 +73,7 @@ export function PartnersView({
           {onCreateCategory && (
             <button
               type="button"
-              onClick={async () => {
-                const name = window.prompt("Yangi xarid turi (kategoriya) nomini kiriting:");
-                if (name && name.trim()) {
-                  await onCreateCategory(name.trim());
-                }
-              }}
+              onClick={() => setIsCategoryModalOpen(true)}
               className="inline-flex items-center justify-center gap-1.5 sm:gap-2 px-3.5 sm:px-4 py-2.5 bg-white dark:bg-white/[0.06] hover:bg-slate-100 dark:hover:bg-white/[0.1] text-slate-700 dark:text-slate-200 text-xs font-semibold rounded-xl shadow-2xs border border-slate-200/80 dark:border-white/[0.08] transition-all cursor-pointer"
             >
               <Tag className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-500 dark:text-slate-400 shrink-0" />
@@ -129,6 +127,17 @@ export function PartnersView({
               setDateTo("");
             }}
           />
+          {categories.length > 0 && (
+            <CustomSelect
+              value={categoryFilter}
+              onChange={(val) => setCategoryFilter(val)}
+              options={[
+                { value: "", label: "Barcha turlar" },
+                ...categories.map((c) => ({ value: String(c.id), label: c.name })),
+              ]}
+              placeholder="Barcha turlar"
+            />
+          )}
         </div>
         <div className="text-xs font-medium text-slate-400 dark:text-slate-500 pr-2 hidden sm:block shrink-0">
           Jami:{" "}
@@ -464,6 +473,14 @@ export function PartnersView({
           </table>
         </div>
       </div>
+
+      {onCreateCategory && (
+        <CategoryModal
+          isOpen={isCategoryModalOpen}
+          onClose={() => setIsCategoryModalOpen(false)}
+          onSave={onCreateCategory}
+        />
+      )}
     </div>
   );
 }

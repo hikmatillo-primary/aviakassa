@@ -6,6 +6,8 @@ import { Plus, Trash2, Sparkles, PlaneTakeoff, PlaneLanding, X, Loader2 } from "
 import { formatUSD, getTodayISO } from "@/lib/format";
 import { BatchCategory, CashAccount } from "@/lib/storage";
 import type { AutoBatchPayload } from "@/lib/api";
+import { CategoryModal } from "./CategoryModal";
+import { CustomSelect } from "./CustomSelect";
 
 export interface BatchItemInput {
   id: string;
@@ -110,6 +112,9 @@ export function BatchModal({
   const [paymentMethod, setPaymentMethod] = useState<string>("CASH");
   const [accountId, setAccountId] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
+
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [categoryTargetIndex, setCategoryTargetIndex] = useState<number | null>(null);
 
   const [items, setItems] = useState<BatchItemInput[]>([]);
   const prevIsOpenRef = React.useRef(false);
@@ -783,31 +788,24 @@ export function BatchModal({
                         Xarid turi (kategoriya):
                       </label>
                       <div className="flex items-center gap-1.5 flex-1 max-w-sm">
-                        <select
+                        <CustomSelect
                           value={item.categoryId || ""}
-                          onChange={(e) => handleUpdateItem(index, "categoryId", e.target.value)}
-                          className="w-full px-2.5 py-1 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
-                        >
-                          <option value="">— Tanlanmagan —</option>
-                          {categories.map((c) => (
-                            <option key={c.id} value={String(c.id)}>
-                              {c.name}
-                            </option>
-                          ))}
-                        </select>
+                          onChange={(val) => handleUpdateItem(index, "categoryId", val)}
+                          options={[
+                            { value: "", label: "— Tanlanmagan —" },
+                            ...categories.map((c) => ({ value: String(c.id), label: c.name })),
+                          ]}
+                          className="flex-1"
+                          size="sm"
+                        />
                         {onCreateCategory && (
                           <button
                             type="button"
-                            onClick={async () => {
-                              const name = window.prompt("Yangi xarid turi nomi (masalan: 1 oylik):");
-                              if (name?.trim()) {
-                                const newCat = await onCreateCategory(name.trim());
-                                if (newCat && newCat.id) {
-                                  handleUpdateItem(index, "categoryId", String(newCat.id));
-                                }
-                              }
+                            onClick={() => {
+                              setCategoryTargetIndex(index);
+                              setIsCategoryModalOpen(true);
                             }}
-                            className="px-2 py-1 text-xs font-semibold text-blue-600 dark:text-blue-400 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shrink-0"
+                            className="px-2.5 py-1.5 text-xs font-semibold text-blue-600 dark:text-blue-400 bg-white dark:bg-white/[0.06] border border-slate-300 dark:border-white/[0.1] rounded-xl hover:bg-slate-50 dark:hover:bg-white/[0.1] transition-all cursor-pointer shrink-0"
                           >
                             + Tur
                           </button>
@@ -872,12 +870,12 @@ export function BatchModal({
                           <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-1">
                             Qaysi sanagacha *
                           </label>
-                          <input
-                            type="date"
-                            min={item.flightDate || undefined}
+                          <DatePicker
                             value={item.autoUntil || ""}
-                            onChange={(e) => handleUpdateItem(index, "autoUntil", e.target.value)}
-                            className="w-full px-2.5 py-1.5 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+                            onChange={(val) => handleUpdateItem(index, "autoUntil", val)}
+                            placeholder="Sanani tanlang"
+                            compact
+                            align="right"
                             required
                           />
                         </div>
@@ -1005,17 +1003,13 @@ export function BatchModal({
                   {accounts.length > 0 ? "Qaysi hisobdan to‘lanadi? *" : "To‘lov shakli"}
                 </label>
                 {accounts.length > 0 ? (
-                  <select
+                  <CustomSelect
                     value={accountId || String(accounts[0].id)}
-                    onChange={(e) => setAccountId(e.target.value)}
-                    className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium cursor-pointer"
-                  >
-                    {accounts.map((acc) => (
-                      <option key={acc.id} value={String(acc.id)}>
-                        {acc.name}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(val) => setAccountId(val)}
+                    options={accounts.map((acc) => ({ value: String(acc.id), label: acc.name }))}
+                    className="w-full"
+                    size="md"
+                  />
                 ) : (
                   <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-[11px] text-amber-700 dark:text-amber-300 font-medium leading-relaxed">
                     ⚠️ Kassa hisob raqami ochilmagan. To‘lov kiritish uchun avval Kassa bo‘limida hisob yarating yoki to‘lovni $0 qiling.
@@ -1046,6 +1040,22 @@ export function BatchModal({
           />
         </div>
       </form>
+
+      {onCreateCategory && (
+        <CategoryModal
+          isOpen={isCategoryModalOpen}
+          onClose={() => {
+            setIsCategoryModalOpen(false);
+            setCategoryTargetIndex(null);
+          }}
+          onSave={async (newCatName) => {
+            const newCat = await onCreateCategory(newCatName);
+            if (newCat && newCat.id && categoryTargetIndex !== null) {
+              handleUpdateItem(categoryTargetIndex, "categoryId", String(newCat.id));
+            }
+          }}
+        />
+      )}
     </Modal>
   );
 }

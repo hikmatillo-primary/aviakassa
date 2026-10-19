@@ -13,6 +13,7 @@ import { formatUSD, matchesBatchSearch, isDateInRange, getBatchSegmentRemaining 
 import { FlightBar } from "@/components/FlightBar";
 import { RowActionsMenu } from "@/components/RowActionsMenu";
 import { DateRangeFilter } from "@/components/DateRangeFilter";
+import { CustomSelect } from "@/components/CustomSelect";
 
 interface BatchesViewProps {
   batches: any[];
@@ -93,6 +94,23 @@ export function BatchesView({
       };
     }, [batches, search, dateFrom, dateTo, soldFilter, categoryFilter]);
 
+  const categoryOptions = useMemo(
+    () => [
+      { value: "", label: "Barcha turlar" },
+      ...categories.map((c) => ({ value: String(c.id), label: c.name })),
+    ],
+    [categories]
+  );
+
+  const soldFilterOptions = useMemo(
+    () => [
+      { value: "ALL", label: "Barchasi" },
+      { value: "SOLD", label: "Sotilganlar" },
+      { value: "UNSOLD", label: "Sotilmaganlar" },
+    ],
+    []
+  );
+
   return (
     <div className="space-y-5">
       {/* Top Header & Actions */}
@@ -128,30 +146,19 @@ export function BatchesView({
             }}
           />
           {categories.length > 0 && (
-            <select
+            <CustomSelect
               value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-              className="px-3 py-1.5 text-xs font-medium bg-slate-50/80 dark:bg-white/[0.04] border border-slate-200/70 dark:border-white/[0.08] rounded-xl text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/40 cursor-pointer"
-            >
-              <option value="">Barcha turlar</option>
-              {categories.map((c) => (
-                <option key={c.id} value={String(c.id)}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
+              onChange={setCategoryFilter}
+              options={categoryOptions}
+              className="w-full sm:w-44"
+            />
           )}
-          <select
+          <CustomSelect
             value={soldFilter}
-            onChange={(e) =>
-              setSoldFilter(e.target.value as "ALL" | "SOLD" | "UNSOLD")
-            }
-            className="px-3 py-1.5 text-xs font-medium bg-slate-50/80 dark:bg-white/[0.04] border border-slate-200/70 dark:border-white/[0.08] rounded-xl text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/40 cursor-pointer"
-          >
-            <option value="ALL">Barchasi</option>
-            <option value="SOLD">Sotilganlar</option>
-            <option value="UNSOLD">Sotilmaganlar</option>
-          </select>
+            onChange={(val) => setSoldFilter(val as "ALL" | "SOLD" | "UNSOLD")}
+            options={soldFilterOptions}
+            className="w-full sm:w-40"
+          />
         </div>
         <div className="text-xs font-medium text-slate-400 dark:text-slate-500 pr-2 hidden sm:block shrink-0">
           Partiyalar soni:{" "}

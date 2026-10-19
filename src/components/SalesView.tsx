@@ -6,10 +6,13 @@ import { formatUSD, formatDate, matchesRouteSearch, isDateInRange, saleSegmentLa
 import { FlightBar } from "@/components/FlightBar";
 import { RowActionsMenu } from "@/components/RowActionsMenu";
 import { DateRangeFilter } from "@/components/DateRangeFilter";
+import { CustomSelect } from "@/components/CustomSelect";
 
 interface SalesViewProps {
   sales: any[];
   clients?: any[];
+  batches?: any[];
+  categories?: Array<{ id: number; name: string }>;
   onOpenSaleModal: () => void;
   onOpenPartnerModal?: (type?: "CLIENT") => void;
   onEditSale?: (sale: any) => void;
@@ -20,6 +23,9 @@ interface SalesViewProps {
 
 export function SalesView({
   sales,
+  clients,
+  batches = [],
+  categories = [],
   onOpenSaleModal,
   onOpenPartnerModal,
   onEditSale,
@@ -30,18 +36,42 @@ export function SalesView({
   const [search, setSearch] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
 
   const clearAllFilters = () => {
     setSearch("");
     setDateFrom("");
     setDateTo("");
+    setCategoryFilter("");
   };
+
+  const batchCategoryMap = useMemo(() => {
+    const map = new Map<number, number>();
+    for (const b of batches) {
+      if (b.id != null && b.categoryId != null) {
+        map.set(Number(b.id), Number(b.categoryId));
+      }
+    }
+    return map;
+  }, [batches]);
+
+  const categoryOptions = useMemo(
+    () => [
+      { value: "", label: "Barcha turlar" },
+      ...categories.map((c) => ({ value: String(c.id), label: c.name })),
+    ],
+    [categories]
+  );
 
   // Filtered sales — faqat filtr yoki ma'lumot o'zgarganda qayta hisoblanadi.
   const filteredSales = useMemo(
     () =>
       sales.filter((s) => {
         if (!isDateInRange(s.saleDate, dateFrom, dateTo)) return false;
+        if (categoryFilter) {
+          const catId = batchCategoryMap.get(Number(s.batchId));
+          if (String(catId ?? "") !== categoryFilter) return false;
+        }
         if (!search.trim()) return true;
         const q = search.toLowerCase();
         return (
@@ -52,7 +82,7 @@ export function SalesView({
           s.saleDate?.toLowerCase().includes(q)
         );
       }),
-    [sales, search, dateFrom, dateTo]
+    [sales, search, dateFrom, dateTo, categoryFilter, batchCategoryMap]
   );
 
   return (
@@ -109,6 +139,14 @@ export function SalesView({
               setDateTo("");
             }}
           />
+          {categories.length > 0 && (
+            <CustomSelect
+              value={categoryFilter}
+              onChange={setCategoryFilter}
+              options={categoryOptions}
+              className="w-full sm:w-44"
+            />
+          )}
         </div>
         <div className="text-xs font-medium text-slate-400 dark:text-slate-500 pr-2 hidden sm:block shrink-0">
           Sotuvlar soni:{" "}
@@ -221,7 +259,7 @@ export function SalesView({
         {filteredSales.length === 0 && (
           <div className="bg-white dark:bg-[#111726] rounded-2xl border border-slate-200/70 dark:border-white/[0.07] p-8 text-center text-xs text-slate-400 dark:text-slate-500 space-y-2">
             <div>Mos keladigan sotuvlar topilmadi</div>
-            {(search || dateFrom || dateTo) && (
+            {(search || dateFrom || dateTo || categoryFilter) && (
               <button
                 type="button"
                 onClick={clearAllFilters}
@@ -364,7 +402,7 @@ export function SalesView({
                     className="py-12 text-center text-xs text-slate-400 dark:text-slate-500 space-y-2"
                   >
                     <div>Mos keladigan sotuvlar topilmadi</div>
-                    {(search || dateFrom || dateTo) && (
+                    {(search || dateFrom || dateTo || categoryFilter) && (
                       <button
                         type="button"
                         onClick={clearAllFilters}

@@ -20,6 +20,7 @@ import { FlightBar } from "./FlightBar";
 import { getValidationMessage } from "@/lib/api";
 import { CashAccount } from "@/lib/storage";
 import { Loader2 } from "lucide-react";
+import { CustomSelect } from "./CustomSelect";
 
 /** Partiyada sotilishi mumkin bo'lgan o'rin bormi (segment-muddati hisobga olinadi). */
 function hasSellableSeats(b: any): boolean {
@@ -291,16 +292,14 @@ export function SaleModal({
             <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
               Sotiladigan partiyani tanlang *
             </label>
-            <select
+            <CustomSelect
               value={currentBatchId}
-              onChange={(e) => handleBatchChange(e.target.value)}
-              className="w-full px-3 py-2 text-xs sm:text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-semibold"
-              required
-            >
-              <option value="">-- Partiya tanlang --</option>
-              {activeBatches.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.isRoundTrip
+              onChange={(val) => handleBatchChange(val)}
+              options={[
+                { value: "", label: "-- Partiya tanlang --" },
+                ...activeBatches.map((b) => ({
+                  value: String(b.id),
+                  label: b.isRoundTrip
                     ? `${b.route} (${formatDate(b.flightDate, false)} • Borish: ${
                         b.remainingQty
                       } ta • Kelish: ${getBatchSegmentRemaining(b, "RETURN")} ta • Tannarx: ${formatUSD(
@@ -308,10 +307,12 @@ export function SaleModal({
                       )})`
                     : `${b.route} (${formatDate(b.flightDate, false)} • Qoldiq: ${
                         b.remainingQty
-                      } ta • Tannarx: ${formatUSD(b.buyPrice)})`}
-                </option>
-              ))}
-            </select>
+                      } ta • Tannarx: ${formatUSD(b.buyPrice)})`,
+                })),
+              ]}
+              className="w-full"
+              size="md"
+            />
           </div>
         )}
 
@@ -624,17 +625,16 @@ export function SaleModal({
                   {accounts.length > 0 ? "Qaysi hisobga kirim bo‘ladi? *" : "To‘lov shakli"}
                 </label>
                 {accounts.length > 0 ? (
-                  <select
+                  <CustomSelect
                     value={accountId || String(accounts[0].id)}
-                    onChange={(e) => setAccountId(e.target.value)}
-                    className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium cursor-pointer"
-                  >
-                    {accounts.map((acc) => (
-                      <option key={acc.id} value={String(acc.id)}>
-                        {acc.name}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(val) => setAccountId(val)}
+                    options={accounts.map((acc) => ({
+                      value: String(acc.id),
+                      label: acc.name,
+                    }))}
+                    className="w-full"
+                    size="md"
+                  />
                 ) : (
                   <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-[11px] text-amber-700 dark:text-amber-300 font-medium leading-relaxed">
                     ⚠️ Kassa hisob raqami ochilmagan. To‘lov kiritish uchun avval Kassa bo‘limida hisob yarating yoki to‘lovni $0 qiling.
