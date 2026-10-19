@@ -3,7 +3,7 @@
 > Bu fayl **AI agentlar va yangi dasturchilar** uchun. Loyihani davom ettirishdan oldin
 > shu hujjatni to'liq o'qing. Kod haqidagi barcha qoidalar shu yerda izohlangan.
 >
-> Oxirgi yangilanish: **2026-10-18**, deploy qilingan commit: `3d0386e`.
+> Oxirgi yangilanish: **2026-10-19**, deploy qilingan commit: `303932c`.
 
 ---
 
