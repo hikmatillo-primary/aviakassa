@@ -460,3 +460,51 @@ class BackupDatabasesCommandTests(APITestCase):
             files = os.listdir(outdir)
             self.assertEqual(len(files), 1)
             self.assertIn(self.ALIAS, files[0])
+
+
+from django.test import TransactionTestCase
+
+
+class MigrateAllDatabasesCommandTests(TransactionTestCase):
+    """migrate_all_databases asosiy va barcha dinamik bazalarni migratsiya qiladi."""
+
+    ALIAS = "migrate_second"
+
+    @classmethod
+    def setUpClass(cls):
+        cls.tmp = tempfile.NamedTemporaryFile(suffix=".sqlite3", delete=False)
+        cls.tmp.close()
+        config = dict(connections.databases["default"])
+        config["NAME"] = cls.tmp.name
+        connections.databases[cls.ALIAS] = config
+        cls.databases = {"default", cls.ALIAS}
+        super().setUpClass()
+        cls.addClassCleanup(cls._cleanup_alias)
+
+    @classmethod
+    def _cleanup_alias(cls):
+        try:
+            connections[cls.ALIAS].close()
+        except Exception:
+            pass
+        connections.databases.pop(cls.ALIAS, None)
+        try:
+            os.unlink(cls.tmp.name)
+        except OSError:
+            pass
+
+    def setUp(self):
+        services.invalidate_active_cache()
+        DatabaseRegistry.objects.all().delete()
+        DatabaseRegistry.objects.create(
+            name="Asosiy", db_name=str(services.default_db_name()), is_active=True
+        )
+        DatabaseRegistry.objects.create(name="Ikkinchi", db_name=self.ALIAS)
+
+    def test_migrates_all_registered_databases(self):
+        out = StringIO()
+        call_command("migrate_all_databases", stdout=out)
+        output = out.getvalue()
+        self.assertIn("Asosiy baza muvaffaqiyatli migratsiya qilindi", output)
+        self.assertIn(f"Baza migratsiya qilindi: Ikkinchi ({self.ALIAS})", output)
+

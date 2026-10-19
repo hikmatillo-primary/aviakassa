@@ -320,8 +320,8 @@ ssh donxolm 'cd /opt/aviakassa && docker exec aviakassa_db pg_dump -U aviakassa_
 scp _deploy.bundle donxolm:/root/_deploy.bundle
 ssh donxolm 'cd /opt/aviakassa && git fetch /root/_deploy.bundle main:deploy && git merge --ff-only deploy'
 
-# 5) Migratsiyalar (ishlayotgan konteynerga tegmasdan)
-ssh donxolm 'cd /opt/aviakassa && docker compose run --rm --no-deps backend python manage.py migrate --noinput'
+# 5) Migratsiyalar (asosiy va barcha ro'yxatdagi dinamik bazalar)
+ssh donxolm 'cd /opt/aviakassa && docker compose run --rm --no-deps backend python manage.py migrate_all_databases'
 
 # 6) Backend + bot
 ssh donxolm 'cd /opt/aviakassa && docker compose up -d --no-deps --force-recreate backend && docker compose restart bot'
