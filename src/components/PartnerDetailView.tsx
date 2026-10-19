@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { formatUSD, formatDate, paymentMethodLabel, matchesRouteSearch, getBatchSegmentRemaining } from "@/lib/format";
 import { RowActionsMenu } from "@/components/RowActionsMenu";
+import { FlightBar } from "@/components/FlightBar";
 
 type CashMovement =
   | { kind: "PAYMENT"; id: number; date: string; payment: any }
@@ -623,21 +624,15 @@ export function PartnerDetailView({
                 className="group relative overflow-hidden bg-slate-50/60 dark:bg-white/[0.02] p-3.5 sm:p-4 rounded-xl border border-slate-200/70 dark:border-white/[0.06] flex flex-col sm:flex-row items-stretch justify-between gap-3 hover:border-blue-300/70 dark:hover:border-blue-500/30 hover:bg-slate-100/60 dark:hover:bg-white/[0.04] hover:shadow-sm transition-all"
               >
                 <div className="flex-1 min-w-0 flex items-start gap-3">
-                  <div className="hidden sm:flex shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500/15 to-blue-500/[0.04] text-blue-600 dark:text-blue-400 items-center justify-center ring-1 ring-inset ring-blue-500/15">
+                  <div className="hidden sm:flex shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500/15 to-blue-500/[0.04] text-blue-600 dark:text-blue-400 items-center justify-center ring-1 ring-inset ring-blue-500/15 mt-0.5">
                     <Package className="w-5 h-5" />
                   </div>
 
                   <div className="flex-1 min-w-0 space-y-2">
-                    <div className="flex items-center gap-2 flex-wrap text-xs">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <FlightBar batch={b} size="sm" showSubtitle={false} />
                       <span className="font-mono text-[11px] font-bold px-2 py-0.5 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 ring-1 ring-inset ring-blue-500/20">
                         {b.batchNumber || "---"}
-                      </span>
-                      <strong className="text-sm text-slate-900 dark:text-white font-bold">
-                        {b.route || "---"}
-                      </strong>
-                      <span className="inline-flex items-center gap-1 text-slate-400">
-                        <Calendar className="w-3 h-3" />
-                        {formatDate(b.flightDate, false)}
                       </span>
                     </div>
 
@@ -666,14 +661,6 @@ export function PartnerDetailView({
                           </>
                         )}
                       </span>
-                      {b.departureTime && (
-                        <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white/80 dark:bg-white/[0.04] border border-slate-200/70 dark:border-white/[0.06] text-slate-500 dark:text-slate-400">
-                          Vaqti:{" "}
-                          <b className="font-mono text-slate-700 dark:text-slate-300">
-                            {b.departureTime}{b.arrivalTime ? `–${b.arrivalTime}` : ""}
-                          </b>
-                        </span>
-                      )}
                     </div>
                   </div>
                 </div>

@@ -134,6 +134,17 @@ export function BatchDetailView({
               <div className="flex-1 min-w-0">
                 <FlightBar batch={batch} size="lg" />
               </div>
+              {onRepeatBatch && (
+                <button
+                  type="button"
+                  onClick={() => onRepeatBatch(batch)}
+                  title="Yana qo'shish"
+                  aria-label="Yana qo'shish"
+                  className="inline-flex items-center justify-center w-8 h-8 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm shadow-blue-500/20 transition-all cursor-pointer shrink-0 mt-0.5"
+                >
+                  <Plus className="w-4.5 h-4.5" />
+                </button>
+              )}
             </div>
 
             {/* Qoldiq progress bari */}
@@ -238,17 +249,6 @@ export function BatchDetailView({
                 Xarid sanasi: <b className="text-slate-700 dark:text-slate-300">{formatDate(batch.purchaseDate)}</b>
               </span>
               <div className="flex items-center gap-1.5 flex-wrap">
-                {onRepeatBatch && (
-                  <button
-                    type="button"
-                    onClick={() => onRepeatBatch(batch)}
-                    title="Yana qo'shish"
-                    aria-label="Yana qo'shish"
-                    className="inline-flex items-center justify-center w-7 h-7 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm shadow-blue-500/20 transition-all cursor-pointer"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </button>
-                )}
                 {onOpenPaymentModal && batch.supplierId && (
                   <button
                     type="button"

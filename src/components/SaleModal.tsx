@@ -201,8 +201,10 @@ export function SaleModal({
       return;
     }
 
-    if (saleDate && saleDate > todayISO) {
-      setError("Sotuv sanasi bugundan keyin bo'lishi mumkin emas!");
+    if (numPaidNow > 0 && accounts.length === 0) {
+      setError(
+        "To'lov kiritish uchun kamida bitta Kassa hisob raqami bo'lishi kerak. Iltimos, Kassa bo'limida hisob oching yoki to'lovni 0 qiling."
+      );
       return;
     }
 
@@ -212,8 +214,8 @@ export function SaleModal({
         clientId: Number(clientId),
         saleDate: saleDate || getTodayISO(),
         paidNow: numPaidNow,
-        paymentMethod,
-        accountId: accounts.length > 0 ? Number(accountId || accounts[0].id) : undefined,
+        paymentMethod: paymentMethod || "CASH",
+        accountId: numPaidNow > 0 && accounts.length > 0 ? Number(accountId || accounts[0].id) : undefined,
         notes,
         items: [
           {
@@ -616,31 +618,36 @@ export function SaleModal({
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-              {accounts.length > 0 ? "Hisob raqam" : "To‘lov usuli"}
-            </label>
-            {accounts.length > 0 ? (
-              <select
-                value={accountId || String(accounts[0].id)}
-                onChange={(e) => setAccountId(e.target.value)}
-                className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
-              >
-                {accounts.map((acc) => (
-                  <option key={acc.id} value={String(acc.id)}>
-                    {acc.name}
-                  </option>
-                ))}
-              </select>
+            {numPaidNow > 0 ? (
+              <>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  {accounts.length > 0 ? "Qaysi hisobga kirim bo‘ladi? *" : "To‘lov shakli"}
+                </label>
+                {accounts.length > 0 ? (
+                  <select
+                    value={accountId || String(accounts[0].id)}
+                    onChange={(e) => setAccountId(e.target.value)}
+                    className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium cursor-pointer"
+                  >
+                    {accounts.map((acc) => (
+                      <option key={acc.id} value={String(acc.id)}>
+                        {acc.name}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-[11px] text-amber-700 dark:text-amber-300 font-medium leading-relaxed">
+                    ⚠️ Kassa hisob raqami ochilmagan. To‘lov kiritish uchun avval Kassa bo‘limida hisob yarating yoki to‘lovni $0 qiling.
+                  </div>
+                )}
+              </>
             ) : (
-              <select
-                value={paymentMethod}
-                onChange={(e) => setPaymentMethod(e.target.value)}
-                className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
-              >
-                <option value="CASH">Naqd (Cash)</option>
-                <option value="CARD">Karta / O&apos;tkazma</option>
-                <option value="BANK">Bank hisob raqami</option>
-              </select>
+              <div className="flex flex-col justify-center h-full pt-4">
+                <div className="px-3 py-2 text-xs font-medium text-slate-500 dark:text-slate-400 bg-slate-100/80 dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.06] rounded-xl flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+                  <span>Hozir to‘lov yo‘q (to‘liq qarzga beriladi)</span>
+                </div>
+              </div>
             )}
           </div>
         </div>

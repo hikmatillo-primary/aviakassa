@@ -15,6 +15,24 @@
 .dark {
   --background: #090d16;
   --foreground: #f8fafc;
+  color-scheme: dark;
+}
+
+/* Native select styling across light/dark modes */
+select {
+  color-scheme: light dark;
+}
+
+select option {
+  background-color: #ffffff;
+  color: #0f172a;
+}
+
+.dark select,
+.dark select option,
+:is(.dark select) option {
+  background-color: #111726;
+  color: #f8fafc;
 }
 
 /* Native App-like feel for mobile */

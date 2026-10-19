@@ -23,6 +23,18 @@ export interface BatchItemInput {
   totalQty: number | string;
   buyPrice: number | string;
   baggage: string;
+  isAuto?: boolean;
+  autoIntervalDays?: number | string;
+  autoUntil?: string;
+}
+
+export function calculateAutoBatchCount(firstDate: string, untilDate: string, intervalDays: number): number {
+  if (!firstDate || !untilDate || intervalDays <= 0) return 0;
+  const start = new Date(firstDate).getTime();
+  const end = new Date(untilDate).getTime();
+  if (end < start) return 0;
+  const daysDiff = Math.floor((end - start) / 86400000);
+  return Math.min(60, Math.floor(daysDiff / intervalDays) + 1);
 }
 
 interface BatchModalProps {
@@ -95,8 +107,6 @@ export function BatchModal({
   const [accountId, setAccountId] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
   const [categoryId, setCategoryId] = useState<string>("");
-  const [autoEnabled, setAutoEnabled] = useState(false);
-  const [autoUntil, setAutoUntil] = useState("");
 
   const [items, setItems] = useState<BatchItemInput[]>([]);
   const prevIsOpenRef = React.useRef(false);
@@ -121,6 +131,9 @@ export function BatchModal({
           totalQty: 50,
           buyPrice: 300,
           baggage: "20 kg",
+          isAuto: false,
+          autoIntervalDays: 7,
+          autoUntil: "",
         },
       ]);
       setSupplierId("");
@@ -131,8 +144,6 @@ export function BatchModal({
       setError(null);
       setIsSubmitting(false);
       setCategoryId("");
-      setAutoEnabled(false);
-      setAutoUntil("");
 
       // «Yana qo'shish»: mavjud partiya ma'lumotlarini oldindan to'ldiramiz.
       if (repeatFrom) {
@@ -163,6 +174,9 @@ export function BatchModal({
             totalQty: repeatFrom.totalQty || 1,
             buyPrice: repeatFrom.buyPrice || 0,
             baggage: repeatFrom.baggage || "",
+            isAuto: false,
+            autoIntervalDays: 7,
+            autoUntil: "",
           },
         ]);
       }
@@ -197,6 +211,9 @@ export function BatchModal({
         totalQty: 30,
         buyPrice: 400,
         baggage: "20 kg",
+        isAuto: false,
+        autoIntervalDays: 7,
+        autoUntil: "",
       },
     ]);
   };
@@ -253,22 +270,37 @@ export function BatchModal({
         setError(`${i + 1}-qatorda tannarx 0 dan katta bo'lishi kerak!`);
         return;
       }
+      if (it.isAuto) {
+        if (!it.autoUntil) {
+          setError(`${i + 1}-qatorda avto-xarid uchun tugash sanasini tanlang!`);
+          return;
+        }
+        if (it.autoUntil < it.flightDate) {
+          setError(`${i + 1}-qatorda avto-xarid tugash sanasi uchish sanasidan keyin bo'lishi kerak!`);
+          return;
+        }
+        const interval = Number(it.autoIntervalDays) || 7;
+        if (interval < 1 || interval > 30) {
+          setError(`${i + 1}-qatorda avto-xarid oralig'i 1 dan 30 kungacha bo'lishi kerak!`);
+          return;
+        }
+      }
+    }
+
+    const numPaid = Number(paidNow) || 0;
+    if (numPaid > 0 && accounts.length === 0) {
+      setError(
+        "To'lov kiritish uchun kamida bitta Kassa hisob raqami bo'lishi kerak. Iltimos, Kassa bo'limida hisob oching yoki to'lovni 0 qiling."
+      );
+      return;
     }
 
     setIsSubmitting(true);
     try {
-      if (autoEnabled && items.length === 1) {
-        if (!autoUntil) {
-          setError("Tugash sanasini tanlang!");
-          setIsSubmitting(false);
-          return;
-        }
-        if (autoUntil < items[0].flightDate) {
-          setError("Tugash sanasi birinchi uchish sanasidan keyin bo'lishi kerak!");
-          setIsSubmitting(false);
-          return;
-        }
-        const it = items[0];
+      const autoItems = items.filter((it) => it.isAuto);
+      const regularItems = items.filter((it) => !it.isAuto);
+
+      for (const it of autoItems) {
         const hasReturn = Boolean(it.isRoundTrip && it.returnDate);
         await onSaveAuto?.({
           supplierId: Number(supplierId),
@@ -279,7 +311,7 @@ export function BatchModal({
           arrivalTime: it.arrivalTime,
           isRoundTrip: hasReturn,
           returnDate: hasReturn ? it.returnDate : null,
-          returnFlightNumber: hasReturn ? it.returnFlightNumber : "",
+          returnFlightNumber: hasReturn ? it.returnFlightNumber.trim().toUpperCase() : "",
           returnDepartureTime: hasReturn ? it.returnDepartureTime : "",
           returnArrivalTime: hasReturn ? it.returnArrivalTime : "",
           baggage: it.baggage,
@@ -288,43 +320,44 @@ export function BatchModal({
           purchaseDate: purchaseDate || getTodayISO(),
           categoryId: categoryId ? Number(categoryId) : null,
           notes,
-          until: autoUntil,
-          intervalDays: 7,
+          until: it.autoUntil!,
+          intervalDays: Number(it.autoIntervalDays) || 7,
         });
-        onClose();
-        return;
       }
 
-      await onSave({
-        supplierId: Number(supplierId),
-        purchaseDate: purchaseDate || getTodayISO(),
-        paidNow: Number(paidNow) || 0,
-        paymentMethod,
-        accountId: accounts.length > 0 ? Number(accountId || accounts[0].id) : undefined,
-        notes,
-        items: items.map((it, idx) => {
-          const fullRoute = `${it.fromCity.trim()} — ${it.toCity.trim()}`;
-          const hasReturn = Boolean(it.isRoundTrip && it.returnDate);
-          return {
-            route: fullRoute,
-            flightDate: it.flightDate,
-            flightNumber: it.flightNumber.trim().toUpperCase(),
-            departureTime: it.departureTime,
-            arrivalTime: it.arrivalTime,
-            isRoundTrip: hasReturn,
-            returnDate: hasReturn ? it.returnDate : undefined,
-            returnFlightNumber: hasReturn
-              ? it.returnFlightNumber.trim().toUpperCase()
-              : undefined,
-            returnDepartureTime: hasReturn ? it.returnDepartureTime : undefined,
-            returnArrivalTime: hasReturn ? it.returnArrivalTime : undefined,
-            totalQty: Number(it.totalQty),
-            buyPrice: Number(it.buyPrice),
-            baggage: it.baggage,
-            batchNumber: getNextBatchNumber(existingBatches, idx),
-          };
-        }),
-      });
+      if (regularItems.length > 0) {
+        await onSave({
+          supplierId: Number(supplierId),
+          purchaseDate: purchaseDate || getTodayISO(),
+          paidNow: numPaid,
+          paymentMethod: numPaid > 0 ? paymentMethod : undefined,
+          accountId: numPaid > 0 && accounts.length > 0 ? Number(accountId || accounts[0].id) : undefined,
+          notes,
+          items: regularItems.map((it, idx) => {
+            const fullRoute = `${it.fromCity.trim()} — ${it.toCity.trim()}`;
+            const hasReturn = Boolean(it.isRoundTrip && it.returnDate);
+            return {
+              route: fullRoute,
+              flightDate: it.flightDate,
+              flightNumber: it.flightNumber.trim().toUpperCase(),
+              departureTime: it.departureTime,
+              arrivalTime: it.arrivalTime,
+              isRoundTrip: hasReturn,
+              returnDate: hasReturn ? it.returnDate : undefined,
+              returnFlightNumber: hasReturn
+                ? it.returnFlightNumber.trim().toUpperCase()
+                : undefined,
+              returnDepartureTime: hasReturn ? it.returnDepartureTime : undefined,
+              returnArrivalTime: hasReturn ? it.returnArrivalTime : undefined,
+              totalQty: Number(it.totalQty),
+              buyPrice: Number(it.buyPrice),
+              baggage: it.baggage,
+              batchNumber: getNextBatchNumber(existingBatches, idx),
+            };
+          }),
+        });
+      }
+
       onClose();
     } catch (err) {
       setError(getValidationMessage(err));
@@ -710,6 +743,90 @@ export function BatchModal({
                     </div>
                   )}
 
+                  {/* 4-QATOR: SHU PARTIYA UCHUN AVTO XARID SOZLAMALARI */}
+                  <div className="rounded-xl border border-blue-200/70 dark:border-blue-500/20 bg-blue-50/40 dark:bg-blue-500/[0.04] p-2.5 space-y-2">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-200 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={Boolean(item.isAuto)}
+                          onChange={(e) => handleUpdateItem(index, "isAuto", e.target.checked)}
+                          className="w-4 h-4 accent-blue-600 rounded cursor-pointer"
+                        />
+                        <span>Avto xarid (shu partiyani oraliq bilan avtomatik takrorlash)</span>
+                      </label>
+                      {item.isAuto && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                          Jadval bo‘yicha
+                        </span>
+                      )}
+                    </div>
+
+                    {item.isAuto && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                        <div>
+                          <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                            Vaqt oralig‘i (kun) *
+                          </label>
+                          <div className="relative">
+                            <input
+                              type="number"
+                              min="1"
+                              max="30"
+                              value={item.autoIntervalDays ?? 7}
+                              onChange={(e) =>
+                                handleUpdateItem(
+                                  index,
+                                  "autoIntervalDays",
+                                  e.target.value === "" ? "" : Number(e.target.value)
+                                )
+                              }
+                              onBlur={() => {
+                                const val = Number(item.autoIntervalDays);
+                                if (!val || val < 1) handleUpdateItem(index, "autoIntervalDays", 7);
+                                else if (val > 30) handleUpdateItem(index, "autoIntervalDays", 30);
+                              }}
+                              placeholder="7"
+                              className="w-full pl-3 pr-14 py-1.5 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-bold tabular-nums"
+                            />
+                            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] font-semibold text-slate-400 pointer-events-none">
+                              kunda
+                            </span>
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                            Qaysi sanagacha *
+                          </label>
+                          <input
+                            type="date"
+                            min={item.flightDate || undefined}
+                            value={item.autoUntil || ""}
+                            onChange={(e) => handleUpdateItem(index, "autoUntil", e.target.value)}
+                            className="w-full px-2.5 py-1.5 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+                            required
+                          />
+                        </div>
+
+                        {item.autoUntil && item.flightDate && (
+                          <div className="sm:col-span-2 text-[11px] text-slate-600 dark:text-slate-300 bg-white/70 dark:bg-slate-900/60 p-2 rounded-lg border border-slate-200/60 dark:border-slate-700/60 tabular-nums">
+                            Rejalashtirilgan:{" "}
+                            <strong className="text-blue-600 dark:text-blue-400 font-bold">
+                              {calculateAutoBatchCount(
+                                item.flightDate,
+                                item.autoUntil,
+                                Number(item.autoIntervalDays) || 7
+                              )}{" "}
+                              ta partiya
+                            </strong>{" "}
+                            (har {Number(item.autoIntervalDays) || 7} kunda, hammasi «hisobga olinmagan» holatda)
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
                   {/* Qator pastki qismi */}
                   <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 pt-1 px-0.5 border-t border-slate-200/50 dark:border-slate-700/50 tabular-nums">
                     <span className="flex items-center gap-1">
@@ -809,87 +926,51 @@ export function BatchModal({
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-              {accounts.length > 0 ? "Hisob raqam" : "To‘lov usuli"}
-            </label>
-            {accounts.length > 0 ? (
-              <select
-                value={accountId || String(accounts[0].id)}
-                onChange={(e) => setAccountId(e.target.value)}
-                className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
-              >
-                {accounts.map((acc) => (
-                  <option key={acc.id} value={String(acc.id)}>
-                    {acc.name}
-                  </option>
-                ))}
-              </select>
+            {Number(paidNow) > 0 ? (
+              <>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  {accounts.length > 0 ? "Qaysi hisobdan to‘lanadi? *" : "To‘lov shakli"}
+                </label>
+                {accounts.length > 0 ? (
+                  <select
+                    value={accountId || String(accounts[0].id)}
+                    onChange={(e) => setAccountId(e.target.value)}
+                    className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium cursor-pointer"
+                  >
+                    {accounts.map((acc) => (
+                      <option key={acc.id} value={String(acc.id)}>
+                        {acc.name}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-[11px] text-amber-700 dark:text-amber-300 font-medium leading-relaxed">
+                    ⚠️ Kassa hisob raqami ochilmagan. To‘lov kiritish uchun avval Kassa bo‘limida hisob yarating yoki to‘lovni $0 qiling.
+                  </div>
+                )}
+              </>
             ) : (
-              <select
-                value={paymentMethod}
-                onChange={(e) => setPaymentMethod(e.target.value)}
-                className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
-              >
-                <option value="CASH">Naqd (Cash)</option>
-                <option value="CARD">Karta / O&apos;tkazma</option>
-                <option value="BANK">Bank hisob raqami</option>
-              </select>
+              <div className="flex flex-col justify-center h-full pt-4">
+                <div className="px-3 py-2 text-xs font-medium text-slate-500 dark:text-slate-400 bg-slate-100/80 dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.06] rounded-xl flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+                  <span>Hozir to‘lov yo‘q (to‘liq qarzga olinadi)</span>
+                </div>
+              </div>
             )}
           </div>
         </div>
 
-        {/* 5. Izoh */}
-        <div className="rounded-2xl border border-blue-200/70 dark:border-blue-500/20 bg-blue-50/40 dark:bg-blue-500/[0.04] p-3 space-y-2">
-          <label className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-200 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={autoEnabled}
-              onChange={(e) => setAutoEnabled(e.target.checked)}
-              disabled={items.length !== 1}
-              className="w-4 h-4 accent-blue-600"
-            />
-            Avto xarid (har 7 kunda bir xil narx va sonda)
-          </label>
-          {autoEnabled && (
-            <div className="space-y-1.5">
-              <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-300">
-                Qaysi sanagacha
-              </label>
-              <input
-                type="date"
-                value={autoUntil}
-                onChange={(e) => setAutoUntil(e.target.value)}
-                className="w-full px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                Yaratiladi:{" "}
-                <strong className="text-blue-600 dark:text-blue-400">
-                  {autoUntil && items[0]?.flightDate
-                    ? Math.max(
-                        0,
-                        Math.floor(
-                          (new Date(autoUntil).getTime() -
-                            new Date(items[0].flightDate).getTime()) /
-                            86400000
-                        ) /
-                          7
-                      ) + 1
-                    : 0}{" "}
-                  ta partiya
-                </strong>{" "}
-                — hammasi «hisobga olinmagan» holatda
-              </p>
-            </div>
-          )}
+        {/* 5. Xarid turi */}
+        <div className="rounded-2xl border border-slate-200/70 dark:border-white/[0.07] bg-slate-50/50 dark:bg-white/[0.02] p-3 space-y-2">
           <div>
             <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-1">
-              Xarid turi
+              Xarid turi (kategoriya)
             </label>
             <div className="flex gap-2">
               <select
                 value={categoryId}
                 onChange={(e) => setCategoryId(e.target.value)}
-                className="flex-1 px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="flex-1 px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
               >
                 <option value="">— Tanlanmagan —</option>
                 {categories.map((c) => (
@@ -905,7 +986,7 @@ export function BatchModal({
                     const name = window.prompt("Yangi xarid turi nomi (masalan: 1 oylik)");
                     if (name?.trim()) await onCreateCategory(name.trim());
                   }}
-                  className="px-3 py-2 text-xs font-semibold text-blue-600 dark:text-blue-400 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl cursor-pointer"
+                  className="px-3 py-2 text-xs font-semibold text-blue-600 dark:text-blue-400 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
                 >
                   + Tur
                 </button>
