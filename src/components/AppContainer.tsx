@@ -22,6 +22,7 @@ import { PartnerDetailView } from "./PartnerDetailView";
 import { LoginView } from "./LoginView";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { DatabaseModal } from "./DatabaseModal";
+import { VersionNotification } from "./VersionNotification";
 import { getStoredUser, isAuthenticated, logoutUser, AuthUser } from "@/lib/auth";
 import { useModalsState } from "@/hooks/useModalsState";
 import { useAviakassaData } from "@/hooks/useAviakassaData";
@@ -566,6 +567,9 @@ export function AppContainer() {
           </button>
         </div>
       )}
+
+      {/* Avtomatik yangilanish bildirishnomasi */}
+      <VersionNotification />
     </div>
   );
 }

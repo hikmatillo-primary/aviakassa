@@ -78,7 +78,11 @@ export function BatchesView({
         return timeA.localeCompare(timeB);
       });
 
-      const totalQty = rows.reduce((sum, b) => sum + (b.totalQty || 0), 0);
+      const totalQty = rows.reduce(
+        (sum, b) =>
+          sum + (b.totalQty || 0) + (b.isRoundTrip ? b.returnTotalQty || b.totalQty || 0 : 0),
+        0
+      );
       // Borish-kelish partiyalarda ikkala qoldiq (borish + kelish) qo'shiladi.
       const remainingQty = rows.reduce((sum, b) => {
         const out = b.remainingQty || 0;
@@ -173,10 +177,12 @@ export function BatchesView({
       <div className="space-y-3 block md:hidden">
         {filteredBatches.map((batch) => {
           const retPool = getBatchSegmentRemaining(batch, "RETURN");
+          const retTotal = batch.returnTotalQty || batch.totalQty;
           const soldOut = batch.totalQty - (batch.remainingQty || 0);
-          const soldRet = batch.isRoundTrip ? batch.totalQty - retPool : 0;
+          const soldRet = batch.isRoundTrip ? retTotal - retPool : 0;
           const soldQty = Math.max(soldOut, soldRet);
-          const percentSold = Math.round((soldQty / batch.totalQty) * 100);
+          const effectiveTotal = batch.isRoundTrip ? batch.totalQty + retTotal : batch.totalQty;
+          const percentSold = Math.round(((soldOut + soldRet) / effectiveTotal) * 100);
           const isLowStock = batch.isRoundTrip
             ? (batch.remainingQty > 0 && batch.remainingQty <= 5) || (retPool > 0 && retPool <= 5)
             : batch.remainingQty > 0 && batch.remainingQty <= 5;
@@ -226,7 +232,7 @@ export function BatchesView({
                       : `${batch.remainingQty} ta qoldi`}
                   </span>
                   <span className="text-slate-400 font-normal">
-                    {batch.totalQty} tadan ({percentSold}% sotildi)
+                    {batch.isRoundTrip && batch.returnTotalQty ? `${batch.totalQty} + ${batch.returnTotalQty}` : batch.totalQty} tadan ({percentSold}% sotildi)
                   </span>
                 </div>
                 <div className="w-full bg-slate-100 dark:bg-white/[0.08] h-2 rounded-full overflow-hidden">
@@ -327,10 +333,12 @@ export function BatchesView({
             <tbody className="divide-y divide-slate-100 dark:divide-white/[0.05] text-xs text-slate-700 dark:text-slate-300">
               {filteredBatches.map((batch) => {
                 const retPool = getBatchSegmentRemaining(batch, "RETURN");
+                const retTotal = batch.returnTotalQty || batch.totalQty;
                 const soldOut = batch.totalQty - (batch.remainingQty || 0);
-                const soldRet = batch.isRoundTrip ? batch.totalQty - retPool : 0;
+                const soldRet = batch.isRoundTrip ? retTotal - retPool : 0;
                 const soldQty = Math.max(soldOut, soldRet);
-                const percentSold = Math.round((soldQty / batch.totalQty) * 100);
+                const effectiveTotal = batch.isRoundTrip ? batch.totalQty + retTotal : batch.totalQty;
+                const percentSold = Math.round(((soldOut + soldRet) / effectiveTotal) * 100);
                 const isLowStock = batch.isRoundTrip
                   ? (batch.remainingQty > 0 && batch.remainingQty <= 5) || (retPool > 0 && retPool <= 5)
                   : batch.remainingQty > 0 && batch.remainingQty <= 5;
@@ -380,7 +388,12 @@ export function BatchesView({
                               ? `Borish: ${batch.remainingQty} · Kelish: ${retPool}`
                               : `${batch.remainingQty} ta qoldi`}
                           </span>
-                          <span className="text-slate-400">{batch.totalQty} tadan</span>
+                          <span className="text-slate-400">
+                            {batch.isRoundTrip && batch.returnTotalQty
+                              ? `${batch.totalQty}+${batch.returnTotalQty}`
+                              : batch.totalQty}{" "}
+                            tadan
+                          </span>
                         </div>
                         <div className="w-full bg-slate-100 dark:bg-white/[0.08] h-1.5 rounded-full overflow-hidden">
                           <div
@@ -403,7 +416,11 @@ export function BatchesView({
                     {/* Cost */}
                     <td className="py-3.5 px-4 text-right tabular-nums">
                       <div className="font-bold text-slate-900 dark:text-white text-sm">
-                        {formatUSD(batch.buyPrice)}
+                        {batch.isRoundTrip &&
+                        batch.returnBuyPrice !== undefined &&
+                        batch.returnBuyPrice !== batch.buyPrice
+                          ? `${formatUSD(batch.buyPrice)} / ${formatUSD(batch.returnBuyPrice)}`
+                          : formatUSD(batch.buyPrice)}
                       </div>
                       <div className="text-[11px] text-slate-400">
                         Jami: {formatUSD(batch.totalCost)}

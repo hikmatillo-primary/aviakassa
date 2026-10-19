@@ -26,6 +26,9 @@ export interface BatchUpdatePayload {
   totalQty: number;
   buyPrice: number;
   baggage: string;
+  returnTotalQty?: number | null;
+  returnBuyPrice?: number | null;
+  returnBaggage?: string;
   notes: string;
   propagateToFuture?: boolean;
 }
@@ -75,6 +78,9 @@ export function EditBatchModal({
   const [totalQty, setTotalQty] = useState<number | string>(1);
   const [buyPrice, setBuyPrice] = useState<number | string>(0);
   const [baggage, setBaggage] = useState<string>("20");
+  const [returnTotalQty, setReturnTotalQty] = useState<number | string>(1);
+  const [returnBuyPrice, setReturnBuyPrice] = useState<number | string>(0);
+  const [returnBaggage, setReturnBaggage] = useState<string>("20");
   const [notes, setNotes] = useState<string>("");
   const [propagateToFuture, setPropagateToFuture] = useState(true);
 
@@ -97,6 +103,15 @@ export function EditBatchModal({
       setTotalQty(batch.totalQty || 1);
       setBuyPrice(batch.buyPrice || 0);
       setBaggage((batch.baggage || "20").replace(/[^0-9]/g, "") || "20");
+      setReturnTotalQty(batch.returnTotalQty || batch.totalQty || 1);
+      setReturnBuyPrice(
+        batch.returnBuyPrice !== undefined && batch.returnBuyPrice !== null
+          ? batch.returnBuyPrice
+          : batch.buyPrice || 0
+      );
+      setReturnBaggage(
+        (batch.returnBaggage || batch.baggage || "20").replace(/[^0-9]/g, "") || "20"
+      );
       setNotes(batch.notes || "");
       setPropagateToFuture(Boolean(batch.seriesId || batch.isAuto));
       setError(null);
@@ -108,18 +123,24 @@ export function EditBatchModal({
 
   const liveRoundTrip = Boolean(returnDate);
   const soldOut = Math.max(0, (batch.totalQty || 0) - (batch.remainingQty || 0));
+  const retTotal = batch.returnTotalQty || batch.totalQty || 0;
   const retPool =
     typeof batch.returnRemainingQty === "number"
       ? batch.returnRemainingQty
-      : batch.totalQty || 0;
-  const soldRet = liveRoundTrip ? Math.max(0, (batch.totalQty || 0) - retPool) : 0;
+      : retTotal;
+  const soldRet = liveRoundTrip ? Math.max(0, retTotal - retPool) : 0;
   const soldQty = Math.max(soldOut, soldRet);
   const numQty = totalQty === "" ? 0 : Number(totalQty);
   const numPrice = buyPrice === "" ? 0 : Number(buyPrice);
-  const newTotalCost = numQty * numPrice;
+  const numRetQty = returnTotalQty === "" ? 0 : Number(returnTotalQty);
+  const numRetPrice = returnBuyPrice === "" ? 0 : Number(returnBuyPrice);
+  const newTotalCost = liveRoundTrip
+    ? numQty * numPrice + numRetQty * numRetPrice
+    : numQty * numPrice;
   const deltaQty = numQty - (batch.totalQty || 0);
+  const deltaRetQty = liveRoundTrip ? numRetQty - retTotal : 0;
   const newRemaining = Math.max(0, (batch.remainingQty || 0) + deltaQty);
-  const newReturnRemaining = Math.max(0, retPool + deltaQty);
+  const newReturnRemaining = Math.max(0, retPool + deltaRetQty);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -138,22 +159,34 @@ export function EditBatchModal({
       return;
     }
     if (numQty <= 0) {
-      setError("Chipta soni kamida 1 ta bo\u2018lishi kerak!");
+      setError("Borish chipta soni kamida 1 ta bo\u2018lishi kerak!");
       return;
     }
-    if (numQty < soldQty) {
-      const detail =
-        liveRoundTrip && soldRet > soldOut
-          ? ` Borish: ${soldOut} ta, kelish: ${soldRet} ta sotilgan.`
-          : "";
+    if (numQty < soldOut) {
       setError(
-        `Ushbu partiyadan allaqachon ${soldQty} ta chipta sotilgan! Jami soni ${soldQty} tadan kam bo\u2018la olmaydi.${detail}`
+        `Ushbu partiyaning borish reysidan allaqachon ${soldOut} ta chipta sotilgan! Jami soni ${soldOut} tadan kam bo\u2018la olmaydi.`
       );
       return;
     }
     if (numPrice <= 0) {
-      setError("Tannarx 0 dan katta bo\u2018lishi kerak!");
+      setError("Borish tannarxi 0 dan katta bo\u2018lishi kerak!");
       return;
+    }
+    if (liveRoundTrip) {
+      if (numRetQty <= 0) {
+        setError("Qaytish chipta soni kamida 1 ta bo\u2018lishi kerak!");
+        return;
+      }
+      if (numRetQty < soldRet) {
+        setError(
+          `Ushbu partiyaning qaytish reysidan allaqachon ${soldRet} ta chipta sotilgan! Qaytish chiptalari soni ${soldRet} tadan kam bo\u2018la olmaydi.`
+        );
+        return;
+      }
+      if (numRetPrice <= 0) {
+        setError("Qaytish tannarxi 0 dan katta bo\u2018lishi kerak!");
+        return;
+      }
     }
     if (returnDate && flightDate && returnDate < flightDate) {
       setError("Qaytish sanasi uchish sanasidan oldin bo\u2018lishi mumkin emas!");
@@ -179,6 +212,11 @@ export function EditBatchModal({
         totalQty: numQty,
         buyPrice: numPrice,
         baggage: `${baggage.replace(/[^0-9]/g, "") || "0"} kg`,
+        returnTotalQty: liveRoundTrip ? numRetQty : null,
+        returnBuyPrice: liveRoundTrip ? numRetPrice : null,
+        returnBaggage: liveRoundTrip
+          ? `${returnBaggage.replace(/[^0-9]/g, "") || "0"} kg`
+          : undefined,
         notes: notes.trim(),
         propagateToFuture: Boolean((batch.seriesId || batch.isAuto) && propagateToFuture),
       });
@@ -342,93 +380,164 @@ export function EditBatchModal({
           </div>
 
           {returnDate && (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 p-2.5 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-200/70 dark:border-indigo-800/60">
-              <div>
-                <label className="flex items-center gap-1 text-[11px] font-bold text-indigo-700 dark:text-indigo-300 mb-1">
-                  <PlaneTakeoff className="w-3 h-3" /> &#8646; Qaytish uchish vaqti
-                </label>
-                <input
-                  type="time"
-                  value={returnDepartureTime}
-                  onChange={(e) => setReturnDepartureTime(e.target.value)}
-                  className={`${inputCls} font-mono font-bold`}
-                />
+            <div className="p-2.5 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-200/70 dark:border-indigo-800/60 space-y-2">
+              <div className="flex items-center gap-1.5 text-[11px] font-bold text-indigo-700 dark:text-indigo-300">
+                <PlaneLanding className="w-3.5 h-3.5 text-indigo-500" /> &#8646; Qaytish reysi ma&rsquo;lumotlari va chiptalari:
               </div>
-              <div>
-                <label className="flex items-center gap-1 text-[11px] font-bold text-indigo-700 dark:text-indigo-300 mb-1">
-                  <PlaneLanding className="w-3 h-3" /> &#8646; Qaytish qo&lsquo;nish vaqti
-                </label>
-                <input
-                  type="time"
-                  value={returnArrivalTime}
-                  onChange={(e) => setReturnArrivalTime(e.target.value)}
-                  className={`${inputCls} font-mono font-bold`}
-                />
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                <div>
+                  <label className="flex items-center gap-1 text-[11px] font-bold text-indigo-700 dark:text-indigo-300 mb-1">
+                    <PlaneTakeoff className="w-3 h-3" /> Uchish vaqti
+                  </label>
+                  <input
+                    type="time"
+                    value={returnDepartureTime}
+                    onChange={(e) => setReturnDepartureTime(e.target.value)}
+                    className={`${inputCls} font-mono font-bold`}
+                  />
+                </div>
+                <div>
+                  <label className="flex items-center gap-1 text-[11px] font-bold text-indigo-700 dark:text-indigo-300 mb-1">
+                    <PlaneLanding className="w-3 h-3" /> Qo&lsquo;nish vaqti
+                  </label>
+                  <input
+                    type="time"
+                    value={returnArrivalTime}
+                    onChange={(e) => setReturnArrivalTime(e.target.value)}
+                    className={`${inputCls} font-mono font-bold`}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-indigo-700 dark:text-indigo-300 mb-1">
+                    Qaytish reysi
+                  </label>
+                  <input
+                    type="text"
+                    value={returnFlightNumber}
+                    onChange={(e) => setReturnFlightNumber(e.target.value.toUpperCase())}
+                    placeholder="FZ-781"
+                    className={`${inputCls} font-mono uppercase font-bold`}
+                  />
+                </div>
               </div>
-              <div>
-                <label className="block text-[11px] font-bold text-indigo-700 dark:text-indigo-300 mb-1">
-                  &#8646; Qaytish reys raqami
-                </label>
-                <input
-                  type="text"
-                  value={returnFlightNumber}
-                  onChange={(e) => setReturnFlightNumber(e.target.value.toUpperCase())}
-                  placeholder="FZ-781"
-                  className={`${inputCls} font-mono uppercase font-bold`}
-                />
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1 border-t border-indigo-200/50 dark:border-indigo-800/40">
+                <div>
+                  <label className="block text-[11px] font-bold text-indigo-700 dark:text-indigo-300 mb-1">
+                    Qaytish chipta soni *
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={returnTotalQty}
+                    onChange={(e) => setReturnTotalQty(e.target.value === "" ? "" : e.target.value)}
+                    onBlur={() => {
+                      if (returnTotalQty === "" || Number(returnTotalQty) < 1) setReturnTotalQty(1);
+                    }}
+                    className={`${inputCls} text-center tabular-nums font-bold border-indigo-300 dark:border-indigo-700`}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-indigo-700 dark:text-indigo-300 mb-1">
+                    Qaytish tannarxi ($) *
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-2.5 top-1.5 text-indigo-400 text-xs">$</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="any"
+                      value={returnBuyPrice}
+                      onChange={(e) => setReturnBuyPrice(e.target.value === "" ? "" : e.target.value)}
+                      onBlur={() => {
+                        if (returnBuyPrice === "" || isNaN(Number(returnBuyPrice))) setReturnBuyPrice(0);
+                      }}
+                      className={`${inputCls} pl-6 tabular-nums font-bold border-indigo-300 dark:border-indigo-700`}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-indigo-700 dark:text-indigo-300 mb-1">
+                    Qaytish bagaji (kg)
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min="0"
+                      max="99"
+                      value={returnBaggage}
+                      onChange={(e) => setReturnBaggage(e.target.value)}
+                      onBlur={() => {
+                        if (returnBaggage === "") setReturnBaggage("0");
+                      }}
+                      placeholder="20"
+                      className={`${inputCls} pr-7 font-mono font-bold tabular-nums border-indigo-300 dark:border-indigo-700`}
+                    />
+                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] font-semibold text-indigo-400 pointer-events-none">
+                      kg
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           )}
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            <div>
-              <label className={labelCls}>Chipta soni *</label>
-              <input
-                type="number"
-                min="1"
-                value={totalQty}
-                onChange={(e) => setTotalQty(e.target.value === "" ? "" : e.target.value)}
-                onBlur={() => {
-                  if (totalQty === "" || Number(totalQty) < 1) setTotalQty(1);
-                }}
-                className={`${inputCls} text-center tabular-nums font-bold`}
-              />
-            </div>
-            <div>
-              <label className={labelCls}>Tannarx ($) *</label>
-              <div className="relative">
-                <span className="absolute left-2.5 top-1.5 text-slate-400 text-xs">$</span>
+          <div className="space-y-1.5">
+            {returnDate && (
+              <div className="flex items-center gap-1.5 text-[11px] font-bold text-blue-700 dark:text-blue-300">
+                <PlaneTakeoff className="w-3.5 h-3.5 text-blue-500" /> Borish chiptalari:
+              </div>
+            )}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              <div>
+                <label className={labelCls}>Borish chipta soni *</label>
                 <input
                   type="number"
-                  min="0"
-                  step="any"
-                  value={buyPrice}
-                  onChange={(e) => setBuyPrice(e.target.value === "" ? "" : e.target.value)}
+                  min="1"
+                  value={totalQty}
+                  onChange={(e) => setTotalQty(e.target.value === "" ? "" : e.target.value)}
                   onBlur={() => {
-                    if (buyPrice === "" || isNaN(Number(buyPrice))) setBuyPrice(0);
+                    if (totalQty === "" || Number(totalQty) < 1) setTotalQty(1);
                   }}
-                  className={`${inputCls} pl-6 tabular-nums font-bold`}
+                  className={`${inputCls} text-center tabular-nums font-bold`}
                 />
               </div>
-            </div>
-            <div>
-              <label className={labelCls}>Bagaj (kg)</label>
-              <div className="relative">
-                <input
-                  type="number"
-                  min="0"
-                  max="99"
-                  value={baggage}
-                  onChange={(e) => setBaggage(e.target.value)}
-                  onBlur={() => {
-                    if (baggage === "") setBaggage("0");
-                  }}
-                  placeholder="20"
-                  className={`${inputCls} pr-7 font-mono font-bold tabular-nums`}
-                />
-                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] font-semibold text-slate-400 pointer-events-none">
-                  kg
-                </span>
+              <div>
+                <label className={labelCls}>Borish tannarxi ($) *</label>
+                <div className="relative">
+                  <span className="absolute left-2.5 top-1.5 text-slate-400 text-xs">$</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    value={buyPrice}
+                    onChange={(e) => setBuyPrice(e.target.value === "" ? "" : e.target.value)}
+                    onBlur={() => {
+                      if (buyPrice === "" || isNaN(Number(buyPrice))) setBuyPrice(0);
+                    }}
+                    className={`${inputCls} pl-6 tabular-nums font-bold`}
+                  />
+                </div>
+              </div>
+              <div>
+                <label className={labelCls}>Borish bagaji (kg)</label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="0"
+                    max="99"
+                    value={baggage}
+                    onChange={(e) => setBaggage(e.target.value)}
+                    onBlur={() => {
+                      if (baggage === "") setBaggage("0");
+                    }}
+                    placeholder="20"
+                    className={`${inputCls} pr-7 font-mono font-bold tabular-nums`}
+                  />
+                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] font-semibold text-slate-400 pointer-events-none">
+                    kg
+                  </span>
+                </div>
               </div>
             </div>
           </div>

@@ -387,6 +387,9 @@ export interface AutoBatchPayload {
   baggage?: string;
   totalQty: number;
   buyPrice: number;
+  returnTotalQty?: number;
+  returnBuyPrice?: number;
+  returnBaggage?: string;
   purchaseDate?: string;
   categoryId?: number | null;
   notes?: string;

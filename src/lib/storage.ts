@@ -34,13 +34,18 @@ export interface Batch {
   returnArrivalTime?: string;
   purchaseDate?: string;
   baggage?: string;
+  returnBaggage?: string;
   supplierId: number;
   supplierName?: string;
   totalQty: number;
   remainingQty: number;
+  /** Borish-kelish partiyalarida kelish o'rinlari umumiy soni. */
+  returnTotalQty?: number;
   /** Borish-kelish partiyalarida kelish o'rinlari qoldig'i. */
   returnRemainingQty?: number;
   buyPrice: number;
+  /** Borish-kelish partiyalarida kelish reysi tannarxi ($). */
+  returnBuyPrice?: number;
   totalCost: number;
   status: "ACTIVE" | "COMPLETED";
   notes?: string;

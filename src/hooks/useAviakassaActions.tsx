@@ -235,6 +235,9 @@ export function useAviakassaActions({
       totalQty: number;
       buyPrice: number;
       baggage?: string;
+      returnTotalQty?: number;
+      returnBuyPrice?: number;
+      returnBaggage?: string;
       notes?: string;
       categoryId?: number;
       batchNumber?: string;
@@ -254,6 +257,24 @@ export function useAviakassaActions({
           };
           if (batchInput.items[0]?.buyPrice && Number(batchInput.items[0].buyPrice) > 0) {
             updateData.buyPrice = Number(batchInput.items[0].buyPrice);
+          }
+          if (existingBatch.isRoundTrip) {
+            const addedReturnQty = batchInput.items.reduce(
+              (s, it) =>
+                s +
+                Number(
+                  it.returnTotalQty !== undefined ? it.returnTotalQty : it.totalQty || 0
+                ),
+              0
+            );
+            updateData.returnTotalQty =
+              (existingBatch.returnTotalQty || existingBatch.totalQty || 0) + addedReturnQty;
+            if (
+              batchInput.items[0]?.returnBuyPrice &&
+              Number(batchInput.items[0].returnBuyPrice) > 0
+            ) {
+              updateData.returnBuyPrice = Number(batchInput.items[0].returnBuyPrice);
+            }
           }
           await apiUpdateBatch(existingBatch.id, updateData);
 
@@ -297,6 +318,9 @@ export function useAviakassaActions({
           baggage: item.baggage,
           totalQty: item.totalQty,
           buyPrice: item.buyPrice,
+          returnTotalQty: item.isRoundTrip ? item.returnTotalQty : undefined,
+          returnBuyPrice: item.isRoundTrip ? item.returnBuyPrice : undefined,
+          returnBaggage: item.isRoundTrip ? item.returnBaggage : undefined,
           categoryId: item.categoryId || batchInput.categoryId || undefined,
           notes: fullNotes,
           batchNumber: item.batchNumber?.trim() || undefined,

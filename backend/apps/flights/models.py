@@ -80,9 +80,12 @@ class Batch(models.Model):
 
     total_qty = models.PositiveIntegerField(verbose_name="Jami chiptalar soni")
     remaining_qty = models.PositiveIntegerField(verbose_name="Qolgan chiptalar soni")
-    # Borish-kelish partiyalarida kelish o'rinlari alohida yuritiladi.
+    # Borish-kelish partiyalarida kelish o'rinlari va tannarxi alohida yuritiladi.
+    return_total_qty = models.PositiveIntegerField(blank=True, null=True, verbose_name="Qaytish chiptalar soni")
     return_remaining_qty = models.PositiveIntegerField(blank=True, null=True, verbose_name="Qolgan kelish chiptalari")
+    return_baggage = models.CharField(max_length=50, blank=True, default="", verbose_name="Qaytish bagaj")
     buy_price = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="1 ta chipta tan narxi ($)")
+    return_buy_price = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True, verbose_name="Qaytish chipta tan narxi ($)")
     total_cost = models.DecimalField(max_digits=14, decimal_places=2, verbose_name="Jami xarid summasi ($)")
     status = models.CharField(
         max_length=20, choices=Status.choices, default=Status.ACTIVE,
@@ -193,11 +196,31 @@ class Batch(models.Model):
 
         self.buy_price = to_money(self.buy_price, ZERO)
         self.total_qty = int(self.total_qty or 0)
-        self.total_cost = to_money(self.buy_price * self.total_qty)
         if self.remaining_qty is None:
             self.remaining_qty = self.total_qty
-        if self.return_remaining_qty is None:
-            self.return_remaining_qty = self.total_qty
+
+        if self.is_round_trip:
+            if self.return_total_qty is None:
+                self.return_total_qty = self.total_qty
+            else:
+                self.return_total_qty = int(self.return_total_qty)
+
+            if self.return_buy_price is None:
+                self.return_buy_price = self.buy_price
+            else:
+                self.return_buy_price = to_money(self.return_buy_price, ZERO)
+
+            if self.return_remaining_qty is None:
+                self.return_remaining_qty = self.return_total_qty
+
+            self.total_cost = to_money(
+                (self.buy_price * self.total_qty)
+                + (self.return_buy_price * self.return_total_qty)
+            )
+        else:
+            self.total_cost = to_money(self.buy_price * self.total_qty)
+            if self.return_remaining_qty is None:
+                self.return_remaining_qty = self.total_qty
 
         # Borish-kelish oraliği: «Yana qo'shish» va avto-jadval uchun saqlanadi.
         # (Modelga ba'zan satr ko'rinishida sana beriladi — faqat date bo'lsa hisoblaymiz.)

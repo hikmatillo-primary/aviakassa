@@ -94,6 +94,25 @@ export function SaleModal({
   // Omborda sotilishi mumkin bo'lgan o'rni bor va muddati o'tmagan partiyalar
   const activeBatches = batches.filter(hasSellableSeats);
 
+  function getBatchSegmentCost(batch: any, seg: string): number {
+    if (!batch) return 0;
+    if (!batch.isRoundTrip) return batch.buyPrice || 0;
+    if (seg === "RETURN") {
+      return batch.returnBuyPrice !== undefined && batch.returnBuyPrice !== null
+        ? batch.returnBuyPrice
+        : batch.buyPrice || 0;
+    }
+    if (seg === "BOTH") {
+      const outCost = batch.buyPrice || 0;
+      const retCost =
+        batch.returnBuyPrice !== undefined && batch.returnBuyPrice !== null
+          ? batch.returnBuyPrice
+          : batch.buyPrice || 0;
+      return outCost + retCost;
+    }
+    return batch.buyPrice || 0;
+  }
+
   // Modal ochilganda qiymatlarni tiklash va partiyani sozlash (faqat yangi ochilganda)
   useEffect(() => {
     if (isOpen && !prevIsOpenRef.current) {
@@ -106,8 +125,10 @@ export function SaleModal({
       setCurrentBatchId(bId);
       setClientId("");
       setQty(1);
-      setSellPrice(targetBatch ? Math.round(targetBatch.buyPrice + 30) : 0);
-      setSegment(targetBatch?.isRoundTrip ? getDefaultSellableSegment(targetBatch) : "");
+      const initSeg = targetBatch?.isRoundTrip ? getDefaultSellableSegment(targetBatch) : "";
+      setSegment(initSeg);
+      const cost = getBatchSegmentCost(targetBatch, initSeg);
+      setSellPrice(targetBatch ? Math.round(cost + 30) : 0);
       setSaleDate(getTodayISO());
       setPaidNow(0);
       setNotes("");
@@ -129,9 +150,11 @@ export function SaleModal({
     setCurrentBatchId(newBatchId);
     const found = batches.find((b) => String(b.id) === newBatchId);
     if (found) {
-      setSellPrice(Math.round(found.buyPrice + 30));
+      const seg = found.isRoundTrip ? getDefaultSellableSegment(found) : "";
+      setSegment(seg);
+      const cost = getBatchSegmentCost(found, seg);
+      setSellPrice(Math.round(cost + 30));
       setQty(1);
-      setSegment(found.isRoundTrip ? getDefaultSellableSegment(found) : "");
     }
   };
 
@@ -147,8 +170,9 @@ export function SaleModal({
   const numQty = qty === "" ? 0 : Number(qty);
   const numSellPrice = sellPrice === "" ? 0 : Number(sellPrice);
   const numPaidNow = paidNow === "" ? 0 : Number(paidNow);
+  const segmentCost = selectedBatch ? getBatchSegmentCost(selectedBatch, segment) : 0;
   const totalAmount = numQty * numSellPrice;
-  const totalCost = numQty * (selectedBatch?.buyPrice || 0);
+  const totalCost = numQty * segmentCost;
   const profit = totalAmount - totalCost;
   const remainingDebt = Math.max(0, totalAmount - numPaidNow);
 
@@ -302,9 +326,11 @@ export function SaleModal({
                   label: b.isRoundTrip
                     ? `${b.route} (${formatDate(b.flightDate, false)} • Borish: ${
                         b.remainingQty
-                      } ta • Kelish: ${getBatchSegmentRemaining(b, "RETURN")} ta • Tannarx: ${formatUSD(
-                        b.buyPrice
-                      )})`
+                      } ta • Kelish: ${getBatchSegmentRemaining(b, "RETURN")} ta • Tannarx: ${
+                        b.returnBuyPrice !== undefined && b.returnBuyPrice !== b.buyPrice
+                          ? `${formatUSD(b.buyPrice)} / ${formatUSD(b.returnBuyPrice)}`
+                          : formatUSD(b.buyPrice)
+                      })`
                     : `${b.route} (${formatDate(b.flightDate, false)} • Qoldiq: ${
                         b.remainingQty
                       } ta • Tannarx: ${formatUSD(b.buyPrice)})`,
@@ -350,7 +376,16 @@ export function SaleModal({
                 </span>
                 <span>Marshrut: <strong className="text-slate-800 dark:text-slate-200">{selectedBatch.route}</strong></span>
               </div>
-              <span>Tannarx: <strong className="text-slate-800 dark:text-slate-200 font-mono">{formatUSD(selectedBatch.buyPrice)}</strong></span>
+              <span>
+                Tannarx:{" "}
+                <strong className="text-slate-800 dark:text-slate-200 font-mono">
+                  {selectedBatch.isRoundTrip &&
+                  selectedBatch.returnBuyPrice !== undefined &&
+                  selectedBatch.returnBuyPrice !== selectedBatch.buyPrice
+                    ? `${formatUSD(selectedBatch.buyPrice)} / ${formatUSD(selectedBatch.returnBuyPrice)}`
+                    : formatUSD(selectedBatch.buyPrice)}
+                </strong>
+              </span>
             </div>
           </div>
         )}
@@ -374,6 +409,8 @@ export function SaleModal({
                     disabled={isDisabled}
                     onClick={() => {
                       setSegment(opt.value);
+                      const cost = getBatchSegmentCost(selectedBatch, opt.value);
+                      setSellPrice(Math.round(cost + 30));
                       setQty(1);
                     }}
                     title={

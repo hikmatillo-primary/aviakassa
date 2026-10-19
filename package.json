@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "prebuild": "node -e \"const fs=require('fs'); fs.mkdirSync('public', {recursive:true}); fs.writeFileSync('public/version.json', JSON.stringify({version: Date.now().toString(), buildTime: new Date().toISOString()}));\"",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",

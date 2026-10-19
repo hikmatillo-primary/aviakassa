@@ -144,10 +144,11 @@ class Command(BaseCommand):
                 )
 
             if batch.is_round_trip:
-                expected_ret = batch.total_qty - sold_ret
+                ret_total = batch.return_total_qty if batch.return_total_qty is not None else batch.total_qty
+                expected_ret = ret_total - sold_ret
                 actual_ret = batch.return_remaining_qty
                 if actual_ret is None:
-                    actual_ret = batch.total_qty
+                    actual_ret = ret_total
                 if actual_ret != expected_ret:
                     report(
                         "QOLDIQ",
@@ -155,7 +156,13 @@ class Command(BaseCommand):
                         f"kutilgan={expected_ret} (sotilgan {sold_ret})",
                     )
 
-            expected_cost = to_money(batch.buy_price * batch.total_qty)
+            if batch.is_round_trip and batch.return_buy_price is not None and batch.return_total_qty is not None:
+                expected_cost = to_money(
+                    (batch.buy_price * batch.total_qty)
+                    + (batch.return_buy_price * batch.return_total_qty)
+                )
+            else:
+                expected_cost = to_money(batch.buy_price * batch.total_qty)
             if to_money(batch.total_cost) != expected_cost:
                 report(
                     "TANNARX",

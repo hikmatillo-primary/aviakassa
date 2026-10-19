@@ -42,8 +42,11 @@ class BatchSerializer(serializers.ModelSerializer):
     totalQty = serializers.IntegerField(source='total_qty', min_value=1)
     remainingQty = serializers.IntegerField(source='remaining_qty', read_only=True)
     # Borish-kelish partiyalarida kelish o'rinlari qoldig'i (oddiy partiyada ahamiyatsiz).
+    returnTotalQty = serializers.IntegerField(source='return_total_qty', required=False, allow_null=True)
     returnRemainingQty = serializers.IntegerField(source='return_remaining_qty', read_only=True)
     buyPrice = MoneyField(source='buy_price', min_value=Decimal("0"))
+    returnBuyPrice = MoneyField(source='return_buy_price', required=False, allow_null=True)
+    returnBaggage = serializers.CharField(source='return_baggage', required=False, allow_blank=True)
     totalCost = MoneyField(source='total_cost', max_digits=14, read_only=True)
     # Holat qoldiqdan avtomatik hisoblanadi (Batch.save), shuning uchun faqat o'qish uchun.
     status = serializers.ChoiceField(choices=Batch.Status.choices, read_only=True)
@@ -86,8 +89,11 @@ class BatchSerializer(serializers.ModelSerializer):
             'supplierName',
             'totalQty',
             'remainingQty',
+            'returnTotalQty',
             'returnRemainingQty',
             'buyPrice',
+            'returnBuyPrice',
+            'returnBaggage',
             'totalCost',
             'status',
             'notes',

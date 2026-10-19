@@ -68,8 +68,24 @@ def normalize_sale_for_save(sale):
     if sale.sell_price < ZERO:
         raise ValidationError({"sell_price": "Sotuv narxi manfiy bo'lishi mumkin emas."})
 
+    if sale.batch_id:
+        batch = sale.batch
+        if batch.is_round_trip:
+            if not sale.segment:
+                sale.segment = "BOTH"
+        else:
+            sale.segment = ""
+
     if sale.buy_price is None or sale.buy_price == "":
-        sale.buy_price = to_money(sale.batch.buy_price, ZERO) if sale.batch_id else ZERO
+        if sale.batch_id:
+            batch = sale.batch
+            if batch.is_round_trip and sale.segment == "RETURN":
+                ret_p = batch.return_buy_price if batch.return_buy_price is not None else batch.buy_price
+                sale.buy_price = to_money(ret_p, ZERO)
+            else:
+                sale.buy_price = to_money(batch.buy_price, ZERO)
+        else:
+            sale.buy_price = ZERO
     else:
         sale.buy_price = to_money(sale.buy_price, ZERO)
     if sale.buy_price < ZERO:
@@ -80,12 +96,6 @@ def normalize_sale_for_save(sale):
 
     if sale.batch_id:
         batch = sale.batch
-        if batch.is_round_trip:
-            if not sale.segment:
-                sale.segment = "BOTH"
-        else:
-            sale.segment = ""
-
         # Partiyadan reys ma'lumotlarini to'ldirish
         if not sale.route:
             sale.route = batch.route

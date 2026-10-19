@@ -79,12 +79,14 @@ export function BatchDetailView({
 
   // Shu partiya bo'yicha hisob-kitoblar
   const totalQty = batch.totalQty || 0;
+  const retTotal = batch.returnTotalQty || totalQty;
   const remainingQty = batch.remainingQty || 0;
   const retRemainingQty = getBatchSegmentRemaining(batch, "RETURN");
   const soldOut = Math.max(0, totalQty - remainingQty);
-  const soldRet = batch.isRoundTrip ? Math.max(0, totalQty - retRemainingQty) : 0;
+  const soldRet = batch.isRoundTrip ? Math.max(0, retTotal - retRemainingQty) : 0;
   const soldQty = Math.max(soldOut, soldRet);
-  const percentSold = totalQty > 0 ? Math.round((soldQty / totalQty) * 100) : 0;
+  const effectiveTotal = batch.isRoundTrip ? totalQty + retTotal : totalQty;
+  const percentSold = effectiveTotal > 0 ? Math.round(((soldOut + soldRet) / effectiveTotal) * 100) : 0;
 
   // Borish-kelish partiyasida sotilishi mumkin bo'lgan qism bormi
   const outSellable = remainingQty > 0 && isSegmentSellable(batch, "OUTBOUND");
@@ -178,13 +180,13 @@ export function BatchDetailView({
                         Kelish: {retRemainingQty} ta qoldi
                       </span>
                       <span className="text-slate-500 dark:text-slate-400">
-                        {soldRet}/{totalQty} ta sotildi ({totalQty > 0 ? Math.round((soldRet / totalQty) * 100) : 0}%)
+                        {soldRet}/{retTotal} ta sotildi ({retTotal > 0 ? Math.round((soldRet / retTotal) * 100) : 0}%)
                       </span>
                     </div>
                     <div className="w-full bg-slate-200 dark:bg-white/[0.08] h-2 rounded-full overflow-hidden">
                       <div
                         className="h-full bg-indigo-600 rounded-full transition-all duration-300"
-                        style={{ width: `${totalQty > 0 ? Math.round((soldRet / totalQty) * 100) : 0}%` }}
+                        style={{ width: `${retTotal > 0 ? Math.round((soldRet / retTotal) * 100) : 0}%` }}
                       />
                     </div>
                   </div>
@@ -223,13 +225,15 @@ export function BatchDetailView({
               {/* Xarid */}
               <div className="bg-white dark:bg-[#111726] p-2.5 sm:p-3 rounded-xl border border-slate-200/60 dark:border-white/[0.06] min-w-0">
                 <span className="text-[10px] sm:text-[11px] text-slate-400 font-medium block truncate">
-                  Xarid ({totalQty} ta)
+                  Xarid ({batch.isRoundTrip && batch.returnTotalQty ? `${totalQty} + ${batch.returnTotalQty}` : totalQty} ta)
                 </span>
                 <span className="text-xs sm:text-base font-bold text-slate-900 dark:text-white block mt-1 truncate">
                   {formatUSD(totalPurchaseCost)}
                 </span>
                 <span className="text-[10px] text-slate-400 block mt-0.5 truncate">
-                  1 ta: {formatUSD(batch.buyPrice)}
+                  1 ta: {batch.isRoundTrip && batch.returnBuyPrice !== undefined && batch.returnBuyPrice !== batch.buyPrice
+                    ? `${formatUSD(batch.buyPrice)} / ${formatUSD(batch.returnBuyPrice)}`
+                    : formatUSD(batch.buyPrice)}
                 </span>
               </div>
 

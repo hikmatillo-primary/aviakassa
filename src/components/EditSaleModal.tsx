@@ -219,8 +219,15 @@ export function EditSaleModal({
       setReturnFlightNumber(b.returnFlightNumber || "");
       setReturnDepartureTime(b.returnDepartureTime || "");
       setReturnArrivalTime(b.returnArrivalTime || "");
-      setBuyPrice(b.buyPrice || 0);
-      setSegment(b.isRoundTrip ? getDefaultSellableSegment(b) : "");
+      const seg = b.isRoundTrip ? getDefaultSellableSegment(b) : "";
+      setSegment(seg);
+      const cost =
+        seg === "RETURN"
+          ? (b.returnBuyPrice ?? b.buyPrice ?? 0)
+          : seg === "BOTH"
+          ? (b.buyPrice || 0) + (b.returnBuyPrice ?? b.buyPrice ?? 0)
+          : (b.buyPrice || 0);
+      setBuyPrice(cost);
     }
   };
 
@@ -433,7 +440,18 @@ export function EditSaleModal({
                     key={opt.value}
                     type="button"
                     disabled={isDisabled}
-                    onClick={() => setSegment(opt.value)}
+                    onClick={() => {
+                      setSegment(opt.value);
+                      if (selectedBatch) {
+                        const cost =
+                          opt.value === "RETURN"
+                            ? (selectedBatch.returnBuyPrice ?? selectedBatch.buyPrice ?? 0)
+                            : opt.value === "BOTH"
+                            ? (selectedBatch.buyPrice || 0) + (selectedBatch.returnBuyPrice ?? selectedBatch.buyPrice ?? 0)
+                            : (selectedBatch.buyPrice || 0);
+                        setBuyPrice(cost);
+                      }
+                    }}
                     title={
                       isDisabled
                         ? avail === 0
