@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { Search, PackagePlus, Users, Calendar, Pencil, SquarePen, Trash2, Tag, Check, Clock, CheckCircle2, RotateCcw } from "lucide-react";
-import { formatUSD, formatDate, matchesBatchSearch, isDateInRange } from "@/lib/format";
+import { formatUSD, formatDate, matchesBatchSearch, isDateInRange, sortByClosestFlightDate } from "@/lib/format";
 import { FlightBar } from "@/components/FlightBar";
 import { RowActionsMenu } from "@/components/RowActionsMenu";
 import { DateRangeFilter } from "@/components/DateRangeFilter";
@@ -55,12 +55,15 @@ export function PartnersView({
     setCategoryFilter("");
   };
 
-  const filteredBatches = batches.filter(
-    (b) =>
-      matchesBatchSearch(b, search) &&
-      isDateInRange(b.purchaseDate, dateFrom, dateTo) &&
-      (!categoryFilter || String(b.categoryId || "") === categoryFilter)
-  );
+  const filteredBatches = useMemo(() => {
+    const rows = batches.filter(
+      (b) =>
+        matchesBatchSearch(b, search) &&
+        isDateInRange(b.purchaseDate, dateFrom, dateTo) &&
+        (!categoryFilter || String(b.categoryId || "") === categoryFilter)
+    );
+    return sortByClosestFlightDate(rows);
+  }, [batches, search, dateFrom, dateTo, categoryFilter]);
 
   return (
     <div className="space-y-5">

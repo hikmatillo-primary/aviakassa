@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { calculateEnrichedData, getNextBatchNumber } from "./src/lib/storage.ts";
+import { sortByClosestFlightDate } from "./src/lib/format.ts";
 import type {
   AviakassaData,
   Partner,
@@ -1005,6 +1006,30 @@ test("20. Ko'p qatorli xaridda partiyalar takrorlanmasligi (offset va unikal raq
 
   const supplier2Batch = getNextBatchNumber(updatedBatches, 0);
   assert.equal(supplier2Batch, "P00005", "Yangi ta'minotchi uchun partiya P00005 bo'lib davom etishi kerak");
+});
+
+// ----------------------------------------------------
+// 21. Eng yaqin uchish sanasi bo'yicha saralash
+// ----------------------------------------------------
+test("21. Partiyalarni eng yaqin uchish sanasi bo'yicha saralash (kelgusi reyslar avval)", () => {
+  const today = "2026-10-19";
+  const rawBatches = [
+    { id: 1, batchNumber: "P00001", flightDate: "2026-09-21" }, // o'tgan
+    { id: 2, batchNumber: "P00002", flightDate: "2026-10-05" }, // o'tgan
+    { id: 3, batchNumber: "P00003", flightDate: "2026-10-25" }, // kelgusi (keyinroq)
+    { id: 4, batchNumber: "P00004", flightDate: "2026-10-20" }, // kelgusi (eng yaqin ertaga)
+    { id: 5, batchNumber: "P00005", flightDate: "2026-10-19" }, // bugun (eng yaqin!)
+  ];
+
+  const sorted = sortByClosestFlightDate(rawBatches, today);
+  const order = sorted.map((b) => b.batchNumber);
+
+  // Tartib: Bugun (P00005) -> Ertaga (P00004) -> Keyin (P00003) -> O'tgan eng yaqin (P00002) -> O'tgan eski (P00001)
+  assert.deepEqual(
+    order,
+    ["P00005", "P00004", "P00003", "P00002", "P00001"],
+    "Bugungi va kelgusi eng yaqin reyslar yuqorida turishi kerak"
+  );
 });
 
 console.log("\n==========================================");

@@ -411,6 +411,7 @@ export function AppContainer() {
             payments={payments}
             debtOffsets={debtOffsets}
             partners={partners}
+            batches={batches}
             accounts={accounts}
             onOpenPaymentModal={modals.handleOpenPaymentModal}
             onOpenDebtOffsetModal={modals.handleOpenDebtOffsetModal}

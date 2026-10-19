@@ -9,7 +9,7 @@ import {
   ChevronRight,
   Trash2,
 } from "lucide-react";
-import { formatUSD, matchesBatchSearch, isDateInRange, getBatchSegmentRemaining } from "@/lib/format";
+import { formatUSD, matchesBatchSearch, isDateInRange, getBatchSegmentRemaining, sortByClosestFlightDate } from "@/lib/format";
 import { FlightBar } from "@/components/FlightBar";
 import { RowActionsMenu } from "@/components/RowActionsMenu";
 import { DateRangeFilter } from "@/components/DateRangeFilter";
@@ -64,19 +64,8 @@ export function BatchesView({
         return soldFilter === "SOLD" ? isSoldOut : !isSoldOut;
       });
 
-      // Eng yaqin uchish sanasi tepada turishi uchun o'sish tartibida saralaymiz
-      rows.sort((a, b) => {
-        const dateA = a.flightDate || "";
-        const dateB = b.flightDate || "";
-        if (!dateA && !dateB) return 0;
-        if (!dateA) return 1;
-        if (!dateB) return -1;
-        const cmp = dateA.localeCompare(dateB);
-        if (cmp !== 0) return cmp;
-        const timeA = a.departureTime || "";
-        const timeB = b.departureTime || "";
-        return timeA.localeCompare(timeB);
-      });
+      // Eng yaqin uchish sanasi tepada turishi uchun tartiblaymiz (bugun va kelgusi reyslar avval)
+      const sortedRows = sortByClosestFlightDate(rows);
 
       const totalQty = rows.reduce(
         (sum, b) =>
@@ -91,7 +80,7 @@ export function BatchesView({
       }, 0);
       const totalCost = rows.reduce((sum, b) => sum + (b.totalCost || 0), 0);
       return {
-        filteredBatches: rows,
+        filteredBatches: sortedRows,
         filteredTotalQty: totalQty,
         filteredRemainingQty: remainingQty,
         filteredTotalCost: totalCost,

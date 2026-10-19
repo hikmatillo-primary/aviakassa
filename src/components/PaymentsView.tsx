@@ -15,6 +15,9 @@ import {
   Plus,
   X,
   Loader2,
+  TrendingUp,
+  TrendingDown,
+  Clock,
 } from "lucide-react";
 import { formatUSD, formatDate, paymentMethodLabel, isDateInRange } from "@/lib/format";
 import { DateRangeFilter } from "@/components/DateRangeFilter";
@@ -26,6 +29,7 @@ interface PaymentsViewProps {
   payments: any[];
   debtOffsets?: any[];
   partners?: any[];
+  batches?: any[];
   accounts?: CashAccount[];
   onOpenPaymentModal: (type?: "INCOME" | "EXPENSE", partnerId?: number) => void;
   onOpenDebtOffsetModal?: (fromPartnerId?: number, toPartnerId?: number) => void;
@@ -40,6 +44,8 @@ interface PaymentsViewProps {
 export function PaymentsView({
   payments,
   debtOffsets = [],
+  partners = [],
+  batches = [],
   accounts = [],
   onOpenPaymentModal,
   onOpenDebtOffsetModal,
@@ -107,6 +113,40 @@ export function PaymentsView({
     );
 
   const unassignedPayments = paymentsForAccount(null);
+
+  // Hamkorlardagi kabi qarz/haq va kutilayotgan qarzdorlik hisoblari
+  const { totalClientsDebt, totalSuppliersCredit, totalDebtorsCount, totalCreditorsCount } = React.useMemo(() => {
+    let clientsDebt = 0;
+    let suppliersCredit = 0;
+    let debtorsCount = 0;
+    let creditorsCount = 0;
+    (partners || []).forEach((p) => {
+      const bal = p.balance || 0;
+      if (bal < 0) {
+        clientsDebt += Math.abs(bal);
+        debtorsCount++;
+      } else if (bal > 0) {
+        suppliersCredit += bal;
+        creditorsCount++;
+      }
+    });
+    return {
+      totalClientsDebt: clientsDebt,
+      totalSuppliersCredit: suppliersCredit,
+      totalDebtorsCount: debtorsCount,
+      totalCreditorsCount: creditorsCount,
+    };
+  }, [partners]);
+
+  const totalPendingDebt = React.useMemo(() => {
+    let total = 0;
+    (batches || []).forEach((b) => {
+      if (b.accountedAt === null && b.supplierId) {
+        total += b.totalCost || 0;
+      }
+    });
+    return total;
+  }, [batches]);
 
   const {
     filteredAccounts,
@@ -207,124 +247,207 @@ export function PaymentsView({
         </div>
       </div>
 
-      {/* Mobile Compact Indicators (Minimal 2x2 grid) */}
-      <div className="grid grid-cols-2 gap-2.5 sm:hidden tabular-nums">
-        {/* Kirim */}
-        <div className="bg-white dark:bg-[#111726] p-3.5 rounded-2xl border border-slate-200/70 dark:border-white/[0.07] shadow-xs">
-          <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium">
-            <span>Kirim</span>
-            <ArrowDownLeft className="w-3.5 h-3.5 text-emerald-500" />
+      {/* Mobile Compact Indicators (4 ta asosiy qarz/kassa cardlari + aylanma) */}
+      <div className="space-y-2.5 sm:hidden tabular-nums">
+        <div className="grid grid-cols-2 gap-2.5">
+          {/* Bizning haqimiz */}
+          <div className="bg-white dark:bg-[#111726] p-3.5 rounded-2xl border border-slate-200/70 dark:border-white/[0.07] shadow-xs">
+            <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium">
+              <span>Bizning haqimiz</span>
+              <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
+            </div>
+            <div className="text-base font-black text-emerald-600 dark:text-emerald-400 mt-1">
+              {formatUSD(totalClientsDebt)}
+            </div>
+            <span className="text-[10px] text-slate-400 block mt-0.5">
+              {totalDebtorsCount} ta hamkor
+            </span>
           </div>
-          <div className="text-base font-bold text-emerald-600 dark:text-emerald-400 mt-1">
-            +{formatUSD(totalIncome)}
+
+          {/* Bizning qarzimiz */}
+          <div className="bg-white dark:bg-[#111726] p-3.5 rounded-2xl border border-slate-200/70 dark:border-white/[0.07] shadow-xs">
+            <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium">
+              <span>Bizning qarzimiz</span>
+              <TrendingDown className="w-3.5 h-3.5 text-rose-500" />
+            </div>
+            <div className="text-base font-black text-rose-600 dark:text-rose-400 mt-1">
+              {formatUSD(totalSuppliersCredit)}
+            </div>
+            <span className="text-[10px] text-slate-400 block mt-0.5">
+              {totalCreditorsCount} ta ta’minotchi
+            </span>
+          </div>
+
+          {/* Kutilayotgan qarzdorlik */}
+          <div className="bg-white dark:bg-[#111726] p-3.5 rounded-2xl border border-slate-200/70 dark:border-white/[0.07] shadow-xs">
+            <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium">
+              <span>Kutilmoqda</span>
+              <Clock className="w-3.5 h-3.5 text-amber-500" />
+            </div>
+            <div className="text-base font-black text-amber-600 dark:text-amber-400 mt-1">
+              {formatUSD(totalPendingDebt)}
+            </div>
+            <span className="text-[10px] text-slate-400 block mt-0.5">
+              Shartnomali xaridlar
+            </span>
+          </div>
+
+          {/* Kassa naqd qoldig'i */}
+          <div className="bg-white dark:bg-[#111726] p-3.5 rounded-2xl border border-slate-200/70 dark:border-white/[0.07] shadow-xs">
+            <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium">
+              <span>Naqd qoldiq</span>
+              <Wallet className="w-3.5 h-3.5 text-blue-500" />
+            </div>
+            <div
+              className={`text-base font-black mt-1 ${
+                netCashFlow >= 0
+                  ? "text-slate-900 dark:text-white"
+                  : "text-rose-600 dark:text-rose-400"
+              }`}
+            >
+              {netCashFlow >= 0
+                ? `+${formatUSD(netCashFlow)}`
+                : `-${formatUSD(Math.abs(netCashFlow))}`}
+            </div>
+            <span className="text-[10px] text-slate-400 block mt-0.5">
+              Kassa hisoblarida
+            </span>
           </div>
         </div>
 
-        {/* Chiqim */}
-        <div className="bg-white dark:bg-[#111726] p-3.5 rounded-2xl border border-slate-200/70 dark:border-white/[0.07] shadow-xs">
-          <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium">
-            <span>Chiqim</span>
-            <ArrowUpRight className="w-3.5 h-3.5 text-rose-500" />
+        {/* Mobile secondary strip: Kirim / Chiqim / Surilgan */}
+        <div className="bg-white/80 dark:bg-[#111726]/80 p-2.5 rounded-xl border border-slate-200/60 dark:border-white/[0.06] flex items-center justify-between text-[11px]">
+          <div className="flex items-center gap-1 font-semibold text-emerald-600 dark:text-emerald-400">
+            <span>Kirim:</span>
+            <span>+{formatUSD(totalIncome)}</span>
           </div>
-          <div className="text-base font-bold text-rose-600 dark:text-rose-400 mt-1">
-            -{formatUSD(totalExpense)}
+          <div className="flex items-center gap-1 font-semibold text-rose-600 dark:text-rose-400">
+            <span>Chiqim:</span>
+            <span>-{formatUSD(totalExpense)}</span>
           </div>
-        </div>
-
-        {/* Kassa naqd qoldig'i */}
-        <div className="bg-white dark:bg-[#111726] p-3.5 rounded-2xl border border-slate-200/70 dark:border-white/[0.07] shadow-xs">
-          <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium">
-            <span>Naqd qoldiq</span>
-            <Wallet className="w-3.5 h-3.5 text-blue-500" />
-          </div>
-          <div
-            className={`text-base font-bold mt-1 ${
-              netCashFlow >= 0
-                ? "text-slate-900 dark:text-white"
-                : "text-rose-600 dark:text-rose-400"
-            }`}
-          >
-            {netCashFlow >= 0
-              ? `+${formatUSD(netCashFlow)}`
-              : `-${formatUSD(Math.abs(netCashFlow))}`}
-          </div>
-        </div>
-
-        {/* Surilgan qarzlar */}
-        <div className="bg-white dark:bg-[#111726] p-3.5 rounded-2xl border border-slate-200/70 dark:border-white/[0.07] shadow-xs">
-          <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium">
-            <span>Surilgan qarz</span>
-            <ArrowRightLeft className="w-3.5 h-3.5 text-indigo-500" />
-          </div>
-          <div className="text-base font-bold text-indigo-600 dark:text-indigo-400 mt-1">
-            {formatUSD(totalOffsetsAmount)}
+          <div className="flex items-center gap-1 font-semibold text-indigo-600 dark:text-indigo-400">
+            <span>Surilgan:</span>
+            <span>{formatUSD(totalOffsetsAmount)}</span>
           </div>
         </div>
       </div>
 
-      {/* Desktop Summary Cards (hidden on mobile, shown on sm+) */}
-      <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-4 tabular-nums">
-        {/* Kirim */}
-        <div className="bg-white dark:bg-[#111726] p-5 rounded-2xl border border-slate-200/70 dark:border-white/[0.07] shadow-xs">
-          <div className="flex items-center justify-between text-xs text-slate-400 font-medium">
-            <span>Jami kirim</span>
-            <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-              <ArrowDownLeft className="w-3.5 h-3.5" />
+      {/* Desktop Summary Cards (4 ta qarz/kassa kartasi + aylanma ko'rsatkichlari) */}
+      <div className="hidden sm:block space-y-3 tabular-nums">
+        {/* 1. Asosiy moliyaviy holat kartalari (Hamkorlardagi kabi) */}
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+          {/* Bizning haqimiz (Mijozlar qarzi) */}
+          <div className="bg-white dark:bg-[#111726] p-4.5 rounded-2xl border border-slate-200/70 dark:border-white/[0.07] shadow-xs flex items-center justify-between">
+            <div>
+              <span className="text-xs text-slate-400 font-medium block">
+                Bizning haqimiz (Debitorlik)
+              </span>
+              <strong className="text-xl sm:text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1 block">
+                {formatUSD(totalClientsDebt)}
+              </strong>
+              <span className="text-[11px] text-slate-400 block mt-0.5">
+                {totalDebtorsCount} ta hamkor qarzdor
+              </span>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+              <TrendingUp className="w-5 h-5" />
             </div>
           </div>
-          <div className="text-xl sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1.5">
-            +{formatUSD(totalIncome)}
+
+          {/* Bizning qarzimiz (Ta'minotchi haqi) */}
+          <div className="bg-white dark:bg-[#111726] p-4.5 rounded-2xl border border-slate-200/70 dark:border-white/[0.07] shadow-xs flex items-center justify-between">
+            <div>
+              <span className="text-xs text-slate-400 font-medium block">
+                Bizning qarzimiz (Kreditorlik)
+              </span>
+              <strong className="text-xl sm:text-2xl font-black text-rose-600 dark:text-rose-400 mt-1 block">
+                {formatUSD(totalSuppliersCredit)}
+              </strong>
+              <span className="text-[11px] text-slate-400 block mt-0.5">
+                {totalCreditorsCount} ta ta’minotchi haqi
+              </span>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+              <TrendingDown className="w-5 h-5" />
+            </div>
+          </div>
+
+          {/* Kutilayotgan qarzdorlik */}
+          <div className="bg-white dark:bg-[#111726] p-4.5 rounded-2xl border border-slate-200/70 dark:border-white/[0.07] shadow-xs flex items-center justify-between">
+            <div>
+              <span className="text-xs text-slate-400 font-medium block">
+                Kutilayotgan qarzdorlik
+              </span>
+              <strong className="text-xl sm:text-2xl font-black text-amber-600 dark:text-amber-400 mt-1 block">
+                {formatUSD(totalPendingDebt)}
+              </strong>
+              <span className="text-[11px] text-slate-400 block mt-0.5">
+                Hisobga olinmagan partiyalar
+              </span>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+              <Clock className="w-5 h-5" />
+            </div>
+          </div>
+
+          {/* Kassa naqd qoldig'i */}
+          <div className="bg-white dark:bg-[#111726] p-4.5 rounded-2xl border border-slate-200/70 dark:border-white/[0.07] shadow-xs flex items-center justify-between">
+            <div>
+              <span className="text-xs text-slate-400 font-medium block">
+                Kassa naqd qoldig&apos;i
+              </span>
+              <strong
+                className={`text-xl sm:text-2xl font-black mt-1 block ${
+                  netCashFlow >= 0
+                    ? "text-slate-900 dark:text-white"
+                    : "text-rose-600 dark:text-rose-400"
+                }`}
+              >
+                {netCashFlow >= 0
+                  ? `+${formatUSD(netCashFlow)}`
+                  : `-${formatUSD(Math.abs(netCashFlow))}`}
+              </strong>
+              <span className="text-[11px] text-slate-400 block mt-0.5">
+                Barcha kassa hisoblarida
+              </span>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+              <Wallet className="w-5 h-5" />
+            </div>
           </div>
         </div>
 
-        {/* Chiqim */}
-        <div className="bg-white dark:bg-[#111726] p-5 rounded-2xl border border-slate-200/70 dark:border-white/[0.07] shadow-xs">
-          <div className="flex items-center justify-between text-xs text-slate-400 font-medium">
-            <span>Jami chiqim</span>
-            <div className="w-7 h-7 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center">
-              <ArrowUpRight className="w-3.5 h-3.5" />
+        {/* 2. Kassa aylanmasi ko'rsatkichlari (Kirim / Chiqim / Surilgan qarzlar) */}
+        <div className="grid sm:grid-cols-3 gap-3">
+          <div className="bg-white/70 dark:bg-[#111726]/70 px-4 py-2.5 rounded-xl border border-slate-200/60 dark:border-white/[0.06] flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                <ArrowDownLeft className="w-3.5 h-3.5" />
+              </div>
+              <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Jami kirim</span>
             </div>
+            <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400 font-mono">+{formatUSD(totalIncome)}</span>
           </div>
-          <div className="text-xl sm:text-2xl font-bold text-rose-600 dark:text-rose-400 mt-1.5">
-            -{formatUSD(totalExpense)}
-          </div>
-        </div>
 
-        {/* Kassa qoldig'i */}
-        <div className="bg-white dark:bg-[#111726] p-5 rounded-2xl border border-slate-200/70 dark:border-white/[0.07] shadow-xs">
-          <div className="flex items-center justify-between text-xs text-slate-400 font-medium">
-            <span>Kassa naqd qoldig&apos;i</span>
-            <div className="w-7 h-7 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-              <Wallet className="w-3.5 h-3.5" />
+          <div className="bg-white/70 dark:bg-[#111726]/70 px-4 py-2.5 rounded-xl border border-slate-200/60 dark:border-white/[0.06] flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center">
+                <ArrowUpRight className="w-3.5 h-3.5" />
+              </div>
+              <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Jami chiqim</span>
             </div>
+            <span className="text-sm font-bold text-rose-600 dark:text-rose-400 font-mono">-{formatUSD(totalExpense)}</span>
           </div>
-          <div
-            className={`text-xl sm:text-2xl font-bold mt-1.5 ${
-              netCashFlow >= 0
-                ? "text-slate-900 dark:text-white"
-                : "text-rose-600 dark:text-rose-400"
-            }`}
-          >
-            {netCashFlow >= 0
-              ? `+${formatUSD(netCashFlow)}`
-              : `-${formatUSD(Math.abs(netCashFlow))}`}
-          </div>
-        </div>
 
-        {/* O'zaro surilgan qarzlar */}
-        <div className="bg-white dark:bg-[#111726] p-5 rounded-2xl border border-slate-200/70 dark:border-white/[0.07] shadow-xs">
-          <div className="flex items-center justify-between text-xs text-slate-400 font-medium">
-            <span>O‘zaro surilgan qarzlar</span>
-            <div className="w-7 h-7 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
-              <ArrowRightLeft className="w-3.5 h-3.5" />
+          <div className="bg-white/70 dark:bg-[#111726]/70 px-4 py-2.5 rounded-xl border border-slate-200/60 dark:border-white/[0.06] flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                <ArrowRightLeft className="w-3.5 h-3.5" />
+              </div>
+              <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">O‘zaro surilgan qarzlar</span>
             </div>
+            <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400 font-mono">{formatUSD(totalOffsetsAmount)}</span>
           </div>
-          <div className="text-xl sm:text-2xl font-bold text-indigo-600 dark:text-indigo-400 mt-1.5">
-            {formatUSD(totalOffsetsAmount)}
-          </div>
-          <span className="text-[11px] text-slate-400 block mt-0.5">
-            Naqd pulsiz o‘zaro hisob
-          </span>
         </div>
       </div>
 

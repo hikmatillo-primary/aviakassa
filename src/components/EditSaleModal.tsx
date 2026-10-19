@@ -223,10 +223,8 @@ export function EditSaleModal({
       setSegment(seg);
       const cost =
         seg === "RETURN"
-          ? (b.returnBuyPrice ?? b.buyPrice ?? 0)
-          : seg === "BOTH"
-          ? (b.buyPrice || 0) + (b.returnBuyPrice ?? b.buyPrice ?? 0)
-          : (b.buyPrice || 0);
+          ? (b.returnBuyPrice && Number(b.returnBuyPrice) > 0 ? Number(b.returnBuyPrice) : (Number(b.buyPrice) || 0))
+          : (Number(b.buyPrice) || 0);
       setBuyPrice(cost);
     }
   };
@@ -445,10 +443,10 @@ export function EditSaleModal({
                       if (selectedBatch) {
                         const cost =
                           opt.value === "RETURN"
-                            ? (selectedBatch.returnBuyPrice ?? selectedBatch.buyPrice ?? 0)
-                            : opt.value === "BOTH"
-                            ? (selectedBatch.buyPrice || 0) + (selectedBatch.returnBuyPrice ?? selectedBatch.buyPrice ?? 0)
-                            : (selectedBatch.buyPrice || 0);
+                            ? (selectedBatch.returnBuyPrice && Number(selectedBatch.returnBuyPrice) > 0
+                                ? Number(selectedBatch.returnBuyPrice)
+                                : (Number(selectedBatch.buyPrice) || 0))
+                            : (Number(selectedBatch.buyPrice) || 0);
                         setBuyPrice(cost);
                       }
                     }}

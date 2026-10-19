@@ -12,6 +12,7 @@ import {
   getBatchSegmentRemaining,
   getDefaultSellableSegment,
   getSegmentExpiryDate,
+  sortByClosestFlightDate,
   type SaleSegment,
 } from "@/lib/format";
 import { DatePicker } from "./DatePicker";
@@ -92,25 +93,18 @@ export function SaleModal({
   const todayISO = getTodayISO();
 
   // Omborda sotilishi mumkin bo'lgan o'rni bor va muddati o'tmagan partiyalar
-  const activeBatches = batches.filter(hasSellableSeats);
+  const activeBatches = sortByClosestFlightDate(batches.filter(hasSellableSeats));
 
   function getBatchSegmentCost(batch: any, seg: string): number {
     if (!batch) return 0;
-    if (!batch.isRoundTrip) return batch.buyPrice || 0;
+    if (!batch.isRoundTrip) return Number(batch.buyPrice) || 0;
     if (seg === "RETURN") {
-      return batch.returnBuyPrice !== undefined && batch.returnBuyPrice !== null
-        ? batch.returnBuyPrice
-        : batch.buyPrice || 0;
+      return batch.returnBuyPrice !== undefined && batch.returnBuyPrice !== null && Number(batch.returnBuyPrice) > 0
+        ? Number(batch.returnBuyPrice)
+        : Number(batch.buyPrice) || 0;
     }
-    if (seg === "BOTH") {
-      const outCost = batch.buyPrice || 0;
-      const retCost =
-        batch.returnBuyPrice !== undefined && batch.returnBuyPrice !== null
-          ? batch.returnBuyPrice
-          : batch.buyPrice || 0;
-      return outCost + retCost;
-    }
-    return batch.buyPrice || 0;
+    // "BOTH" (Borish-Kelish) yoki "OUTBOUND" (Borish): partiyaning buyPrice narxi
+    return Number(batch.buyPrice) || 0;
   }
 
   // Modal ochilganda qiymatlarni tiklash va partiyani sozlash (faqat yangi ochilganda)
@@ -327,7 +321,9 @@ export function SaleModal({
                     ? `${b.route} (${formatDate(b.flightDate, false)} • Borish: ${
                         b.remainingQty
                       } ta • Kelish: ${getBatchSegmentRemaining(b, "RETURN")} ta • Tannarx: ${
-                        b.returnBuyPrice !== undefined && b.returnBuyPrice !== b.buyPrice
+                        b.returnBuyPrice &&
+                        Number(b.returnBuyPrice) > 0 &&
+                        Number(b.returnBuyPrice) !== Number(b.buyPrice)
                           ? `${formatUSD(b.buyPrice)} / ${formatUSD(b.returnBuyPrice)}`
                           : formatUSD(b.buyPrice)
                       })`
@@ -380,8 +376,9 @@ export function SaleModal({
                 Tannarx:{" "}
                 <strong className="text-slate-800 dark:text-slate-200 font-mono">
                   {selectedBatch.isRoundTrip &&
-                  selectedBatch.returnBuyPrice !== undefined &&
-                  selectedBatch.returnBuyPrice !== selectedBatch.buyPrice
+                  selectedBatch.returnBuyPrice &&
+                  Number(selectedBatch.returnBuyPrice) > 0 &&
+                  Number(selectedBatch.returnBuyPrice) !== Number(selectedBatch.buyPrice)
                     ? `${formatUSD(selectedBatch.buyPrice)} / ${formatUSD(selectedBatch.returnBuyPrice)}`
                     : formatUSD(selectedBatch.buyPrice)}
                 </strong>

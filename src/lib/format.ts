@@ -679,4 +679,42 @@ export function getBatchFlightSchedule(batch: any): BatchFlightSchedule {
   };
 }
 
+/**
+ * Partiyalarni eng yaqin uchish sanasi bo'yicha saralash:
+ * 1. Bugungi va kelgusi reyslar (flightDate >= today): eng yaqinidan boshlab o'sish tartibida.
+ * 2. O'tib ketgan reyslar (flightDate < today): eng yaqinda o'tganidan boshlab kamayish tartibida.
+ * 3. Sanasi kiritilmaganlar eng oxirida.
+ */
+export function sortByClosestFlightDate<T extends { flightDate?: string; departureTime?: string }>(
+  batches: T[],
+  today: string = getTodayISO()
+): T[] {
+  return [...batches].sort((a, b) => {
+    const dateA = a.flightDate || "";
+    const dateB = b.flightDate || "";
 
+    if (!dateA && !dateB) return 0;
+    if (!dateA) return 1;
+    if (!dateB) return -1;
+
+    const isUpcomingA = dateA >= today;
+    const isUpcomingB = dateB >= today;
+
+    // Ikkalasi ham kelgusi / bugungi bo'lsa: eng yaqini tepada (o'sish tartibida)
+    if (isUpcomingA && isUpcomingB) {
+      const cmp = dateA.localeCompare(dateB);
+      if (cmp !== 0) return cmp;
+      return (a.departureTime || "").localeCompare(b.departureTime || "");
+    }
+
+    // A kelgusi, B esa o'tib ketgan bo'lsa: A oldinda
+    if (isUpcomingA && !isUpcomingB) return -1;
+    // B kelgusi, A esa o'tib ketgan bo'lsa: B oldinda
+    if (!isUpcomingA && isUpcomingB) return 1;
+
+    // Ikkalasi ham o'tib ketgan bo'lsa: eng yaqinda o'tgani oldinda (kamayish tartibida)
+    const cmp = dateB.localeCompare(dateA);
+    if (cmp !== 0) return cmp;
+    return (b.departureTime || "").localeCompare(a.departureTime || "");
+  });
+}
