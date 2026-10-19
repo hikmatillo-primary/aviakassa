@@ -294,6 +294,7 @@ export function AppContainer() {
             categories={data.categories || []}
             onCreateCategory={actions.handleCreateCategory}
             onAccountBatch={actions.handleAccountBatch}
+            onUnaccountBatch={actions.handleUnaccountBatch}
             onAccountSeries={actions.handleAccountSeries}
             onOpenBatchModal={modals.handleOpenBatchModal}
             onOpenPartnerModal={() => modals.handleOpenPartnerModal("SUPPLIER")}
@@ -371,6 +372,8 @@ export function AppContainer() {
               onBack={() => setDetailPartnerId(null)}
               onOpenPaymentModal={modals.handleOpenPaymentModal}
               onOpenDebtOffsetModal={modals.handleOpenDebtOffsetModal}
+              onAccountBatch={actions.handleAccountBatch}
+              onUnaccountBatch={actions.handleUnaccountBatch}
               onEditBatch={modals.handleOpenEditBatch}
               onFullEditBatch={modals.handleOpenFullEditBatch}
               onEditSale={modals.handleOpenEditSale}

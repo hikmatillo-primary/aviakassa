@@ -216,6 +216,14 @@ class BatchViewSet(viewsets.ModelViewSet):
         services.account_batch(batch, db=get_active_alias())
         return Response(self.get_serializer(batch).data)
 
+    @action(detail=True, methods=['post'], url_path='unaccount')
+    def unaccount(self, request, pk=None):
+        """Partiyani hisobdan chiqaradi (kutilayotgan qarzdorlikka qaytaradi)."""
+        from . import services
+        batch = self.get_object()
+        services.unaccount_batch(batch, db=get_active_alias())
+        return Response(self.get_serializer(batch).data)
+
     @action(detail=False, methods=['post'], url_path='account-all')
     def account_all(self, request):
         """Bir nechta partiyani (yoki butun seriyani) birdan hisobga oladi."""

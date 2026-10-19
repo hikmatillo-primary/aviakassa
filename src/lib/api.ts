@@ -413,6 +413,10 @@ export async function apiAccountBatch(id: number): Promise<Batch> {
   return request<Batch>(`/batches/${id}/account/`, { method: "POST" });
 }
 
+export async function apiUnaccountBatch(id: number): Promise<Batch> {
+  return request<Batch>(`/batches/${id}/unaccount/`, { method: "POST" });
+}
+
 export async function apiAccountSeries(payload: {
   seriesId?: string;
   ids?: number[];

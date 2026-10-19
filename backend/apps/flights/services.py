@@ -80,6 +80,15 @@ def account_batch(batch: Batch, db: Optional[str] = None) -> Batch:
     return batch
 
 
+def unaccount_batch(batch: Batch, db: Optional[str] = None) -> Batch:
+    """Partiyani hisobdan chiqaradi (kutilayotgan qarzdorlikka qaytaradi)."""
+    db = db or get_active_alias()
+    if batch.accounted_at is not None:
+        batch.accounted_at = None
+        batch.save(using=db, update_fields=["accounted_at"])
+    return batch
+
+
 def account_batches_bulk(
     series_id: Optional[str] = None,
     ids: Optional[List[int]] = None,

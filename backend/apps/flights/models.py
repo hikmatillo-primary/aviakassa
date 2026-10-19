@@ -205,18 +205,20 @@ class Batch(models.Model):
             else:
                 self.return_total_qty = int(self.return_total_qty)
 
-            if self.return_buy_price is None:
-                self.return_buy_price = self.buy_price
-            else:
-                self.return_buy_price = to_money(self.return_buy_price, ZERO)
+            if not self.return_baggage and self.baggage:
+                self.return_baggage = self.baggage
 
             if self.return_remaining_qty is None:
                 self.return_remaining_qty = self.return_total_qty
 
-            self.total_cost = to_money(
-                (self.buy_price * self.total_qty)
-                + (self.return_buy_price * self.return_total_qty)
-            )
+            if self.return_buy_price is not None:
+                self.return_buy_price = to_money(self.return_buy_price, ZERO)
+                self.total_cost = to_money(
+                    (self.buy_price * self.total_qty)
+                    + (self.return_buy_price * self.return_total_qty)
+                )
+            else:
+                self.total_cost = to_money(self.buy_price * self.total_qty)
         else:
             self.total_cost = to_money(self.buy_price * self.total_qty)
             if self.return_remaining_qty is None:

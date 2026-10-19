@@ -25,9 +25,6 @@ export interface BatchItemInput {
   totalQty: number | string;
   buyPrice: number | string;
   baggage: string;
-  returnTotalQty?: number | string;
-  returnBuyPrice?: number | string;
-  returnBaggage?: string;
   categoryId?: string;
   isAuto?: boolean;
   autoIntervalDays?: number | string;
@@ -145,9 +142,6 @@ export function BatchModal({
           totalQty: 50,
           buyPrice: 300,
           baggage: "20 kg",
-          returnTotalQty: 50,
-          returnBuyPrice: 300,
-          returnBaggage: "20 kg",
           categoryId: "",
           isAuto: false,
           autoIntervalDays: 7,
@@ -194,12 +188,6 @@ export function BatchModal({
             totalQty: repeatFrom.totalQty || 1,
             buyPrice: repeatFrom.buyPrice || 0,
             baggage: repeatFrom.baggage || "",
-            returnTotalQty: repeatFrom.returnTotalQty || repeatFrom.totalQty || 1,
-            returnBuyPrice:
-              repeatFrom.returnBuyPrice !== undefined && repeatFrom.returnBuyPrice !== null
-                ? repeatFrom.returnBuyPrice
-                : repeatFrom.buyPrice || 0,
-            returnBaggage: repeatFrom.returnBaggage || repeatFrom.baggage || "",
             categoryId: repeatFrom.categoryId ? String(repeatFrom.categoryId) : "",
             isAuto: false,
             autoIntervalDays: 7,
@@ -238,9 +226,6 @@ export function BatchModal({
         totalQty: 30,
         buyPrice: 400,
         baggage: "20 kg",
-        returnTotalQty: 30,
-        returnBuyPrice: 400,
-        returnBaggage: "20 kg",
         categoryId: prev[0]?.categoryId || "",
         isAuto: false,
         autoIntervalDays: 7,
@@ -260,17 +245,6 @@ export function BatchModal({
       const updated = { ...next[index], [field]: value };
       if (field === "returnDate") {
         updated.isRoundTrip = Boolean(value);
-        if (value) {
-          if (updated.returnTotalQty === undefined || updated.returnTotalQty === "") {
-            updated.returnTotalQty = updated.totalQty;
-          }
-          if (updated.returnBuyPrice === undefined || updated.returnBuyPrice === "") {
-            updated.returnBuyPrice = updated.buyPrice;
-          }
-          if (updated.returnBaggage === undefined || updated.returnBaggage === "") {
-            updated.returnBaggage = updated.baggage;
-          }
-        }
       }
       next[index] = updated;
       return next;
@@ -278,35 +252,13 @@ export function BatchModal({
   };
 
   // Calculations: borish va kelish tannarxlari va chiptalari yig'indisi
+  // Calculations: partiyalar tannarxlari va chiptalari yig'indisi
   const totalCost = items.reduce((sum, it) => {
-    const outboundCost = (Number(it.totalQty) || 0) * (Number(it.buyPrice) || 0);
-    const returnCost =
-      it.isRoundTrip && it.returnDate
-        ? (Number(
-            it.returnTotalQty !== undefined && it.returnTotalQty !== ""
-              ? it.returnTotalQty
-              : it.totalQty
-          ) || 0) *
-          (Number(
-            it.returnBuyPrice !== undefined && it.returnBuyPrice !== ""
-              ? it.returnBuyPrice
-              : it.buyPrice
-          ) || 0)
-        : 0;
-    return sum + outboundCost + returnCost;
+    return sum + (Number(it.totalQty) || 0) * (Number(it.buyPrice) || 0);
   }, 0);
 
   const totalTickets = items.reduce((sum, it) => {
-    const outboundQty = Number(it.totalQty) || 0;
-    const returnQty =
-      it.isRoundTrip && it.returnDate
-        ? Number(
-            it.returnTotalQty !== undefined && it.returnTotalQty !== ""
-              ? it.returnTotalQty
-              : it.totalQty
-          ) || 0
-        : 0;
-    return sum + outboundQty + returnQty;
+    return sum + (Number(it.totalQty) || 0);
   }, 0);
   const remainingDebt = Math.max(0, totalCost - (Number(paidNow) || 0));
 
@@ -336,26 +288,6 @@ export function BatchModal({
       if (Number(it.buyPrice) <= 0) {
         setError(`${i + 1}-qatorda tannarx 0 dan katta bo'lishi kerak!`);
         return;
-      }
-      if (it.isRoundTrip && it.returnDate) {
-        const retQty = Number(
-          it.returnTotalQty !== undefined && it.returnTotalQty !== ""
-            ? it.returnTotalQty
-            : it.totalQty
-        );
-        if (retQty <= 0) {
-          setError(`${i + 1}-qatorda qaytish chiptalar soni kamida 1 ta bo'lishi kerak!`);
-          return;
-        }
-        const retPrice = Number(
-          it.returnBuyPrice !== undefined && it.returnBuyPrice !== ""
-            ? it.returnBuyPrice
-            : it.buyPrice
-        );
-        if (retPrice <= 0) {
-          setError(`${i + 1}-qatorda qaytish tannarxi 0 dan katta bo'lishi kerak!`);
-          return;
-        }
       }
       if (it.isAuto) {
         if (!it.autoUntil) {
@@ -404,21 +336,6 @@ export function BatchModal({
           baggage: it.baggage,
           totalQty: Number(it.totalQty),
           buyPrice: Number(it.buyPrice),
-          returnTotalQty: hasReturn
-            ? Number(
-                it.returnTotalQty !== undefined && it.returnTotalQty !== ""
-                  ? it.returnTotalQty
-                  : it.totalQty
-              )
-            : undefined,
-          returnBuyPrice: hasReturn
-            ? Number(
-                it.returnBuyPrice !== undefined && it.returnBuyPrice !== ""
-                  ? it.returnBuyPrice
-                  : it.buyPrice
-              )
-            : undefined,
-          returnBaggage: hasReturn ? (it.returnBaggage || it.baggage) : undefined,
           purchaseDate: purchaseDate || getTodayISO(),
           categoryId: it.categoryId ? Number(it.categoryId) : null,
           notes,
@@ -462,21 +379,6 @@ export function BatchModal({
               totalQty: Number(it.totalQty),
               buyPrice: Number(it.buyPrice),
               baggage: it.baggage,
-              returnTotalQty: hasReturn
-                ? Number(
-                    it.returnTotalQty !== undefined && it.returnTotalQty !== ""
-                      ? it.returnTotalQty
-                      : it.totalQty
-                  )
-                : undefined,
-              returnBuyPrice: hasReturn
-                ? Number(
-                    it.returnBuyPrice !== undefined && it.returnBuyPrice !== ""
-                      ? it.returnBuyPrice
-                      : it.buyPrice
-                  )
-                : undefined,
-              returnBaggage: hasReturn ? (it.returnBaggage || it.baggage) : undefined,
               categoryId: it.categoryId
                 ? Number(it.categoryId)
                 : undefined,
@@ -844,13 +746,13 @@ export function BatchModal({
                   </div>
                 </div>
 
-                  {/* 3-QATOR: AGAR QAYTISH (OBRATNO) SANASI TANLANGAN BO'LSA — QAYTISH REYSI VA CHIPTALARI */}
+                  {/* 3-QATOR: AGAR QAYTISH (OBRATNO) SANASI TANLANGAN BO'LSA — QAYTISH REYSI TAFSILOTLARI */}
                   {item.returnDate && (
                     <div className="p-2.5 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-200/70 dark:border-indigo-800/60 space-y-1.5">
                       <div className="flex items-center gap-1.5 text-[11px] font-bold text-indigo-700 dark:text-indigo-300">
                         <PlaneLanding className="w-3.5 h-3.5 text-indigo-500" /> ⇄ Qaytish reysi:
                       </div>
-                      <div className="grid grid-cols-2 sm:grid-cols-6 gap-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                         <div>
                           <label className="flex items-center gap-1 text-[11px] font-semibold text-indigo-700 dark:text-indigo-300 mb-0.5">
                             <PlaneTakeoff className="w-3 h-3 text-indigo-500" /> Uchish vaqti
@@ -892,169 +794,6 @@ export function BatchModal({
                             }
                             className="w-full px-2 py-1.5 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-indigo-300 dark:border-indigo-700 rounded-xl uppercase font-mono font-bold"
                           />
-                        </div>
-
-                        <div>
-                          <label className="block text-[11px] font-medium text-indigo-700 dark:text-indigo-300 mb-0.5">
-                            Chipta soni *
-                          </label>
-                          <div className="flex items-center">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const cur =
-                                  Number(
-                                    item.returnTotalQty !== undefined && item.returnTotalQty !== ""
-                                      ? item.returnTotalQty
-                                      : item.totalQty
-                                  ) || 1;
-                                handleUpdateItem(index, "returnTotalQty", Math.max(1, cur - 1));
-                              }}
-                              className="w-6 h-[30px] flex items-center justify-center bg-slate-100 hover:bg-slate-200 dark:bg-slate-700/70 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-l-xl font-bold text-xs cursor-pointer border border-r-0 border-indigo-300 dark:border-indigo-700 shrink-0"
-                            >
-                              -
-                            </button>
-                            <input
-                              type="number"
-                              min="1"
-                              value={
-                                item.returnTotalQty !== undefined
-                                  ? item.returnTotalQty
-                                  : item.totalQty
-                              }
-                              onChange={(e) =>
-                                handleUpdateItem(
-                                  index,
-                                  "returnTotalQty",
-                                  e.target.value === ""
-                                    ? ""
-                                    : Math.max(1, parseInt(e.target.value) || 0)
-                                )
-                              }
-                              onBlur={() => {
-                                if (
-                                  item.returnTotalQty === "" ||
-                                  Number(item.returnTotalQty) < 1
-                                ) {
-                                  handleUpdateItem(
-                                    index,
-                                    "returnTotalQty",
-                                    item.totalQty || 1
-                                  );
-                                }
-                              }}
-                              className="w-full text-center py-1.5 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white border-y border-indigo-300 dark:border-indigo-700 focus:outline-none font-bold tabular-nums"
-                              required
-                            />
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const cur =
-                                  Number(
-                                    item.returnTotalQty !== undefined && item.returnTotalQty !== ""
-                                      ? item.returnTotalQty
-                                      : item.totalQty
-                                  ) || 0;
-                                handleUpdateItem(index, "returnTotalQty", cur + 1);
-                              }}
-                              className="w-6 h-[30px] flex items-center justify-center bg-slate-100 hover:bg-slate-200 dark:bg-slate-700/70 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-r-xl font-bold text-xs cursor-pointer border border-l-0 border-indigo-300 dark:border-indigo-700 shrink-0"
-                            >
-                              +
-                            </button>
-                          </div>
-                        </div>
-
-                        <div>
-                          <label className="block text-[11px] font-medium text-indigo-700 dark:text-indigo-300 mb-0.5">
-                            Tannarx ($) *
-                          </label>
-                          <div className="relative">
-                            <span className="absolute left-2 top-1.5 text-indigo-400 text-xs">$</span>
-                            <input
-                              type="number"
-                              min="0"
-                              step="any"
-                              value={
-                                item.returnBuyPrice !== undefined
-                                  ? item.returnBuyPrice
-                                  : item.buyPrice
-                              }
-                              onChange={(e) =>
-                                handleUpdateItem(
-                                  index,
-                                  "returnBuyPrice",
-                                  e.target.value === "" ? "" : e.target.value
-                                )
-                              }
-                              onBlur={() => {
-                                if (
-                                  item.returnBuyPrice === "" ||
-                                  isNaN(Number(item.returnBuyPrice))
-                                ) {
-                                  handleUpdateItem(index, "returnBuyPrice", 0);
-                                } else {
-                                  handleUpdateItem(
-                                    index,
-                                    "returnBuyPrice",
-                                    Number(item.returnBuyPrice)
-                                  );
-                                }
-                              }}
-                              className="w-full pl-5 pr-2 py-1.5 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-indigo-300 dark:border-indigo-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-bold tabular-nums"
-                              required
-                            />
-                          </div>
-                        </div>
-
-                        <div>
-                          <label className="block text-[11px] font-medium text-indigo-700 dark:text-indigo-300 mb-0.5">
-                            Bagaj (kg)
-                          </label>
-                          <div className="relative">
-                            <input
-                              type="number"
-                              min="0"
-                              max="99"
-                              value={
-                                (item.returnBaggage !== undefined
-                                  ? item.returnBaggage
-                                  : item.baggage) === "Bagajsiz"
-                                  ? "0"
-                                  : (item.returnBaggage !== undefined
-                                      ? item.returnBaggage
-                                      : item.baggage) !== undefined
-                                  ? (item.returnBaggage !== undefined
-                                      ? item.returnBaggage
-                                      : item.baggage
-                                    ).replace(/[^0-9]/g, "")
-                                  : "20"
-                              }
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                if (val === "") {
-                                  handleUpdateItem(index, "returnBaggage", "");
-                                } else if (val === "0") {
-                                  handleUpdateItem(index, "returnBaggage", "0 kg");
-                                } else {
-                                  handleUpdateItem(index, "returnBaggage", `${val} kg`);
-                                }
-                              }}
-                              onBlur={() => {
-                                if (item.returnBaggage === "") {
-                                  handleUpdateItem(
-                                    index,
-                                    "returnBaggage",
-                                    item.baggage || "20 kg"
-                                  );
-                                }
-                              }}
-                              placeholder="20"
-                              className="w-full pl-2.5 pr-7 py-1.5 text-xs bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-indigo-300 dark:border-indigo-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono font-bold tabular-nums"
-                            />
-                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[11px] font-semibold text-indigo-400 pointer-events-none">
-                              kg
-                            </span>
-                          </div>
                         </div>
                       </div>
                     </div>

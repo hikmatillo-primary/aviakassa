@@ -15,6 +15,7 @@ import {
   apiCreateDebtOffset,
   apiCreateAutoBatches,
   apiAccountBatch,
+  apiUnaccountBatch,
   apiAccountSeries,
   apiCreateCategory,
   apiCreateSalesBulk,
@@ -119,6 +120,17 @@ export function useAviakassaActions({
       showToast("Partiya hisobga qo'shildi! ✅");
     } catch (e) {
       console.error("Hisobga qo'shishda xato:", e);
+      throw e;
+    }
+  };
+
+  const handleUnaccountBatch = async (batch: Batch) => {
+    try {
+      await apiUnaccountBatch(batch.id);
+      await syncFromServer();
+      showToast("Partiya hisobdan chiqarildi! 🔄");
+    } catch (e) {
+      console.error("Hisobdan chiqarishda xato:", e);
       throw e;
     }
   };
@@ -729,6 +741,7 @@ export function useAviakassaActions({
     handleAddDebtOffset,
     handleAddAutoBatches,
     handleAccountBatch,
+    handleUnaccountBatch,
     handleAccountSeries,
     handleCreateCategory,
     handleAddSale,

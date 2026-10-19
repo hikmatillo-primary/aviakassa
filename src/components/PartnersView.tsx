@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Search, PackagePlus, Users, Calendar, Pencil, SquarePen, Trash2, Tag } from "lucide-react";
+import { Search, PackagePlus, Users, Calendar, Pencil, SquarePen, Trash2, Tag, Check, Clock, CheckCircle2, RotateCcw } from "lucide-react";
 import { formatUSD, formatDate, matchesBatchSearch, isDateInRange } from "@/lib/format";
 import { FlightBar } from "@/components/FlightBar";
 import { RowActionsMenu } from "@/components/RowActionsMenu";
@@ -22,6 +22,7 @@ interface PartnersViewProps {
   categories?: Array<{ id: number; name: string }>;
   onCreateCategory?: (name: string) => Promise<any> | void;
   onAccountBatch?: (batch: any) => void | Promise<void>;
+  onUnaccountBatch?: (batch: any) => void | Promise<void>;
   onAccountSeries?: (seriesId: string) => void | Promise<void>;
 }
 
@@ -38,6 +39,7 @@ export function PartnersView({
   categories = [],
   onCreateCategory,
   onAccountBatch,
+  onUnaccountBatch,
   onAccountSeries,
 }: PartnersViewProps) {
   const [search, setSearch] = useState("");
@@ -224,34 +226,47 @@ export function PartnersView({
               </div>
 
               <div className="flex items-center gap-2">
-                {batch.isAuto && (
-                  <div
-                    onClick={(e) => e.stopPropagation()}
-                    className="flex items-center gap-1.5"
-                  >
-                    {batch.accountedAt ? (
-                      <span
-                        title="Hisobga olingan (hamkor balansiga qo'shilgan)"
-                        className="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold text-xs ring-1 ring-inset ring-emerald-500/20"
-                      >
-                        ✓
-                      </span>
-                    ) : (
-                      <label className="flex items-center gap-1 cursor-pointer text-[11px] text-blue-600 dark:text-blue-400 font-medium bg-blue-50 dark:bg-blue-950/40 px-2 py-1 rounded-lg border border-blue-200 dark:border-blue-800/40">
-                        <input
-                          type="checkbox"
-                          checked={false}
-                          onChange={() => onAccountBatch?.(batch)}
-                          className="w-3.5 h-3.5 accent-blue-600 rounded cursor-pointer"
-                        />
-                        <span>Hisobga olish</span>
-                      </label>
-                    )}
-                  </div>
-                )}
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  className="flex items-center"
+                >
+                  {batch.accountedAt ? (
+                    <span
+                      title="Hisobga olingan (hamkor balansiga qo'shilgan)"
+                      className="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-bold ring-1 ring-inset ring-emerald-500/30 select-none pointer-events-none"
+                    >
+                      <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                    </span>
+                  ) : (
+                    <span
+                      title="Hisobga olinmagan (kutilayotgan qarzdorlik)"
+                      className="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-400 font-bold ring-1 ring-inset ring-amber-500/30 select-none pointer-events-none"
+                    >
+                      <Clock className="w-3.5 h-3.5 stroke-[2.2]" />
+                    </span>
+                  )}
+                </div>
 
                 <RowActionsMenu
                   actions={[
+                    ...(onAccountBatch && (!batch.accountedAt)
+                      ? [
+                          {
+                            label: "Hisobga olish",
+                            icon: <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />,
+                            onClick: () => onAccountBatch(batch),
+                          },
+                        ]
+                      : []),
+                    ...(onUnaccountBatch && (batch.accountedAt)
+                      ? [
+                          {
+                            label: "Hisobdan chiqarish",
+                            icon: <RotateCcw className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />,
+                            onClick: () => onUnaccountBatch(batch),
+                          },
+                        ]
+                      : []),
                     ...(onFullEditBatch
                       ? [
                           {
@@ -366,30 +381,25 @@ export function PartnersView({
                     {formatUSD(batch.totalCost)}
                   </td>
 
-                  {/* Hisobga olish Checkbox */}
+                  {/* Hisobga olish holati (faqat ko'rsatkich, tanlanmaydigan) */}
                   <td
                     className="py-4 px-4 text-center"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    {batch.isAuto ? (
-                      batch.accountedAt ? (
-                        <span
-                          title="Hisobga olingan (hamkor balansiga qo'shilgan)"
-                          className="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold ring-1 ring-inset ring-emerald-500/20"
-                        >
-                          ✓
-                        </span>
-                      ) : (
-                        <input
-                          type="checkbox"
-                          checked={false}
-                          onChange={() => onAccountBatch?.(batch)}
-                          title="Hisobga olish uchun bosing (hamkor qarziga qo'shiladi)"
-                          className="w-4 h-4 accent-blue-600 rounded cursor-pointer transition-transform hover:scale-110"
-                        />
-                      )
+                    {batch.accountedAt ? (
+                      <span
+                        title="Hisobga olingan (hamkor balansiga qo'shilgan)"
+                        className="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-bold ring-1 ring-inset ring-emerald-500/30 select-none pointer-events-none"
+                      >
+                        <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                      </span>
                     ) : (
-                      <span className="text-[11px] text-slate-400 dark:text-slate-500">—</span>
+                      <span
+                        title="Hisobga olinmagan (kutilayotgan qarzdorlik)"
+                        className="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-400 font-bold ring-1 ring-inset ring-amber-500/30 select-none pointer-events-none"
+                      >
+                        <Clock className="w-3.5 h-3.5 stroke-[2.2]" />
+                      </span>
                     )}
                   </td>
 
@@ -398,6 +408,24 @@ export function PartnersView({
                     <div className="inline-flex items-center gap-1.5">
                       <RowActionsMenu
                         actions={[
+                          ...(onAccountBatch && (!batch.accountedAt)
+                            ? [
+                                {
+                                  label: "Hisobga olish",
+                                  icon: <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />,
+                                  onClick: () => onAccountBatch(batch),
+                                },
+                              ]
+                            : []),
+                          ...(onUnaccountBatch && (batch.accountedAt)
+                            ? [
+                                {
+                                  label: "Hisobdan chiqarish",
+                                  icon: <RotateCcw className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />,
+                                  onClick: () => onUnaccountBatch(batch),
+                                },
+                              ]
+                            : []),
                           ...(onFullEditBatch
                             ? [
                                 {
@@ -436,7 +464,7 @@ export function PartnersView({
               {filteredBatches.length === 0 && (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={8}
                     className="py-12 text-center text-xs text-slate-400 dark:text-slate-500 space-y-2"
                   >
                     <div>Mos keladigan xaridlar topilmadi</div>

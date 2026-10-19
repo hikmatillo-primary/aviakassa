@@ -201,3 +201,28 @@ class FlightBatchTests(TestCase):
             buy_price=Decimal("200.00"),
         )
         self.assertNotEqual(b1.batch_number, b2.batch_number)
+
+    def test_account_and_unaccount_batch(self):
+        from apps.flights import services
+        b = Batch.objects.create(
+            batch_number="TEST-ACC-01",
+            route="TAS - JED",
+            flight_date="2026-12-10",
+            supplier=self.supplier,
+            total_qty=10,
+            buy_price=Decimal("200.00"),
+            is_auto=True,
+            accounted_at=None,
+        )
+        self.assertIsNone(b.accounted_at)
+
+        # Hisobga olish
+        services.account_batch(b)
+        b.refresh_from_db()
+        self.assertIsNotNone(b.accounted_at)
+
+        # Hisobdan chiqarish
+        services.unaccount_batch(b)
+        b.refresh_from_db()
+        self.assertIsNone(b.accounted_at)
+

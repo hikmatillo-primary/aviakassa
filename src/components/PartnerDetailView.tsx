@@ -18,6 +18,8 @@ import {
   FileText,
   ChevronRight,
   Trash2,
+  CheckCircle2,
+  RotateCcw,
 } from "lucide-react";
 import { formatUSD, formatDate, paymentMethodLabel, matchesRouteSearch, getBatchSegmentRemaining } from "@/lib/format";
 import { RowActionsMenu } from "@/components/RowActionsMenu";
@@ -42,6 +44,8 @@ interface PartnerDetailViewProps {
     defaultAmount?: number
   ) => void;
   onOpenDebtOffsetModal?: (fromPartnerId?: number, toPartnerId?: number) => void;
+  onAccountBatch?: (batch: any) => void | Promise<void>;
+  onUnaccountBatch?: (batch: any) => void | Promise<void>;
   onEditBatch?: (batch: any) => void;
   onFullEditBatch?: (batch: any) => void;
   onEditSale?: (sale: any) => void;
@@ -65,6 +69,8 @@ export function PartnerDetailView({
   onBack,
   onOpenPaymentModal,
   onOpenDebtOffsetModal,
+  onAccountBatch,
+  onUnaccountBatch,
   onEditBatch,
   onFullEditBatch,
   onEditSale,
@@ -699,6 +705,24 @@ export function PartnerDetailView({
                     )}
                     <RowActionsMenu
                       actions={[
+                        ...(onAccountBatch && (!b.accountedAt)
+                          ? [
+                              {
+                                label: "Hisobga olish",
+                                icon: <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />,
+                                onClick: () => onAccountBatch(b),
+                              },
+                            ]
+                          : []),
+                        ...(onUnaccountBatch && (b.accountedAt)
+                          ? [
+                              {
+                                label: "Hisobdan chiqarish",
+                                icon: <RotateCcw className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />,
+                                onClick: () => onUnaccountBatch(b),
+                              },
+                            ]
+                          : []),
                         ...(onFullEditBatch
                           ? [
                               {
