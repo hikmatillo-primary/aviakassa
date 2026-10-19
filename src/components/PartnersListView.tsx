@@ -29,6 +29,7 @@ interface PartnersListViewProps {
 
 export function PartnersListView({
   partners,
+  batches = [],
   initialFilter = "ALL",
   onSelectPartner,
   onOpenPartnerModal,
@@ -38,6 +39,19 @@ export function PartnersListView({
 }: PartnersListViewProps) {
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState<"ALL" | "CLIENT" | "SUPPLIER" | "DEBT_US" | "DEBT_THEM">(initialFilter);
+
+  const { pendingDebtMap, totalPendingDebt } = useMemo(() => {
+    const map = new Map<number, number>();
+    let total = 0;
+    batches.forEach((b) => {
+      if (b.accountedAt === null && b.supplierId) {
+        const cost = b.totalCost || 0;
+        map.set(b.supplierId, (map.get(b.supplierId) || 0) + cost);
+        total += cost;
+      }
+    });
+    return { pendingDebtMap: map, totalPendingDebt: total };
+  }, [batches]);
 
   // Filtrlash va yig'indilar — faqat ma'lumot/filtr o'zgarganda.
   const {
@@ -199,9 +213,16 @@ export function PartnersListView({
             <strong className="text-xl sm:text-2xl font-black text-rose-600 dark:text-rose-400 mt-1 block">
               {formatUSD(totalSuppliersCredit)}
             </strong>
-            <span className="text-[11px] text-slate-400 block mt-0.5">
-              {totalCreditorsCount} ta ta’minotchi haqi
-            </span>
+            <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+              <span className="text-[11px] text-slate-400">
+                {totalCreditorsCount} ta ta’minotchi haqi
+              </span>
+              {totalPendingDebt > 0 && (
+                <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400">
+                  (+{formatUSD(totalPendingDebt)} kutilmoqda)
+                </span>
+              )}
+            </div>
           </div>
           <div className="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
             <TrendingDown className="w-5 h-5" />
@@ -285,6 +306,7 @@ export function PartnersListView({
       <div className="space-y-3 block md:hidden">
         {filteredPartners.map((pt) => {
           const balance = pt.balance || 0;
+          const pendingDebt = pendingDebtMap.get(pt.id) || 0;
           return (
             <div
               key={pt.id}
@@ -310,6 +332,11 @@ export function PartnersListView({
                   <span className={`text-base font-black block mt-0.5 ${balanceColor(balance)}`}>
                     {balanceText(balance)}
                   </span>
+                  {pendingDebt > 0 && (
+                    <span className="block text-[10px] font-semibold text-amber-600 dark:text-amber-400">
+                      +{formatUSD(pendingDebt)} (kutilmoqda)
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -369,6 +396,7 @@ export function PartnersListView({
             <tbody className="divide-y divide-slate-100 dark:divide-white/[0.05] text-xs text-slate-700 dark:text-slate-300">
               {filteredPartners.map((pt) => {
                 const balance = pt.balance || 0;
+                const pendingDebt = pendingDebtMap.get(pt.id) || 0;
                 return (
                   <tr
                     key={pt.id}
@@ -397,7 +425,12 @@ export function PartnersListView({
                         balance
                       )}`}
                     >
-                      {balanceText(balance)}
+                      <div>{balanceText(balance)}</div>
+                      {pendingDebt > 0 && (
+                        <div className="text-[10px] font-semibold text-amber-600 dark:text-amber-400">
+                          +{formatUSD(pendingDebt)} (kutilmoqda)
+                        </div>
+                      )}
                     </td>
                     <td className="py-3.5 px-4 text-right">{renderActions(pt)}</td>
                   </tr>

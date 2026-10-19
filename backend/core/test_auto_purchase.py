@@ -51,8 +51,10 @@ class AutoBatchAPITests(APITestCase):
         self.assertEqual(batches.first().flight_date, date(2026, 10, 20))
         self.assertEqual(batches.last().flight_date, date(2026, 12, 29))
 
-        # Har bir partiya bir xil narx/son va 13 kunlik qaytish oraliği bilan
-        for batch in batches:
+        # Birinchi partiya darhol hisobga olingan, qolgan 10 tasi kutilayotgan (None)
+        first = batches.first()
+        self.assertIsNotNone(first.accounted_at)
+        for batch in list(batches)[1:]:
             self.assertTrue(batch.is_auto)
             self.assertIsNone(batch.accounted_at)
             self.assertEqual(batch.total_qty, 60)
@@ -125,24 +127,25 @@ class AccountingTests(APITestCase):
         created, series_id = self._auto()
         self.assertEqual(len(created), 3)  # 01, 08, 15 noyabr
 
+        # Birinchi partiya darhol hisobga olinadi ($1000)
         self.supplier.refresh_from_db()
-        self.assertEqual(self.supplier.compute_financials()["total_sold_to_us"], Decimal("0.00"))
+        self.assertEqual(self.supplier.compute_financials()["total_sold_to_us"], Decimal("1000.00"))
 
-        first = created[0]
-        res = self.client.post(f"/api/batches/{first['id']}/account/")
+        second = created[1]
+        res = self.client.post(f"/api/batches/{second['id']}/account/")
         self.assertEqual(res.status_code, 200, res.data)
         self.assertIsNotNone(res.data["accountedAt"])
 
         self.supplier.refresh_from_db()
         self.assertEqual(
-            self.supplier.compute_financials()["total_sold_to_us"], Decimal("1000.00")
+            self.supplier.compute_financials()["total_sold_to_us"], Decimal("2000.00")
         )
 
         res = self.client.post(
             "/api/batches/account-all/", {"seriesId": series_id}, format="json"
         )
         self.assertEqual(res.status_code, 200, res.data)
-        self.assertEqual(res.data["updated"], 2)
+        self.assertEqual(res.data["updated"], 1)
         self.supplier.refresh_from_db()
         self.assertEqual(
             self.supplier.compute_financials()["total_sold_to_us"], Decimal("3000.00")

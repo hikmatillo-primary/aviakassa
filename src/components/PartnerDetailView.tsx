@@ -97,14 +97,17 @@ export function PartnerDetailView({
 
   // Filter specific data for this partner
   const partnerBatches = batches.filter((b) => b.supplierId === partnerId);
+  const accountedBatches = partnerBatches.filter((b) => b.accountedAt !== null);
+  const pendingBatches = partnerBatches.filter((b) => b.accountedAt === null);
   const partnerSales = sales.filter((s) => s.clientId === partnerId);
   const partnerPayments = payments.filter((p) => p.partnerId === partnerId);
   const partnerOffsets = debtOffsets.filter(
     (o) => o.fromPartnerId === partnerId || o.toPartnerId === partnerId
   );
 
-  // Financial totals
-  const totalSoldToUs = partnerBatches.reduce((sum, b) => sum + (b.totalCost || 0), 0);
+  // Financial totals: Only accounted batches count towards current debt
+  const totalSoldToUs = accountedBatches.reduce((sum, b) => sum + (b.totalCost || 0), 0);
+  const totalPendingDebt = pendingBatches.reduce((sum, b) => sum + (b.totalCost || 0), 0);
   const totalBoughtFromUs = partnerSales.reduce((sum, s) => sum + (s.totalAmount || 0), 0);
 
   const totalPaidToUs = partnerPayments
@@ -343,7 +346,7 @@ export function PartnerDetailView({
             </strong>
             <div className="mt-2.5 pt-2.5 border-t border-slate-200/50 dark:border-white/[0.06] space-y-1 text-[11px] tabular-nums">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-slate-400">{partnerBatches.length} ta partiya yig‘indisi</span>
+                <span className="text-slate-400">{accountedBatches.length} ta hisobga olingan partiya</span>
                 <span className="font-semibold text-slate-600 dark:text-slate-300">
                   {formatUSD(totalSoldToUs)}
                 </span>
@@ -370,6 +373,12 @@ export function PartnerDetailView({
                   {formatUSD(Math.abs(supplierDebt))}
                 </span>
               </div>
+              {totalPendingDebt > 0 && (
+                <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-dashed border-amber-500/30 text-amber-600 dark:text-amber-400">
+                  <span className="font-medium">Kutilayotgan qarzdorlik ({pendingBatches.length} ta):</span>
+                  <span className="font-bold">+{formatUSD(totalPendingDebt)}</span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -428,6 +437,12 @@ export function PartnerDetailView({
                 <span>= Umumiy sal’do</span>
                 <span>{netBalance === 0 ? "$0" : signedUSD(netBalance)}</span>
               </div>
+              {totalPendingDebt > 0 && (
+                <div className="flex items-center justify-between gap-2 pt-1 border-t border-dashed border-amber-500/30 text-amber-600 dark:text-amber-400">
+                  <span className="font-medium">Kutilayotgan:</span>
+                  <span className="font-bold">+{formatUSD(totalPendingDebt)}</span>
+                </div>
+              )}
             </div>
             <div className="text-[11px] font-medium pt-2 mt-2 border-t border-black/5 dark:border-white/5">
               {netBalance < 0 ? (
@@ -513,40 +528,29 @@ export function PartnerDetailView({
             {filteredSales.map((s) => (
               <div
                 key={s.id}
-                className="bg-slate-50/60 dark:bg-white/[0.02] p-3.5 sm:p-4 rounded-xl border border-slate-200/70 dark:border-white/[0.06] flex flex-col sm:flex-row items-stretch justify-between gap-3 hover:border-slate-300 dark:hover:border-white/[0.12] transition-colors"
+                className="group relative overflow-hidden bg-slate-50/60 dark:bg-white/[0.02] p-3.5 sm:p-4 rounded-xl border border-slate-200/70 dark:border-white/[0.06] flex flex-col sm:flex-row items-stretch justify-between gap-3 hover:border-emerald-300/70 dark:hover:border-emerald-500/30 hover:bg-slate-100/60 dark:hover:bg-white/[0.04] hover:shadow-sm transition-all"
               >
-                <div className="flex-1 min-w-0 space-y-1.5">
-                  <div className="flex items-center gap-2 flex-wrap text-xs">
-                    <span className="font-bold text-slate-900 dark:text-white">
-                      {s.route || "---"}
-                    </span>
-                    {s.flightNumber && (
-                      <span className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-white/[0.08] font-mono text-[11px] font-bold">
-                        {s.flightNumber}
-                      </span>
-                    )}
-                    <span className="text-slate-400">• Sotuv: {formatDate(s.saleDate)}</span>
-                    {s.flightDate && (
-                      <span className="text-slate-500 dark:text-slate-400">
-                        • Parvoz: {formatDate(s.flightDate, false)}
-                      </span>
-                    )}
+                <div className="flex-1 min-w-0 flex items-start gap-3">
+                  <div className="hidden sm:flex shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500/15 to-emerald-500/[0.04] text-emerald-600 dark:text-emerald-400 items-center justify-center ring-1 ring-inset ring-emerald-500/15 mt-0.5">
+                    <ShoppingBag className="w-5 h-5" />
                   </div>
 
-                  <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 flex-wrap pt-0.5 tabular-nums">
-                    <span>
-                      Soni: <b className="text-blue-600 dark:text-blue-400 font-bold">{s.qty} ta</b>
-                    </span>
-                    {s.departureTime && (
-                      <span>
-                        Vaqti: <b className="font-mono text-slate-700 dark:text-slate-300">{s.departureTime}{s.arrivalTime ? `–${s.arrivalTime}` : ""}</b>
+                  <div className="flex-1 min-w-0 space-y-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <FlightBar batch={s} size="sm" showSubtitle={false} />
+                      <span className="text-slate-400 text-xs font-medium">• Sotuv: {formatDate(s.saleDate)}</span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 flex-wrap pt-0.5 tabular-nums text-xs">
+                      <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white/80 dark:bg-white/[0.04] border border-slate-200/70 dark:border-white/[0.06] text-slate-500 dark:text-slate-400">
+                        Soni: <b className="text-blue-600 dark:text-blue-400 font-bold">{s.qty} ta</b>
                       </span>
-                    )}
-                    {s.passengerNames && (
-                      <span className="truncate max-w-[200px]">
-                        Yo‘lovchi: <b className="text-slate-700 dark:text-slate-300">{s.passengerNames}</b>
-                      </span>
-                    )}
+                      {s.passengerNames && (
+                        <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white/80 dark:bg-white/[0.04] border border-slate-200/70 dark:border-white/[0.06] text-slate-500 dark:text-slate-400 truncate max-w-xs">
+                          Yo‘lovchi: <b className="text-slate-700 dark:text-slate-300 truncate">{s.passengerNames}</b>
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -634,6 +638,11 @@ export function PartnerDetailView({
                       <span className="font-mono text-[11px] font-bold px-2 py-0.5 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 ring-1 ring-inset ring-blue-500/20">
                         {b.batchNumber || "---"}
                       </span>
+                      {b.accountedAt === null && (
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                          Kutilmoqda (qarzga kirmagan)
+                        </span>
+                      )}
                     </div>
 
                     <div className="flex items-center gap-1.5 flex-wrap pt-0.5 tabular-nums text-xs">

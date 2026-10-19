@@ -256,6 +256,7 @@ export function AppContainer() {
             batches={batches}
             sales={sales}
             payments={payments}
+            debtOffsets={debtOffsets}
             partners={partners}
             onViewAllBatches={() => {
               setActiveTab("inventory");
@@ -290,6 +291,7 @@ export function AppContainer() {
             batches={batches}
             suppliers={suppliers}
             categories={data.categories || []}
+            onCreateCategory={actions.handleCreateCategory}
             onAccountBatch={actions.handleAccountBatch}
             onAccountSeries={actions.handleAccountSeries}
             onOpenBatchModal={modals.handleOpenBatchModal}
@@ -328,6 +330,7 @@ export function AppContainer() {
           ) : (
             <BatchesView
               batches={batches}
+              categories={data.categories || []}
               onOpenBatchModal={modals.handleOpenBatchModal}
               onEditBatch={modals.handleOpenEditBatch}
               onFullEditBatch={modals.handleOpenFullEditBatch}

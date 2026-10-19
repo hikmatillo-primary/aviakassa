@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Search, PackagePlus, Users, Calendar, Pencil, SquarePen, Trash2 } from "lucide-react";
+import { Search, PackagePlus, Users, Calendar, Pencil, SquarePen, Trash2, Tag } from "lucide-react";
 import { formatUSD, formatDate, matchesBatchSearch, isDateInRange } from "@/lib/format";
 import { FlightBar } from "@/components/FlightBar";
 import { RowActionsMenu } from "@/components/RowActionsMenu";
@@ -18,6 +18,7 @@ interface PartnersViewProps {
   onOpenHistoryModal?: (partnerId: number) => void;
   onSelectBatch?: (batchId: number) => void;
   categories?: Array<{ id: number; name: string }>;
+  onCreateCategory?: (name: string) => Promise<any> | void;
   onAccountBatch?: (batch: any) => void | Promise<void>;
   onAccountSeries?: (seriesId: string) => void | Promise<void>;
 }
@@ -33,6 +34,7 @@ export function PartnersView({
   onOpenHistoryModal,
   onSelectBatch,
   categories = [],
+  onCreateCategory,
   onAccountBatch,
   onAccountSeries,
 }: PartnersViewProps) {
@@ -65,6 +67,22 @@ export function PartnersView({
           </h1>
         </div>
         <div className="grid grid-cols-2 sm:flex items-center gap-2.5 w-full sm:w-auto">
+          {onCreateCategory && (
+            <button
+              type="button"
+              onClick={async () => {
+                const name = window.prompt("Yangi xarid turi (kategoriya) nomini kiriting:");
+                if (name && name.trim()) {
+                  await onCreateCategory(name.trim());
+                }
+              }}
+              className="inline-flex items-center justify-center gap-1.5 sm:gap-2 px-3.5 sm:px-4 py-2.5 bg-white dark:bg-white/[0.06] hover:bg-slate-100 dark:hover:bg-white/[0.1] text-slate-700 dark:text-slate-200 text-xs font-semibold rounded-xl shadow-2xs border border-slate-200/80 dark:border-white/[0.08] transition-all cursor-pointer"
+            >
+              <Tag className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-500 dark:text-slate-400 shrink-0" />
+              <span>+ Kategoriya</span>
+            </button>
+          )}
+
           {onOpenPartnerModal && (
             <button
               onClick={() => onOpenPartnerModal("SUPPLIER")}

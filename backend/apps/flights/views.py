@@ -69,14 +69,17 @@ class BatchViewSet(viewsets.ModelViewSet):
         shared = {
             "supplierId": data.get("supplierId"),
             "purchaseDate": data.get("purchaseDate"),
-            "categoryId": data.get("categoryId"),
         }
+        fallback_category_id = data.get("categoryId")
 
         created = []
         payment = None
         with transaction.atomic(using=get_active_alias()):
             for item in items:
-                serializer = self.get_serializer(data={**item, **shared})
+                item_data = {**shared, **item}
+                if "categoryId" not in item_data or item_data["categoryId"] is None:
+                    item_data["categoryId"] = fallback_category_id
+                serializer = self.get_serializer(data=item_data)
                 serializer.is_valid(raise_exception=True)
                 created.append(serializer.save())
 

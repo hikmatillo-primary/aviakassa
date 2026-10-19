@@ -102,12 +102,12 @@ export function useAviakassaActions({
       const res = await apiCreateAutoBatches(payload);
       await syncFromServer();
       showToast(
-        `${res.count} ta avto-partiya yaratildi` +
+        `${res.count} ta shartnomali partiya yaratildi (birinchisi hisobga olindi)` +
           (res.skipped.length ? `, ${res.skipped.length} tasi allaqachon bor edi` : "")
       );
       return res;
     } catch (e) {
-      console.error("Avto-xarid yaratishda xato:", e);
+      console.error("Shartnomali xarid yaratishda xato:", e);
       throw e;
     }
   };
@@ -219,6 +219,7 @@ export function useAviakassaActions({
     paymentMethod?: string;
     accountId?: number;
     categoryId?: number;
+    appendToBatchId?: number;
     notes?: string;
     items: Array<{
       route: string;
@@ -235,11 +236,44 @@ export function useAviakassaActions({
       buyPrice: number;
       baggage?: string;
       notes?: string;
+      categoryId?: number;
       batchNumber?: string;
     }>;
   }) => {
     const routeNames: string[] = [];
     try {
+      // Agar shu partiyani ichidan aynan shu hamkor bilan qo'shilayotgan bo'lsa:
+      // yangi partiya ochmasdan, mavjud partiyaning chiptalar sonini oshiramiz.
+      if (batchInput.appendToBatchId) {
+        const existingBatch = batches.find((b) => b.id === batchInput.appendToBatchId);
+        if (existingBatch) {
+          const addedQty = batchInput.items.reduce((s, it) => s + Number(it.totalQty || 0), 0);
+          const newTotalQty = (existingBatch.totalQty || 0) + addedQty;
+          const updateData: Record<string, unknown> = {
+            totalQty: newTotalQty,
+          };
+          if (batchInput.items[0]?.buyPrice && Number(batchInput.items[0].buyPrice) > 0) {
+            updateData.buyPrice = Number(batchInput.items[0].buyPrice);
+          }
+          await apiUpdateBatch(existingBatch.id, updateData);
+
+          if (batchInput.paidNow && batchInput.paidNow > 0) {
+            await apiCreatePayment({
+              partnerId: batchInput.supplierId,
+              amount: batchInput.paidNow,
+              type: "EXPENSE",
+              paymentMethod: batchInput.paymentMethod || "CASH",
+              accountId: batchInput.accountId,
+              notes: `Partiyaga chipta qo'shish uchun to'lov (${existingBatch.batchNumber || ""})`,
+            });
+          }
+
+          await syncFromServer();
+          showToast(`Mavjud partiyaga (${existingBatch.batchNumber || ""}) ${addedQty} ta chipta qo'shildi! ✈️`);
+          return;
+        }
+      }
+
       const items = batchInput.items.map((item) => {
         routeNames.push(item.route);
         const fullNotes = [
@@ -263,6 +297,7 @@ export function useAviakassaActions({
           baggage: item.baggage,
           totalQty: item.totalQty,
           buyPrice: item.buyPrice,
+          categoryId: item.categoryId || batchInput.categoryId || undefined,
           notes: fullNotes,
           batchNumber: item.batchNumber?.trim() || undefined,
         };

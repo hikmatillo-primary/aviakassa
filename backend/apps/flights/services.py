@@ -48,7 +48,10 @@ def generate_auto_batches(
     series_id = uuid.uuid4()
     created = []
     with transaction.atomic(using=db):
-        for flight_date in dates:
+        for idx, flight_date in enumerate(dates):
+            # Birinchi partiya darhol hisobga olinadi (qarzga qo'shiladi),
+            # qolganlari esa kutilayotgan qarzdorlik bo'lib turadi.
+            is_first = (idx == 0)
             batch = Batch(
                 **base_data,
                 flight_date=flight_date,
@@ -58,7 +61,7 @@ def generate_auto_batches(
                     else None
                 ),
                 is_auto=True,
-                accounted_at=None,
+                accounted_at=timezone.now() if is_first else None,
                 series_id=series_id,
                 status=Batch.Status.ACTIVE,
             )

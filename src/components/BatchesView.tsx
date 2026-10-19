@@ -16,6 +16,7 @@ import { DateRangeFilter } from "@/components/DateRangeFilter";
 
 interface BatchesViewProps {
   batches: any[];
+  categories?: Array<{ id: number; name: string }>;
   onOpenBatchModal?: () => void;
   onEditBatch?: (batch: any) => void;
   onFullEditBatch?: (batch: any) => void;
@@ -26,6 +27,7 @@ interface BatchesViewProps {
 
 export function BatchesView({
   batches,
+  categories = [],
   onOpenBatchModal,
   onEditBatch,
   onFullEditBatch,
@@ -37,12 +39,14 @@ export function BatchesView({
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [soldFilter, setSoldFilter] = useState<"ALL" | "SOLD" | "UNSOLD">("ALL");
+  const [categoryFilter, setCategoryFilter] = useState("");
 
   const clearAllFilters = () => {
     setSearch("");
     setDateFrom("");
     setDateTo("");
     setSoldFilter("ALL");
+    setCategoryFilter("");
   };
 
   // Filtrlash va yig'indilar faqat filtr/ma'lumot o'zgarganda qayta hisoblanadi.
@@ -51,6 +55,7 @@ export function BatchesView({
       const rows = batches.filter((b) => {
         if (!matchesBatchSearch(b, search)) return false;
         if (!isDateInRange(b.purchaseDate, dateFrom, dateTo)) return false;
+        if (categoryFilter && String(b.categoryId || "") !== categoryFilter) return false;
         if (soldFilter === "ALL") return true;
         const outLeft = b.remainingQty || 0;
         const retLeft = b.isRoundTrip ? getBatchSegmentRemaining(b, "RETURN") : 0;
@@ -86,7 +91,7 @@ export function BatchesView({
         filteredRemainingQty: remainingQty,
         filteredTotalCost: totalCost,
       };
-    }, [batches, search, dateFrom, dateTo, soldFilter]);
+    }, [batches, search, dateFrom, dateTo, soldFilter, categoryFilter]);
 
   return (
     <div className="space-y-5">
@@ -122,6 +127,20 @@ export function BatchesView({
               setDateTo("");
             }}
           />
+          {categories.length > 0 && (
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="px-3 py-1.5 text-xs font-medium bg-slate-50/80 dark:bg-white/[0.04] border border-slate-200/70 dark:border-white/[0.08] rounded-xl text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/40 cursor-pointer"
+            >
+              <option value="">Barcha turlar</option>
+              {categories.map((c) => (
+                <option key={c.id} value={String(c.id)}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          )}
           <select
             value={soldFilter}
             onChange={(e) =>
